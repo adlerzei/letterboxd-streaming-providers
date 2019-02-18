@@ -1,0 +1,29 @@
+{
+  "description": "Adds a filter for streaming services to Letterboxd.",
+  "author": "Christian Zei",
+  "manifest_version": 2,
+  "name": "Letterboxd Streaming Services",
+  "version": "1.0",
+  "icons": {
+    "48": "icons/lss-ext-logo-48.png",
+    "128": "icons/lss-ext-logo-128.png"
+  },
+
+  "permissions": [
+    "activeTab",
+    "*://themoviedb.org/*",
+    "*://justwatch.com/*",
+    "*://letterbox.com/*"
+  ],
+
+  "background": {
+    "scripts": ["background.js"]
+  },
+
+  "browser_action": {
+    "default_icon": "icons/lss-ext-logo-32.png",
+    "default_title": "Letterboxd Streaming Services",
+    "default_popup": "popup/popup.html"
+  }
+
+}
