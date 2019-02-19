@@ -1,5 +1,4 @@
-# Letterboxd Streaming Services
-![Logo](./icons/lss-ext-logo-128.png)
+# Letterboxd Streaming Services ![Logo](./icons/lss-ext-logo-48.png)
 
 ## What?
 This is a extension for common web browsers coded using the WebExtensions API.
@@ -21,7 +20,7 @@ This is a third party extension and is not related to the Letterboxd developer t
 ### How to test?
 Just zip the whole directory and add it into your preferred web browser. \
 For instance in Chrome: 
-- go to chrome://extensions
+- go to [chrome://extensions](chrome://extensions)
 - activate developer mode 
 - drag & drop the zipped file into the tab.
 
