@@ -12,6 +12,9 @@ The extension uses the TMDb API for assigning the original movie titles to the e
 ### Which browser to use?
 The extension can be added into Chrome, Firefox and Opera.
 
+### Which countries are supported?
+Actually only german streaming services are supported. Coming soon: US, Canada, UK.
+
 ### Important Notice
 This is a third party extension and is not related to the Letterboxd developer team in any way.
 
