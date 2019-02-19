@@ -1,4 +1,5 @@
 # Letterboxd Streaming Services
+![Logo](./icons/lss-ext-logo-128.png)
 
 ## What?
 This is a extension for common web browsers coded using the WebExtensions API.
