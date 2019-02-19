@@ -47,7 +47,7 @@
           <entry key="html" value="80" />
           <entry key="js" value="446" />
           <entry key="json" value="182" />
-          <entry key="md" value="1674" />
+          <entry key="md" value="1731" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
@@ -56,7 +56,7 @@
           <entry key="HTML" value="80" />
           <entry key="JSON" value="182" />
           <entry key="JavaScript" value="446" />
-          <entry key="Markdown" value="1674" />
+          <entry key="Markdown" value="1731" />
           <entry key="PLAIN_TEXT" value="15" />
         </counts>
       </usages-collector>
@@ -77,8 +77,8 @@
         <entry file="file://$PROJECT_DIR$/README.md">
           <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
             <state split_layout="SPLIT">
-              <first_editor relative-caret-position="170">
-                <caret line="10" lean-forward="true" selection-start-line="10" selection-end-line="10" />
+              <first_editor relative-caret-position="459">
+                <caret line="27" column="129" selection-start-line="27" selection-start-column="129" selection-end-line="27" selection-end-column="129" />
               </first_editor>
               <second_editor />
             </state>
@@ -212,12 +212,12 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1550527266086</updated>
-      <workItem from="1550527268169" duration="6468000" />
+      <workItem from="1550527268169" duration="7237000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="6468000" />
+    <option name="totallyTimeSpent" value="7237000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="1912" y="-8" width="1936" height="1056" extended-state="6" />
@@ -300,8 +300,8 @@
     <entry file="file://$PROJECT_DIR$/README.md">
       <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
         <state split_layout="SPLIT">
-          <first_editor relative-caret-position="170">
-            <caret line="10" lean-forward="true" selection-start-line="10" selection-end-line="10" />
+          <first_editor relative-caret-position="459">
+            <caret line="27" column="129" selection-start-line="27" selection-start-column="129" selection-end-line="27" selection-end-column="129" />
           </first_editor>
           <second_editor />
         </state>

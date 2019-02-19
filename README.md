@@ -1,4 +1,4 @@
-# Letterboxd Streaming Services ![Logo](./icons/lss-ext-logo-48.png)
+# Letterboxd Streaming Services ![Logo](./icons/lss-ext-logo-48.png) 
 
 ## What?
 This is a extension for common web browsers coded using the WebExtensions API.
@@ -25,4 +25,4 @@ For instance in Chrome:
 - drag & drop the zipped file into the tab.
 
 ## Acknowledgements
-Thanks to everyone using, supporting and contributing to the extension. Philipp Emmer is especially mentioned for the idea for this extension.
+Thanks to everyone using, supporting and contributing to the extension. Philipp Emmer is especially mentioned for the idea behind this extension.
