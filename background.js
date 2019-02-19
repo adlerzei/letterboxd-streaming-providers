@@ -1,11 +1,35 @@
-"use strict";
+"use-strict";
 
 //for compatibility reasons
 var browser = chrome;
 
 var provider_id = 8; //netflix: 8, amazon prime: 9
 
+var providers;
+
 var availableMovies = [];
+
+const onStartUp = async () => {
+  loadJSON("streaming-services/services.json", function(response) {
+    // Parse JSON string into object
+    providers = JSON.parse(response);
+  });
+};
+
+const loadJSON = (path, callback) => {
+  var xobj = new XMLHttpRequest();
+  xobj.overrideMimeType("application/json");
+  xobj.open('GET', path, true); // Replace 'my_data' with the path to your file
+  xobj.onreadystatechange = function () {
+    if (xobj.readyState == 4 && xobj.status == "200") {
+      // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+      callback(xobj.responseText);
+    }
+  };
+  xobj.send(null);
+};
+
+onStartUp();
 
 /**
  * Checks if a movie is available and adds it to availableMovies
