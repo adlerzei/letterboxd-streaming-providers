@@ -79,8 +79,8 @@ async function isIncluded(toFind, tabId, lastEntry) {
       if(!found_perfect_match) {
         for (let item in title_rsp.results) {
           if (title_rsp.results[item].title.toLowerCase() === eng_title.toLowerCase()
-            && ((title_rsp.results[item].release_date.includes(movie_release_year - 1)) || (title_rsp.results[item].release_date.includes(movie_release_year + 1)) || (movie_release_year === -1))) {
-            original_title = title_rsp.results[item].original_title
+            && ((movie_release_year === -1) || (title_rsp.results[item].release_date.includes(movie_release_year - 1)) || (title_rsp.results[item].release_date.includes(movie_release_year + 1)))) {
+            original_title = title_rsp.results[item].original_title;
           }
         }
       }
@@ -96,6 +96,7 @@ async function isIncluded(toFind, tabId, lastEntry) {
       xhttp.send();
 
       xhttp.onreadystatechange = function () {
+        var available = false;
         if (xhttp.readyState === 4 && xhttp.status === 200) {
           rsp = JSON.parse(xhttp.response);
           for (let item in rsp.items) {
@@ -104,6 +105,7 @@ async function isIncluded(toFind, tabId, lastEntry) {
               for (let offer in rsp.items[item].offers) {
                 if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && rsp.items[item].offers[offer].provider_id === provider_id) {
                   availableMovies.push(movie_letterboxd_id);
+                  available = true;
                   break;
                 }
               }
@@ -117,6 +119,7 @@ async function isIncluded(toFind, tabId, lastEntry) {
                 for (let offer in rsp.items[item].offers) {
                   if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && rsp.items[item].offers[offer].provider_id === provider_id) {
                     availableMovies.push(movie_letterboxd_id);
+                    available = true;
                     break;
                   }
                 }
@@ -125,9 +128,11 @@ async function isIncluded(toFind, tabId, lastEntry) {
             }
           }
 
-          if(lastEntry) {
-            fadeUnstreamedMovies(tabId);
+          if(!available) {
+            fadeUnstreamedMovie(tabId, movie_letterboxd_id);
           }
+        } else if (xhttp.readyState === 4 && xhttp.status === 400) {
+          fadeUnstreamedMovie(tabId, movie_letterboxd_id);
         }
       }
     }
@@ -150,6 +155,8 @@ function checkForLetterboxd(tabId, changeInfo, tabInfo) {
     var url = tabInfo.url;
     if(url.includes("://letterboxd.com/") || url.includes("://www.letterboxd.com/") ) {
       if (url.includes('watchlist') || url.includes('films') || url.includes('likes')) {
+        availableMovies = [];
+        crawledMovies = {};
         getFilmsFromLetterboxd(tabId);
       }
     }
@@ -174,6 +181,7 @@ function handleMessage(request, sender, sendResponse) {
 function checkMovieAvailability(movies, tabId) {
   var lastIterationId = Object.keys(movies).length;
   var i = 1;
+  prepareLetterboxdForFading(tabId);
   for(let movie in movies) {
     var inc = isIncluded({
       title: movie,
@@ -182,6 +190,25 @@ function checkMovieAvailability(movies, tabId) {
     }, tabId, i === lastIterationId);
     i++;
   }
+}
+
+function prepareLetterboxdForFading(tabId) {
+  browser.tabs.insertCSS(tabId, {
+      file: "./style/hideunstreamed.css"
+  });
+
+  browser.tabs.executeScript(tabId, {
+      code: "document.body.className = document.body.className + ' hide-films-unstreamed';",
+      allFrames: false
+  });
+}
+
+function fadeUnstreamedMovie(tabId, movieId) {
+  browser.tabs.executeScript(tabId, {
+      code: "filmposters = document.body.getElementsByClassName('poster-container'); \n" +
+      "filmposters[" + movieId + "].className = filmposters[" + movieId + "].className + ' film-not-streamed';",
+      allFrames: false
+  });
 }
 
 function fadeUnstreamedMovies(tabId) {
