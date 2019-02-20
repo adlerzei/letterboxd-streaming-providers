@@ -1,3 +1,4 @@
-/.idea/*
-/.idea/
 /letterboxd-streaming-services.zip
+*.zip
+/.idea/
+/.idea/*
