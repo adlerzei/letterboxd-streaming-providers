@@ -28,4 +28,4 @@ For instance in Chrome:
 - drag & drop the zipped file into the tab.
 
 ## Acknowledgements
-Thanks to everyone using, supporting and contributing to the extension. Philipp Emmer is especially mentioned for the idea behind this extension.
+Thanks to everyone using, supporting and contributing to the extension. Philkjhgfdyipp Emmer is especially mentioned for the idea behind this extension.

@@ -10,10 +10,11 @@
   },
 
   "permissions": [
-    "activeTab",
-    "*://themoviedb.org/*",
-    "*://justwatch.com/*",
-    "*://letterbox.com/*"
+    "tabs",
+    "*://api.themoviedb.org/*",
+    "*://apis.justwatch.com/*",
+    "*://letterboxd.com/*",
+    "*://www.letterboxd.com/*"
   ],
 
   "background": {
