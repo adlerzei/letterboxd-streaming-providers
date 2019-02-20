@@ -10,6 +10,8 @@ var providers;
 var availableMovies = [];
 var crawledMovies = {};
 
+var checkCounter = 0;
+
 const onStartUp = async () => {
   loadJSON("streaming-services/services.json", function(response) {
     // Parse JSON string into object
@@ -128,11 +130,21 @@ async function isIncluded(toFind, tabId, lastEntry) {
             }
           }
 
+          checkCounter++;
+
           if(!available) {
-            fadeUnstreamedMovie(tabId, movie_letterboxd_id);
+           // fadeUnstreamedMovie(tabId, movie_letterboxd_id);
           }
-        } else if (xhttp.readyState === 4 && xhttp.status === 400) {
-          fadeUnstreamedMovie(tabId, movie_letterboxd_id);
+
+          if(checkCounter === (Object.keys(crawledMovies).length)) {
+            fadeUnstreamedMovies(tabId);
+          }
+        } else if (xhttp.readyState === 4 && xhttp.status !== 200) {
+          //fadeUnstreamedMovie(tabId, movie_letterboxd_id);
+          checkCounter++;
+          if(checkCounter === (Object.keys(crawledMovies).length)) {
+            fadeUnstreamedMovies(tabId);
+          }
         }
       }
     }
@@ -155,6 +167,7 @@ function checkForLetterboxd(tabId, changeInfo, tabInfo) {
     var url = tabInfo.url;
     if(url.includes("://letterboxd.com/") || url.includes("://www.letterboxd.com/") ) {
       if (url.includes('watchlist') || url.includes('films') || url.includes('likes')) {
+        checkCounter = 0;
         availableMovies = [];
         crawledMovies = {};
         getFilmsFromLetterboxd(tabId);
@@ -212,15 +225,6 @@ function fadeUnstreamedMovie(tabId, movieId) {
 }
 
 function fadeUnstreamedMovies(tabId) {
-  browser.tabs.insertCSS(tabId, {
-    file: "./style/hideunstreamed.css"
-  });
-
-  browser.tabs.executeScript(tabId, {
-    code: "document.body.className = document.body.className + ' hide-films-unstreamed';",
-    allFrames: false
-  });
-
   for(let movie in crawledMovies) {
     if(!availableMovies.includes(crawledMovies[movie].id)) {
       browser.tabs.executeScript(tabId, {

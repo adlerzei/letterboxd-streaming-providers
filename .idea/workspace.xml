@@ -89,8 +89,8 @@
       <file leaf-file-name="background.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/background.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="328">
-              <caret line="134" column="10" selection-start-line="134" selection-start-column="10" selection-end-line="134" selection-end-column="10" />
+            <state relative-caret-position="478">
+              <caret line="145" column="12" selection-start-line="145" selection-start-column="12" selection-end-line="145" selection-end-column="12" />
             </state>
           </provider>
         </entry>
@@ -108,7 +108,7 @@
         <entry file="file://$PROJECT_DIR$/style/hideunstreamed.css">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="120">
-              <caret line="8" column="49" lean-forward="true" selection-start-line="8" selection-start-column="49" selection-end-line="8" selection-end-column="49" />
+              <caret line="8" column="49" selection-start-line="8" selection-start-column="49" selection-end-line="8" selection-end-column="49" />
             </state>
           </provider>
         </entry>
@@ -256,12 +256,13 @@
       <option name="presentableId" value="Default" />
       <updated>1550527266086</updated>
       <workItem from="1550527268169" duration="44740000" />
-      <workItem from="1550667855906" duration="4281000" />
+      <workItem from="1550667855906" duration="4882000" />
+      <workItem from="1550682623172" duration="1089000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="49021000" />
+    <option name="totallyTimeSpent" value="50711000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-3" y="23" width="1372" height="723" extended-state="6" />
@@ -271,12 +272,12 @@
       <window_info anchor="bottom" id="TODO" order="10" />
       <window_info anchor="bottom" id="Docker" order="3" show_stripe_button="false" />
       <window_info anchor="bottom" id="Event Log" order="1" side_tool="true" />
-      <window_info anchor="bottom" id="Run" order="6" />
       <window_info anchor="bottom" id="Version Control" order="2" show_stripe_button="false" />
+      <window_info anchor="bottom" id="Run" order="6" />
       <window_info id="Structure" order="2" side_tool="true" weight="0.25" />
       <window_info anchor="bottom" id="Terminal" order="0" />
-      <window_info anchor="bottom" id="Debug" order="7" weight="0.4" />
       <window_info id="Favorites" order="0" side_tool="true" />
+      <window_info anchor="bottom" id="Debug" order="7" weight="0.4" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="9" weight="0.4" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
@@ -298,6 +299,51 @@
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/manifest.json">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="105">
+          <caret line="7" column="29" selection-start-line="7" selection-start-column="29" selection-end-line="7" selection-end-column="29" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="450">
+            <caret line="30" column="79" selection-start-line="30" selection-start-column="79" selection-end-line="30" selection-end-column="79" />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/scripts/getFilmsFromLetterboxd.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="240">
+          <caret line="16" column="12" selection-start-line="16" selection-start-column="12" selection-end-line="16" selection-end-column="12" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/style/hideunstreamed.css">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="120">
+          <caret line="8" column="49" lean-forward="true" selection-start-line="8" selection-start-column="49" selection-end-line="8" selection-end-column="49" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/popup/popup.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="30">
+          <caret line="2" column="27" selection-start-line="2" selection-start-column="27" selection-end-line="2" selection-end-column="27" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/background.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2010">
+          <caret line="134" column="10" selection-start-line="134" selection-start-column="10" selection-end-line="134" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/manifest.json">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="105">
@@ -400,7 +446,7 @@
     <entry file="file://$PROJECT_DIR$/style/hideunstreamed.css">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="120">
-          <caret line="8" column="49" lean-forward="true" selection-start-line="8" selection-start-column="49" selection-end-line="8" selection-end-column="49" />
+          <caret line="8" column="49" selection-start-line="8" selection-start-column="49" selection-end-line="8" selection-end-column="49" />
         </state>
       </provider>
     </entry>
@@ -416,8 +462,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/background.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="328">
-          <caret line="134" column="10" selection-start-line="134" selection-start-column="10" selection-end-line="134" selection-end-column="10" />
+        <state relative-caret-position="478">
+          <caret line="145" column="12" selection-start-line="145" selection-start-column="12" selection-end-line="145" selection-end-column="12" />
         </state>
       </provider>
     </entry>
