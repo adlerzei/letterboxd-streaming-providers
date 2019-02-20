@@ -1,0 +1,60 @@
+.hide-films-unstreamed .film-not-streamed,
+body.my-watchlist .removed-from-watchlist {
+    opacity: .2;
+    transition: all .1s linear
+}
+
+.hide-films-unstreamed .film-not-streamed:active,
+.hide-films-unstreamed .film-not-streamed:hover,
+body.my-watchlist .removed-from-watchlist:active,
+body.my-watchlist .removed-from-watchlist:hover {
+    opacity: 1
+}
+
+.hide-films-unstreamed li.film-not-streamed {
+    opacity: 1;
+    transition: all .1s linear
+}
+
+.hide-films-unstreamed li.film-not-streamed>* {
+    opacity: .2;
+    transition: all .1s linear
+}
+
+.hide-films-unstreamed li.film-not-streamed:active>*,
+.hide-films-unstreamed li.film-not-streamed:hover>* {
+    opacity: 1
+}
+
+.hide-films-unstreamed #diary-table tr.film-not-streamed {
+    opacity: 1;
+    transition: all .1s linear
+}
+
+.hide-films-unstreamed #diary-table tr.film-not-streamed .td-actions>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed .td-film-details>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed .td-like>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed .td-rating>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed .td-released>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed .td-review>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed .td-rewatch>* {
+    opacity: .2;
+    transition: all .1s linear
+}
+
+.hide-films-unstreamed #diary-table tr.film-not-streamed:active .td-actions>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed:active .td-film-details>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed:active .td-like>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed:active .td-rating>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed:active .td-released>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed:active .td-review>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed:active .td-rewatch>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed:hover .td-actions>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed:hover .td-film-details>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed:hover .td-like>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed:hover .td-rating>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed:hover .td-released>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed:hover .td-review>*,
+.hide-films-unstreamed #diary-table tr.film-not-streamed:hover .td-rewatch>* {
+    opacity: 1
+}
