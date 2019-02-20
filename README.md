@@ -4,7 +4,7 @@
 This is a extension for common web browsers coded using the WebExtensions API.
 
 ## Main Features
-This extension adds a filter for some streaming services (e.g. Netflix, Amazon Prime) to Letterboxd (https://www.letterboxd.com/), so that you can see, which movies are included into your streaming flat rate.
+This extension adds a filter for some streaming services (e.g. Netflix, Amazon Prime) to Letterboxd (https://www.letterboxd.com/), so that you can see, which movies are included in your streaming flat rate.
 
 ### How?
 The extension uses the TMDb API for assigning the original movie titles to the english ones. Furthermore the JustWatch API is used for providing the streaming information.
@@ -13,7 +13,7 @@ The extension uses the TMDb API for assigning the original movie titles to the e
 The extension can be added into Chrome, Firefox and Opera.
 
 ### Which countries are supported?
-Actually only german streaming services are supported. Coming soon: US, Canada, UK.
+Actually only German streaming services are supported. Coming soon: US, Canada, UK.
 
 ### Important Notice
 This is a third party extension and is not related to the Letterboxd developer team in any way.
