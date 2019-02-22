@@ -22,5 +22,21 @@
   "at": {
     "code": "de_AT",
     "name": "Austria"
+  },
+  "fr": {
+    "code": "fr_FR",
+    "name": "France"
+  },
+  "es": {
+    "code": "es_ES",
+    "name": "Spain"
+  },
+  "ch": {
+    "code": "de_CH",
+    "name": "Switzerland"
+  },
+  "jp": {
+    "code": "ja_JP",
+    "name": "Japan"
   }
 }

@@ -7,17 +7,17 @@
   "netflix": {
     "provider_id": 8,
     "name": "Netflix",
-    "countries": ["de", "us", "mx", "ca", "uk", "at"]
+    "countries": ["de", "us", "mx", "ca", "uk", "at", "fr", "es", "ch", "jp"]
   },
   "amazon_prime": {
     "provider_id": 9,
     "name": "Amazon Prime Video",
-    "countries": ["de", "us", "uk", "at"]
+    "countries": ["de", "us", "uk", "at", "jp"]
   },
   "mubi": {
     "provder_id": 11,
     "name": "Mubi",
-    "countries": ["ca", "us", "mx", "uk", "de", "at"]
+    "countries": ["ca", "us", "mx", "uk", "de", "at", "fr", "es", "ch", "jp"]
   },
   "crackle": {
     "provider_id": 12,
@@ -32,7 +32,7 @@
   "hulu": {
     "provider_id": 15,
     "name": "Hulu",
-    "countries": ["us"]
+    "countries": ["us", "jp"]
   },
   "fandor": {
     "provider_id": 25,
@@ -62,7 +62,7 @@
   "alleskino": {
     "provder_id": 33,
     "name": "Alleskino",
-    "countries": ["de", "at"]
+    "countries": ["de", "at", "ch"]
   },
   "epix": {
     "provider_id": 34,
@@ -72,7 +72,7 @@
   "rakuten_tv": {
     "provider_id": 35,
     "name": "Rakuten TV",
-    "countries": ["de", "uk", "at"]
+    "countries": ["de", "uk", "at", "fr", "es", "ch"]
   },
   "now_tv": {
     "provder_id": 39,
@@ -84,6 +84,31 @@
     "name": "Starz",
     "countries": ["us"]
   },
+  "ocs_go": {
+    "provider_id": 56,
+    "name": "OCS Go",
+    "countries": ["fr"]
+  },
+  "canal_play": {
+    "provder_id": 57,
+    "name": "Canal Play",
+    "countries": ["fr"]
+  },
+  "atres_player": {
+    "provder_id": 62,
+    "name": "Atres Player",
+    "countries": ["es"]
+  },
+  "filmin": {
+    "provder_id": 63,
+    "name": "Filmin",
+    "countries": ["es"]
+  },
+  "flimin_plus": {
+    "provder_id": 64,
+    "name": "Filmin Plus",
+    "countries": ["es"]
+  },
   "filmin_latino": {
     "provder_id": 66,
     "name": "Filmin Latino",
@@ -94,10 +119,25 @@
     "name": "Blim",
     "countries": ["mx"]
   },
+  "u-next": {
+    "provider_id": 84,
+    "name": "U-NEXT",
+    "countries": ["jp"]
+  },
+  "dtv": {
+    "provider_id": 85,
+    "name": "dTV",
+    "countries": ["jp"]
+  },
+  "gyao": {
+    "provider_id": 86,
+    "name": "GYAO",
+    "countries": ["jp"]
+  },
   "kividoo": {
     "provder_id": 89,
     "name": "Kividoo",
-    "countries": ["de", "at"]
+    "countries": ["de", "at", "ch"]
   },
   "shudder": {
     "provider_id": 99,
@@ -107,17 +147,22 @@
   "guidedoc": {
     "provder_id": 100,
     "name": "GuideDoc",
-    "countries": ["ca", "us", "uk", "de", "at"]
+    "countries": ["ca", "us", "uk", "de", "at", "es", "ch"]
   },
   "all_4": {
     "provder_id": 103,
     "name": "All 4",
     "countries": ["uk"]
   },
+  "hbo_espana": {
+    "provder_id": 118,
+    "name": "HBO",
+    "countries": ["es"]
+  },
   "prime_video": {
     "provider_id": 119,
     "name": "Amazon Prime Video",
-    "countries": ["ca", "mx"]
+    "countries": ["ca", "mx", "fr", "es", "ch"]
   },
   "fxnow": {
     "provder_id": 123,
@@ -129,6 +174,11 @@
     "name": "DisneyLife",
     "countries": ["uk"]
   },
+  "filmo_tv": {
+    "provider_id": 138,
+    "name": "Filmo TV",
+    "countries": ["fr"]
+  },
   "max_go": {
     "provder_id": 139,
     "name": "Max Go",
@@ -137,7 +187,7 @@
   "flimmit": {
     "provder_id": 142,
     "name": "Flimmit",
-    "countries": ["de", "at"]
+    "countries": ["de", "at", "ch"]
   },
   "sundance_now": {
     "provider_id": 143,
@@ -148,6 +198,16 @@
     "provder_id": 146,
     "name": "iciTouTV",
     "countries": ["ca"]
+  },
+  "moviestar_plus": {
+    "provder_id": 149,
+    "name": "Moviestar Plus",
+    "countries": ["es"]
+  },
+  "swisscom": {
+    "provder_id": 150,
+    "name": "SwissCom",
+    "countries": ["ch"]
   },
   "britbox": {
     "provder_id": 151,
@@ -172,7 +232,7 @@
   "youtube_premium": {
     "provder_id": 188,
     "name": "YouTube Premium",
-    "countries": ["mx", "us", "ca", "uk", "de", "at"]
+    "countries": ["mx", "us", "ca", "uk", "de", "at", "fr", "es", "ch"]
   },
   "kanopy": {
     "provider_id": 191,
@@ -184,6 +244,11 @@
     "name": "Crave Plus",
     "countries": ["ca"]
   },
+  "sfr_play": {
+    "provder_id": 193,
+    "name": "SFR Play",
+    "countries": ["fr"]
+  },
   "starz_amazon": {
     "provder_id": 194,
     "name": "Starz Play Amazon Channel",
@@ -193,6 +258,11 @@
     "provder_id": 195,
     "name": "Animax Plus Amazon Channel",
     "countries": ["de"]
+  },
+  "sky": {
+    "provder_id": 150,
+    "name": "Sky",
+    "countries": ["ch"]
   },
   "freeform": {
     "provder_id": 211,
