@@ -7,6 +7,10 @@ var provider_id = 8; //netflix: 8, amazon prime: 9
 
 var providers;
 
+var countries;
+
+var country_code = "de_DE";
+
 var availableMovies = {};
 var crawledMovies = {};
 
@@ -16,6 +20,11 @@ const onStartUp = async () => {
   loadJSON("streaming-providers/providers.json", function(response) {
     // Parse JSON string into object
     providers = JSON.parse(response);
+  });
+
+  loadJSON("streaming-providers/countries.json", function(response) {
+    // Parse JSON string into object
+    countries = JSON.parse(response);
   });
 };
 
@@ -94,7 +103,7 @@ async function isIncluded(toFind, tabId) {
 
       xhttp = new XMLHttpRequest();
 
-      xhttp.open('GET', "https://apis.justwatch.com/content/titles/de_DE/popular?body=%7B%22age_certifications%22:null,%22content_types%22:null,%22genres%22:null,%22languages%22:null,%22max_price%22:null,%22min_price%22:null,%22page%22:1,%22page_size%22:30,%22presentation_types%22:null,%22providers%22:null,%22query%22:%22" + param + "%22,%22release_year_from%22:null,%22release_year_until%22:null,%22scoring_filter_types%22:null,%22timeline_type%22:null%7D", true);
+      xhttp.open('GET', "https://apis.justwatch.com/content/titles/" + country_code + "/popular?body=%7B%22age_certifications%22:null,%22content_types%22:null,%22genres%22:null,%22languages%22:null,%22max_price%22:null,%22min_price%22:null,%22page%22:1,%22page_size%22:30,%22presentation_types%22:null,%22providers%22:null,%22query%22:%22" + param + "%22,%22release_year_from%22:null,%22release_year_until%22:null,%22scoring_filter_types%22:null,%22timeline_type%22:null%7D", true);
 
       xhttp.send();
 
