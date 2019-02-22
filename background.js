@@ -13,7 +13,7 @@ var crawledMovies = {};
 var checkCounter = 0;
 
 const onStartUp = async () => {
-  loadJSON("streaming-services/services.json", function(response) {
+  loadJSON("streaming-providers/providers.json", function(response) {
     // Parse JSON string into object
     providers = JSON.parse(response);
   });

@@ -1,0 +1,26 @@
+{
+  "de": {
+    "code": "de_DE",
+    "name": "Germany"
+  },
+  "us": {
+    "code": "en_US",
+    "name": "US"
+  },
+  "ca": {
+    "code": "en_CA",
+    "name": "Canada"
+  },
+  "uk": {
+    "code": "en_UK",
+    "name": "United Kingdom"
+  },
+  "mx": {
+    "code": "es_MX",
+    "name": "Mexico"
+  },
+  "at": {
+    "code": "de_AT",
+    "name": "Austria"
+  }
+}
