@@ -1,0 +1,222 @@
+{
+  "maxdome": {
+    "provider_id": 6,
+    "name": "Maxdome",
+    "countries": ["de", "at"]
+  },
+  "netflix": {
+    "provider_id": 8,
+    "name": "Netflix",
+    "countries": ["de", "us", "mx", "ca", "uk", "at"]
+  },
+  "amazon_prime": {
+    "provider_id": 9,
+    "name": "Amazon Prime Video",
+    "countries": ["de", "us", "uk", "at"]
+  },
+  "mubi": {
+    "provder_id": 11,
+    "name": "Mubi",
+    "countries": ["ca", "us", "mx", "uk", "de", "at"]
+  },
+  "crackle": {
+    "provider_id": 12,
+    "name": "Crackle",
+    "countries": ["us", "mx"]
+  },
+  "realeyz": {
+    "provider_id": 14,
+    "name": "realeyz",
+    "countries": ["us", "de"]
+  },
+  "hulu": {
+    "provider_id": 15,
+    "name": "Hulu",
+    "countries": ["us"]
+  },
+  "fandor": {
+    "provider_id": 25,
+    "name": "Fandor",
+    "countries": ["ca", "us"]
+  },
+  "hbo_now": {
+    "provider_id": 27,
+    "name": "HBO Now",
+    "countries": ["us"]
+  },
+  "sky_go": {
+    "provider_id": 29,
+    "name": "Sky Go",
+    "countries": ["de", "uk", "at"]
+  },
+  "sky_ticket": {
+    "provider_id": 30,
+    "name": "Sky Ticket",
+    "countries": ["de", "at"]
+  },
+  "hbo_go": {
+    "provider_id": 31,
+    "name": "HBO Go",
+    "countries": ["mx", "us"]
+  },
+  "alleskino": {
+    "provder_id": 33,
+    "name": "Alleskino",
+    "countries": ["de", "at"]
+  },
+  "epix": {
+    "provider_id": 34,
+    "name": "Epix",
+    "countries": ["us"]
+  },
+  "rakuten_tv": {
+    "provider_id": 35,
+    "name": "Rakuten TV",
+    "countries": ["de", "uk", "at"]
+  },
+  "now_tv": {
+    "provder_id": 39,
+    "name": "Now TV",
+    "countries": ["uk"]
+  },
+  "starz": {
+    "provider_id": 43,
+    "name": "Starz",
+    "countries": ["us"]
+  },
+  "filmin_latino": {
+    "provder_id": 66,
+    "name": "Filmin Latino",
+    "countries": []
+  },
+  "blim": {
+    "provider_id": 67,
+    "name": "Blim",
+    "countries": ["mx"]
+  },
+  "kividoo": {
+    "provder_id": 89,
+    "name": "Kividoo",
+    "countries": ["de", "at"]
+  },
+  "shudder": {
+    "provider_id": 99,
+    "name": "Shudder",
+    "countries": ["us", "ca", "uk", "de", "at"]
+  },
+  "guidedoc": {
+    "provder_id": 100,
+    "name": "GuideDoc",
+    "countries": ["ca", "us", "uk", "de", "at"]
+  },
+  "all_4": {
+    "provder_id": 103,
+    "name": "All 4",
+    "countries": ["uk"]
+  },
+  "prime_video": {
+    "provider_id": 119,
+    "name": "Amazon Prime Video",
+    "countries": ["ca", "mx"]
+  },
+  "fxnow": {
+    "provder_id": 123,
+    "name": "FXNow",
+    "countries": ["us"]
+  },
+  "disneylife": {
+    "provder_id": 129,
+    "name": "DisneyLife",
+    "countries": ["uk"]
+  },
+  "max_go": {
+    "provder_id": 139,
+    "name": "Max Go",
+    "countries": ["us"]
+  },
+  "flimmit": {
+    "provder_id": 142,
+    "name": "Flimmit",
+    "countries": ["de", "at"]
+  },
+  "sundance_now": {
+    "provider_id": 143,
+    "name": "Sundance Now",
+    "countries": ["us", "ca"]
+  },
+  "icitoutv": {
+    "provder_id": 146,
+    "name": "iciTouTV",
+    "countries": ["ca"]
+  },
+  "britbox": {
+    "provder_id": 151,
+    "name": "BritBox",
+    "countries": ["us", "ca"]
+  },
+  "claro_video": {
+    "provider_id": 167,
+    "name": "Claro video",
+    "countries": ["mx"]
+  },
+  "netflix_kids": {
+    "provder_id": 175,
+    "name": "Netflix Kids",
+    "countries": ["us", "ca", "uk", "de", "at"]
+  },
+  "screambox": {
+    "provder_id": 185,
+    "name": "Screambox",
+    "countries": ["us"]
+  },
+  "youtube_premium": {
+    "provder_id": 188,
+    "name": "YouTube Premium",
+    "countries": ["mx", "us", "ca", "uk", "de", "at"]
+  },
+  "kanopy": {
+    "provider_id": 191,
+    "name": "Kanopy",
+    "countries": ["us"]
+  },
+  "crave_plus": {
+    "provder_id": 192,
+    "name": "Crave Plus",
+    "countries": ["ca"]
+  },
+  "starz_amazon": {
+    "provder_id": 194,
+    "name": "Starz Play Amazon Channel",
+    "countries": ["uk", "de"]
+  },
+  "animax_plus_amazon": {
+    "provder_id": 195,
+    "name": "Animax Plus Amazon Channel",
+    "countries": ["de"]
+  },
+  "freeform": {
+    "provder_id": 211,
+    "name": "Freeform",
+    "countries": ["us"]
+  },
+  "hoopla": {
+    "provider_id": 212,
+    "name": "Hoopla",
+    "countries": ["us", "ca"]
+  },
+  "bfi_player": {
+    "provder_id": 224,
+    "name": "BFI Player",
+    "countries": ["uk"]
+  },
+  "fox_premium": {
+    "provider_id": 228,
+    "name": "FOX Premium",
+    "countries": ["mx"]
+  },
+  "crave": {
+    "provder_id": 230,
+    "name": "Crave",
+    "countries": ["ca"]
+  }
+}
