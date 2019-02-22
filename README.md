@@ -14,6 +14,7 @@ The extension can be added into Chrome, Firefox and Opera.
 
 ### Which countries are supported?
 Actually streaming providers of following countries are supported: Austria, Canada, France, Germany, Japan, Mexico, Spain, Switzerland, USA, United Kingdom 
+
 Coming soon: Australia, India, Ireland, Italy, Russia, Netherlands, Norway, Sweden
 
 ### Important Notice
