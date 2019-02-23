@@ -13,6 +13,8 @@ var country_code = "de_DE";
 
 var availableMovies = {};
 var crawledMovies = {};
+var unsolvedRequests = {};
+var unsolvedRequestsDelay = {};
 
 var checkCounter = 0;
 
@@ -56,106 +58,153 @@ async function isIncluded(toFind, tabId) {
   var movie_release_year = toFind.year;
   var movie_letterboxd_id = toFind.id;
 
-  if(isNaN(movie_release_year)) {
+  if (isNaN(movie_release_year)) {
     movie_release_year = -1;
   }
 
-  if(typeof movie_release_year === 'string') {
+  if (typeof movie_release_year === 'string') {
     movie_release_year = parseInt(movie_release_year);
   }
 
-  var param = eng_title.replace(' ', '%20');
-
+  var param = eng_title.replace(' ', '+');
   var title_rsp = '';
   var rsp = "";
   var original_title = '';
+  var found_perfect_match = false;
 
   var xhttp = new XMLHttpRequest();
 
-  xhttp.open('GET', "https://api.themoviedb.org/3/search/movie?api_key=0264d085d68e6041e7166f04e6c6115e&query=" + param, true);
+  xhttp.open('GET', "https://apis.justwatch.com/content/titles/" + country_code + "/popular?body=%7B%22age_certifications%22:null,%22content_types%22:null,%22genres%22:null,%22languages%22:null,%22max_price%22:null,%22min_price%22:null,%22page%22:1,%22page_size%22:30,%22presentation_types%22:null,%22providers%22:null,%22query%22:%22" + param + "%22,%22release_year_from%22:null,%22release_year_until%22:null,%22scoring_filter_types%22:null,%22timeline_type%22:null%7D", true);
 
   xhttp.send();
 
   xhttp.onreadystatechange = function () {
     if (xhttp.readyState === 4 && xhttp.status === 200) {
-      title_rsp = JSON.parse(xhttp.response);
-
-      var found_perfect_match = false;
-      for (let item in title_rsp.results) {
-        if (title_rsp.results[item].title.toLowerCase() === eng_title.toLowerCase() && title_rsp.results[item].release_date.includes(movie_release_year)) {
-          original_title = title_rsp.results[item].original_title;
+      rsp = JSON.parse(xhttp.response);
+      for (let item in rsp.items) {
+        if (rsp.items[item].original_title.toLowerCase() === eng_title.toLowerCase() && rsp.items[item].original_release_year == movie_release_year) {
           found_perfect_match = true;
-        }
-      }
-      if(!found_perfect_match) {
-        for (let item in title_rsp.results) {
-          if (title_rsp.results[item].title.toLowerCase() === eng_title.toLowerCase()
-            && ((movie_release_year === -1) || (title_rsp.results[item].release_date.includes(movie_release_year - 1)) || (title_rsp.results[item].release_date.includes(movie_release_year + 1)))) {
-            original_title = title_rsp.results[item].original_title;
-          }
-        }
-      }
-
-      found_perfect_match = false;
-
-      param = eng_title.replace(' ', '+');
-
-      xhttp = new XMLHttpRequest();
-
-
-      xhttp.open('GET', "https://apis.justwatch.com/content/titles/" + country_code + "/popular?body=%7B%22age_certifications%22:null,%22content_types%22:null,%22genres%22:null,%22languages%22:null,%22max_price%22:null,%22min_price%22:null,%22page%22:1,%22page_size%22:30,%22presentation_types%22:null,%22providers%22:null,%22query%22:%22" + param + "%22,%22release_year_from%22:null,%22release_year_until%22:null,%22scoring_filter_types%22:null,%22timeline_type%22:null%7D", true);
-
-      xhttp.send();
-
-      xhttp.onreadystatechange = function () {
-        if (xhttp.readyState === 4 && xhttp.status === 200) {
-          rsp = JSON.parse(xhttp.response);
-          for (let item in rsp.items) {
-            if (rsp.items[item].original_title.toLowerCase() === original_title.toLowerCase() && rsp.items[item].original_release_year == movie_release_year) {
-              found_perfect_match = true;
-              for (let offer in rsp.items[item].offers) {
-                if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && rsp.items[item].offers[offer].provider_id === provider_id) {
-                  availableMovies[tabId].push(movie_letterboxd_id);
-                  break;
-                }
-              }
+          for (let offer in rsp.items[item].offers) {
+            if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && rsp.items[item].offers[offer].provider_id === provider_id) {
+              availableMovies[tabId].push(movie_letterboxd_id);
               break;
             }
           }
-          if(!found_perfect_match) {
-            for (let item in rsp.items) {
-              if (rsp.items[item].original_title.toLowerCase() === original_title.toLowerCase() &&
-                ((rsp.items[item].original_release_year == movie_release_year-1)) || (rsp.items[item].original_release_year == movie_release_year+1) || (movie_release_year === -1)) {
-                for (let offer in rsp.items[item].offers) {
-                  if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && rsp.items[item].offers[offer].provider_id === provider_id) {
-                    availableMovies[tabId].push(movie_letterboxd_id);
+          break;
+        }
+      }
+
+      if (found_perfect_match) {
+        checkCounter++;
+
+        if (checkCounter === Object.keys(crawledMovies[tabId]).length) {
+          fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
+        }
+      } else {
+        found_perfect_match = false;
+        param = eng_title.replace(' ', '%20');
+
+        xhttp.open('GET', "https://api.themoviedb.org/3/search/movie?api_key=0264d085d68e6041e7166f04e6c6115e&query=" + param, true);
+
+        xhttp.send();
+
+        xhttp.onreadystatechange = function () {
+          if (xhttp.readyState === 4 && xhttp.status === 200) {
+            title_rsp = JSON.parse(xhttp.response);
+
+            for (let item in title_rsp.results) {
+              if (title_rsp.results[item].title.toLowerCase() === eng_title.toLowerCase() && title_rsp.results[item].release_date.includes(movie_release_year)) {
+                original_title = title_rsp.results[item].original_title;
+                found_perfect_match = true;
+              }
+            }
+            if (!found_perfect_match) {
+              for (let item in title_rsp.results) {
+                if (title_rsp.results[item].title.toLowerCase() === eng_title.toLowerCase()
+                  && ((movie_release_year === -1) || (title_rsp.results[item].release_date.includes(movie_release_year - 1)) || (title_rsp.results[item].release_date.includes(movie_release_year + 1)))) {
+                  original_title = title_rsp.results[item].original_title;
+                }
+              }
+            }
+
+            found_perfect_match = false;
+
+            param = eng_title.replace(' ', '+');
+
+            xhttp = new XMLHttpRequest();
+
+            xhttp.open('GET', "https://apis.justwatch.com/content/titles/" + country_code + "/popular?body=%7B%22age_certifications%22:null,%22content_types%22:null,%22genres%22:null,%22languages%22:null,%22max_price%22:null,%22min_price%22:null,%22page%22:1,%22page_size%22:30,%22presentation_types%22:null,%22providers%22:null,%22query%22:%22" + param + "%22,%22release_year_from%22:null,%22release_year_until%22:null,%22scoring_filter_types%22:null,%22timeline_type%22:null%7D", true);
+
+            xhttp.send();
+
+            xhttp.onreadystatechange = function () {
+              if (xhttp.readyState === 4 && xhttp.status === 200) {
+                rsp = JSON.parse(xhttp.response);
+                for (let item in rsp.items) {
+                  if (rsp.items[item].original_title.toLowerCase() === original_title.toLowerCase() && rsp.items[item].original_release_year == movie_release_year) {
+                    found_perfect_match = true;
+                    for (let offer in rsp.items[item].offers) {
+                      if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && rsp.items[item].offers[offer].provider_id === provider_id) {
+                        availableMovies[tabId].push(movie_letterboxd_id);
+                        break;
+                      }
+                    }
                     break;
                   }
                 }
-                break;
+                if (!found_perfect_match) {
+                  for (let item in rsp.items) {
+                    if (rsp.items[item].original_title.toLowerCase() === original_title.toLowerCase() &&
+                      ((rsp.items[item].original_release_year == movie_release_year - 1)) || (rsp.items[item].original_release_year == movie_release_year + 1) || (movie_release_year === -1)) {
+                      for (let offer in rsp.items[item].offers) {
+                        if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && rsp.items[item].offers[offer].provider_id === provider_id) {
+                          availableMovies[tabId].push(movie_letterboxd_id);
+                          break;
+                        }
+                      }
+                      break;
+                    }
+                  }
+                }
+
+                checkCounter++;
+
+                if (checkCounter === Object.keys(crawledMovies[tabId]).length) {
+                  fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
+                }
+              } else if (xhttp.readyState === 4 && xhttp.status !== 200) {
+                checkCounter++;
+                if (checkCounter === Object.keys(crawledMovies[tabId]).length) {
+                  fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
+                }
               }
+            };
+          } else if (xhttp.readyState === 4 && xhttp.status === 429) {
+            checkCounter++;
+            unsolvedRequests[tabId][toFind.title] = {
+              year: toFind.year,
+              id: toFind.id
+            };
+            unsolvedRequestsDelay = parseInt(xhttp.getResponseHeader('Retry-After'));
+
+            if (checkCounter === Object.keys(crawledMovies[tabId]).length) {
+              fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
+            }
+          } else if (xhttp.readyState === 4 && xhttp.status !== 200 && xhttp.status !== 429) {
+            checkCounter++;
+            if (checkCounter === Object.keys(crawledMovies[tabId]).length) {
+              fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
             }
           }
-
-          checkCounter++;
-
-          if(checkCounter === (Object.keys(crawledMovies[tabId]).length)) {
-            fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
-          }
-        } else if (xhttp.readyState === 4 && xhttp.status !== 200) {
-          checkCounter++;
-          if(checkCounter === (Object.keys(crawledMovies[tabId]).length)) {
-            fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
-          }
-        }
+        };
       }
     } else if (xhttp.readyState === 4 && xhttp.status !== 200) {
       checkCounter++;
-      if (checkCounter === (Object.keys(crawledMovies[tabId]).length)) {
+      if (checkCounter === Object.keys(crawledMovies[tabId]).length) {
         fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
       }
     }
-  }
+  };
 }
 
 function getFilmsFromLetterboxd(tabId) {
@@ -232,6 +281,8 @@ function checkForLetterboxd(tabId, changeInfo, tabInfo) {
         checkCounter = 0;
         availableMovies[tabId] = [];
         crawledMovies[tabId] = {};
+        unsolvedRequests[tabId] = {};
+        unsolvedRequestsDelay[tabId] = 0;
         getFilmsFromLetterboxd(tabId);
       }
     }
@@ -281,6 +332,8 @@ function prepareLetterboxdForFading(tabId) {
 
 function fadeUnstreamedMovies(tabId, movies) {
   browser.tabs.get(tabId, (tab) => {
+    unfadeAllMovies(tabId);
+
     var className = '';
     if(tab.url.includes('watchlist')) {
       className = 'poster-container';
@@ -297,6 +350,39 @@ function fadeUnstreamedMovies(tabId, movies) {
         });
       }
     }
+
+    if(Object.keys(unsolvedRequests[tabId]).length !== 0) {
+      if(isNaN(unsolvedRequestsDelay)) {
+        unsolvedRequestsDelay = 10000;
+      }
+
+      setTimeout(function () {
+        var movies = unsolvedRequests[tabId].clone();
+        unsolvedRequests[tabId] = {};
+        checkMovieAvailability(tabId, movies);
+      }, unsolvedRequestsDelay);
+    }
+  });
+}
+
+function unfadeAllMovies(tabId) {
+  browser.tabs.get(tabId, (tab) => {
+    var className = '';
+    if (tab.url.includes('watchlist')) {
+      className = 'poster-container';
+    } else {
+      className = 'film-poster';
+    }
+
+    browser.tabs.executeScript(tabId, {
+      code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
+        "for(poster in filmposters) { \n" +
+        "  if(filmposters[poster].hasOwnProperty('className')) { \n" +
+        "    filmposters[poster].className = filmposters[poster].className.replace(' film-not-streamed', ''); \n" +
+        "  } \n" +
+        "}",
+      allFrames: false
+    });
   });
 }
 
