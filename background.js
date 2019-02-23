@@ -52,7 +52,6 @@ onStartUp();
  * @author Christian Zei
  */
 async function isIncluded(toFind, tabId) {
-  //e.g. toFind = 'Suck me Shakespeer'
   var eng_title = toFind.title;
   var movie_release_year = toFind.year;
   var movie_letterboxd_id = toFind.id;
@@ -154,10 +153,19 @@ async function isIncluded(toFind, tabId) {
 }
 
 function getFilmsFromLetterboxd(tabId) {
-  browser.tabs.executeScript(tabId, {
-    file: "./scripts/getFilmsFromLetterboxd.js",
-    allFrames: true
-  })
+  browser.tabs.get(tabId, (tab) => {
+    var fileName = '';
+    if (tab.url.includes('watchlist')) {
+      fileName = "./scripts/getFilmsFromLetterboxdWatchlist.js";
+    } else {
+      fileName = "./scripts/getFilmsFromLetterboxd.js";
+    }
+
+    browser.tabs.executeScript(tabId, {
+      file: fileName,
+      allFrames: true
+    })
+  });
 }
 
 browser.runtime.onMessage.addListener(handleMessage);
@@ -171,6 +179,15 @@ browser.tabs.onUpdated.addListener(checkForLetterboxd);
  */
 function setProviderId(id) {
   provider_id = id;
+}
+
+/**
+ * To change the country_code out of the settings
+ *
+ * @param {string} code - the new country_code
+ */
+function setCountryCode(code) {
+  country_code = code;
 }
 
 /**
@@ -225,7 +242,11 @@ function handleMessage(request, sender, sendResponse) {
   if (request.hasOwnProperty('message_type')) {
     if(request.message_type === 'movie-titles') {
       crawledMovies[tabId] = request.message_content;
-      checkMovieAvailability(tabId, crawledMovies[tabId]);
+      if(Object.keys(crawledMovies[tabId]).length === 0) {
+        getFilmsFromLetterboxd(tabId);
+      } else {
+        checkMovieAvailability(tabId, crawledMovies[tabId]);
+      }
     }
   }
 }
@@ -253,28 +274,42 @@ function prepareLetterboxdForFading(tabId) {
 }
 
 function fadeUnstreamedMovies(tabId, movies) {
-  for(let movie in movies) {
-    if(!availableMovies[tabId].includes(movies[movie].id)) {
-      browser.tabs.executeScript(tabId, {
-        code: "filmposters = document.body.getElementsByClassName('poster-container'); \n" +
-        "filmposters[" + movies[movie].id + "].className = filmposters[" + movies[movie].id + "].className + ' film-not-streamed';",
-        allFrames: false
-      });
+  browser.tabs.get(tabId, (tab) => {
+    var className = '';
+    if(tab.url.includes('watchlist')) {
+      className = 'poster-container';
+    } else {
+      className = 'film-poster';
     }
-  }
+
+    for(let movie in movies) {
+      if(!availableMovies[tabId].includes(movies[movie].id)) {
+        browser.tabs.executeScript(tabId, {
+          code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
+            "filmposters[" + movies[movie].id + "].className = filmposters[" + movies[movie].id + "].className + ' film-not-streamed';",
+          allFrames: false
+        });
+      }
+    }
+  });
 }
 
 function unfadeUnstreamedMovies(tabId, movies) {
-  for(let movie in movies) {
-    if(!availableMovies[tabId].includes(movies[movie].id)) {
-      browser.tabs.executeScript(tabId, {
-        code: "filmposters = document.body.getElementsByClassName('poster-container'); \n" +
-          "filmposters[" + movies[movie].id + "].className = filmposters[" + movies[movie].id + "].className.replace(' film-not-streamed', '');",
-        allFrames: false
-      });
+  browser.tabs.get(tabId, (tab) => {
+    var className = '';
+    if (tab.url.includes('watchlist')) {
+      className = 'poster-container';
+    } else {
+      className = 'film-poster';
     }
-  }
+    for (let movie in movies) {
+      if (!availableMovies[tabId].includes(movies[movie].id)) {
+        browser.tabs.executeScript(tabId, {
+          code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
+            "filmposters[" + movies[movie].id + "].className = filmposters[" + movies[movie].id + "].className.replace(' film-not-streamed', '');",
+          allFrames: false
+        });
+      }
+    }
+  });
 }
-
-
-
