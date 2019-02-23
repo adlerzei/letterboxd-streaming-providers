@@ -222,7 +222,7 @@ function checkForLetterboxd(tabId, changeInfo, tabInfo) {
   if(changeInfo.hasOwnProperty('status') && changeInfo.status === 'complete') {
     var url = tabInfo.url;
     if(url.includes("://letterboxd.com/") || url.includes("://www.letterboxd.com/") ) {
-      if (url.includes('watchlist') || url.includes('films') || url.includes('likes')) {
+      if (url.includes('watchlist') || url.includes('films') || url.includes('likes')) { // || url === "https://letterboxd.com/" || url === 'https://www.letterboxd.com/'
         checkCounter = 0;
         availableMovies[tabId] = [];
         crawledMovies[tabId] = {};
