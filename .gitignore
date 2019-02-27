@@ -1,4 +1,6 @@
-/letterboxd-streaming-services.zip
+/builds/*
 *.zip
 /.idea/
 /.idea/*
+/node_modules/
+/node_modules/*
