@@ -1,0 +1,23 @@
+{
+  "name": "letterboxd-streaming-providers",
+  "version": "1.0.0",
+  "description": "Browser extension that adds a filter for some streaming providers to letterboxd.com",
+  "main": "background.js",
+  "dependencies": {
+    "npm": "^6.4.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "build": "./tools/build.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adlerzei/letterboxd-streaming-providers"
+  },
+  "author": "Christian Zei",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/adlerzei/letterboxd-streaming-providers/issues"
+  },
+  "homepage": "https://github.com/adlerzei/letterboxd-streaming-providers#readme"
+}
