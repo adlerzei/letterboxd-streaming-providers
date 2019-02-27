@@ -191,7 +191,7 @@ function getOffersWithReleaseYear(tabId, rsp, movie_letterboxd_id, title, movie_
     if (rsp.items[item].original_title.toLowerCase() === title.toLowerCase() && rsp.items[item].original_release_year == movie_release_year) {
       for (let offer in rsp.items[item].offers) {
         if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && rsp.items[item].offers[offer].provider_id === provider_id) {
-          availableMovies[tabId].push(movie_letterboxd_id);
+          availableMovies[tabId].push(...movie_letterboxd_id);
           break;
         }
       }
@@ -207,7 +207,7 @@ function getOffersWithoutExactReleaseYear(tabId, rsp, movie_letterboxd_id, title
       ((rsp.items[item].original_release_year == movie_release_year - 1)) || (rsp.items[item].original_release_year == movie_release_year + 1) || (movie_release_year === -1)) {
       for (let offer in rsp.items[item].offers) {
         if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && rsp.items[item].offers[offer].provider_id === provider_id) {
-          availableMovies[tabId].push(movie_letterboxd_id);
+          availableMovies[tabId].push(...movie_letterboxd_id);
           break;
         }
       }
@@ -271,6 +271,24 @@ browser.tabs.onUpdated.addListener(checkForLetterboxd);
  */
 function setProviderId(id) {
   provider_id = id;
+}
+
+/**
+ * Returns all supported providers
+ *
+ * @returns {object} - the providers loaded from providers.json
+ */
+function getProviders() {
+  return providers;
+}
+
+/**
+ * Returns all supported countries
+ *
+ * @returns {object} - the countries loaded from countries.json
+ */
+function getCountries() {
+  return countries;
 }
 
 /**
@@ -379,22 +397,33 @@ function fadeUnstreamedMovies(tabId, movies) {
     }
 
     for(let movie in movies) {
-      if(!availableMovies[tabId].includes(movies[movie].id)) {
-        browser.tabs.executeScript(tabId, {
-          code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
-            "filmposters[" + movies[movie].id + "].className = filmposters[" + movies[movie].id + "].className + ' film-not-streamed';",
-          allFrames: false
-        });
+      for (let movie_id in movies[movie].id) {
+        if(!availableMovies[tabId].includes(movies[movie].id[movie_id])) {
+          browser.tabs.executeScript(tabId, {
+            code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
+              "filmposters[" + movies[movie].id[movie_id] + "].className = filmposters[" + movies[movie].id[movie_id] + "].className + ' film-not-streamed';",
+            allFrames: false
+          });
+        }
       }
     }
 
+    // short delay for the overview page, needs to reload intern javascript
+    if(tab.url.includes('letterboxd.com/films/')) {
+      setTimeout(function () {
+        fadeUnstreamedMovies(tabId, movies);
+      }, 500);
+    }
+
+    // if there are unsolved requests left: solve them
     if(Object.keys(unsolvedRequests[tabId]).length !== 0) {
       if(isNaN(unsolvedRequestsDelay)) {
         unsolvedRequestsDelay = 10000;
       }
 
+      // but first wait for a delay to limit the traffic
       setTimeout(function () {
-        var movies = unsolvedRequests[tabId].clone();
+        var movies = jQuery.extend({}, unsolvedRequests[tabId]);
         unsolvedRequests[tabId] = {};
         checkMovieAvailability(tabId, movies);
       }, unsolvedRequestsDelay);
@@ -432,12 +461,14 @@ function unfadeUnstreamedMovies(tabId, movies) {
       className = 'film-poster';
     }
     for (let movie in movies) {
-      if (!availableMovies[tabId].includes(movies[movie].id)) {
-        browser.tabs.executeScript(tabId, {
-          code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
-            "filmposters[" + movies[movie].id + "].className = filmposters[" + movies[movie].id + "].className.replace(' film-not-streamed', '');",
-          allFrames: false
-        });
+      for (let movie_id in movies[movie].id) {
+        if (!availableMovies[tabId].includes(movies[movie].id[movie_id])) {
+          browser.tabs.executeScript(tabId, {
+            code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
+            "filmposters[" + movies[movie].id[movie_id] + "].className = filmposters[" + movies[movie].id[movie_id] + "].className.replace(' film-not-streamed', '');",
+            allFrames: false
+          });
+        }
       }
     }
   });
