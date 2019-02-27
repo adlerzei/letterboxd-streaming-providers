@@ -58,4 +58,4 @@ Thanks to everyone using, supporting and contributing to the extension. Phillip 
 
 ##### v1.0
 - Filter /watchlist, /films and /likes of Letterboxd for your favorite streaming providers
-- Choose between streaming providers from Austria, Canada, Germany, Mexico, USA and United Kingdom 
+- Choose between streaming providers from Austria, Canada, France, Germany, Japan, Mexico, Spain, Switzerland, USA and United Kingdom
