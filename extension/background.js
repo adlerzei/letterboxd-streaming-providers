@@ -67,8 +67,6 @@ const onStartUp = async () => {
       if(!countrySet) {
         setCountryCode(response.country_code);
       }
-
-      storeSettings(country_code, provider_id);
     });
   }
 
@@ -331,7 +329,7 @@ function getProviderId() {
  *
  * @returns {string} - The currently set country code
  */
-function getCountyCode() {
+function getCountryCode() {
   return country_code;
 }
 
@@ -342,6 +340,8 @@ function getCountyCode() {
  */
 function setProviderId(id) {
   provider_id = Number(id);
+  storeSettings(country_code, provider_id);
+  //reloadMovieFilter();
 }
 
 /**
@@ -369,13 +369,15 @@ function getCountries() {
  */
 function setCountryCode(code) {
   country_code = code;
+  storeSettings(country_code, provider_id);
+  //reloadMovieFilter();
 }
 
 /**
- * Called from inside the popup to force the filters to reload with the new provider_id
+ * Called to force the filters to reload with the new provider_id
  */
 function reloadMovieFilter() {
-  var querying = browser.tabs.query({});
+  browser.tabs.query({}, reloadFilterInTab);
 
   function reloadFilterInTab(tabs) {
     for (let tab of tabs) {
@@ -387,16 +389,10 @@ function reloadMovieFilter() {
         url: tab.url
       };
 
-      unfadeUnstreamedMovies(tabId, crawledMovies[tabId]);
+      //unfadeUnstreamedMovies(tabId, crawledMovies[tabId]);
       checkForLetterboxd(tabId, changeInfo, tabInfo);
     }
   }
-
-  function onError(error) {
-    console.log(`Error: ${error}`);
-  }
-
-  querying.then(reloadFilterInTab, onError);
 }
 
 function checkForLetterboxd(tabId, changeInfo, tabInfo) {
