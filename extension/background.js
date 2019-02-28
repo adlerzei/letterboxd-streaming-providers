@@ -15,16 +15,16 @@
 
 "use-strict";
 
-//for compatibility reasons
+// for compatibility reasons
 var browser = chrome;
 
-var provider_id = 8; //netflix: 8, amazon prime: 9
+var provider_id; // e.g. Netflix: 8, Amazon Prime Video: 9
 
 var providers;
 
 var countries;
 
-var country_code = "de_DE";
+var country_code; // e.g. German: "de_DE", USA: "en_US"
 
 var availableMovies = {};
 var crawledMovies = {};
@@ -34,11 +34,51 @@ var unsolvedRequestsDelay = {};
 var checkCounter = {};
 
 const onStartUp = async () => {
+  // load stored settings from localStorage
+  browser.storage.local.get(parseSettings);
+
+  function parseSettings(item) {
+    let countrySet = false;
+    let providerSet = false;
+
+    if(item.hasOwnProperty('country_code')) {
+      countrySet = true;
+      setCountryCode(item.country_code);
+    }
+    if(item.hasOwnProperty('provider_id')) {
+      providerSet = true;
+      setProviderId(item.provider_id);
+    }
+
+    if((!countrySet) || (!providerSet)) {
+      loadDefaultSettings(countrySet, providerSet);
+    }
+  }
+
+  function loadDefaultSettings(countrySet, providerSet) {
+    // load default settings
+    loadJSON("settings/default.json", function (response) {
+      // Parse JSON string into object
+      response = JSON.parse(response);
+      // set the intern settings
+      if(!providerSet) {
+        setProviderId(response.provider_id);
+      }
+      if(!countrySet) {
+        setCountryCode(response.country_code);
+      }
+
+      storeSettings(country_code, provider_id);
+    });
+  }
+
+  // load provider list
   loadJSON("streaming-providers/providers.json", function(response) {
     // Parse JSON string into object
     providers = JSON.parse(response);
   });
 
+  // load country list
   loadJSON("streaming-providers/countries.json", function(response) {
     // Parse JSON string into object
     countries = JSON.parse(response);
@@ -57,6 +97,19 @@ const loadJSON = (path, callback) => {
   };
   xobj.send(null);
 };
+
+/**
+ * Stores the settings in localStorage
+ *
+ * @param {string} country_code - The currently set country code to store
+ * @param {int} provider_id - The currently set provider id to store
+ */
+function storeSettings(country_code, provider_id) {
+  browser.storage.local.set({
+    country_code: country_code,
+    provider_id: provider_id
+  });
+}
 
 onStartUp();
 
@@ -190,7 +243,7 @@ function getOffersWithReleaseYear(tabId, rsp, movie_letterboxd_id, title, movie_
   for (let item in rsp.items) {
     if (rsp.items[item].original_title.toLowerCase() === title.toLowerCase() && rsp.items[item].original_release_year == movie_release_year) {
       for (let offer in rsp.items[item].offers) {
-        if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && rsp.items[item].offers[offer].provider_id === provider_id) {
+        if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && Number(rsp.items[item].offers[offer].provider_id) === provider_id) {
           availableMovies[tabId].push(...movie_letterboxd_id);
           break;
         }
@@ -206,7 +259,7 @@ function getOffersWithoutExactReleaseYear(tabId, rsp, movie_letterboxd_id, title
     if (rsp.items[item].original_title.toLowerCase() === title.toLowerCase() &&
       ((rsp.items[item].original_release_year == movie_release_year - 1)) || (rsp.items[item].original_release_year == movie_release_year + 1) || (movie_release_year === -1)) {
       for (let offer in rsp.items[item].offers) {
-        if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && rsp.items[item].offers[offer].provider_id === provider_id) {
+        if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && Number(rsp.items[item].offers[offer].provider_id) === provider_id) {
           availableMovies[tabId].push(...movie_letterboxd_id);
           break;
         }
@@ -265,18 +318,36 @@ browser.runtime.onMessage.addListener(handleMessage);
 browser.tabs.onUpdated.addListener(checkForLetterboxd);
 
 /**
+ * Returns the currently set provider id
+ *
+ * @returns {int} - The currently set provider id
+ */
+function getProviderId() {
+  return provider_id;
+}
+
+/**
+ * Returns the currently set country code
+ *
+ * @returns {string} - The currently set country code
+ */
+function getCountyCode() {
+  return country_code;
+}
+
+/**
  * To change the provider_id out of the popup
  *
- * @param {int} id - the new provider_id
+ * @param {int} id - The new provider_id
  */
 function setProviderId(id) {
-  provider_id = id;
+  provider_id = Number(id);
 }
 
 /**
  * Returns all supported providers
  *
- * @returns {object} - the providers loaded from providers.json
+ * @returns {object} - The providers loaded from providers.json
  */
 function getProviders() {
   return providers;
@@ -285,7 +356,7 @@ function getProviders() {
 /**
  * Returns all supported countries
  *
- * @returns {object} - the countries loaded from countries.json
+ * @returns {object} - The countries loaded from countries.json
  */
 function getCountries() {
   return countries;
@@ -294,7 +365,7 @@ function getCountries() {
 /**
  * To change the country_code out of the settings
  *
- * @param {string} code - the new country_code
+ * @param {string} code - The new country_code
  */
 function setCountryCode(code) {
   country_code = code;
@@ -423,7 +494,7 @@ function fadeUnstreamedMovies(tabId, movies) {
 
       // but first wait for a delay to limit the traffic
       setTimeout(function () {
-        var movies = jQuery.extend({}, unsolvedRequests[tabId]);
+        var movies = JSON.parse(JSON.stringify(unsolvedRequests[tabId]));
         unsolvedRequests[tabId] = {};
         checkMovieAvailability(tabId, movies);
       }, unsolvedRequestsDelay);

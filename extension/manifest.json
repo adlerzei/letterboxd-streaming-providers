@@ -11,6 +11,7 @@
 
   "permissions": [
     "tabs",
+    "storage",
     "*://api.themoviedb.org/*",
     "*://apis.justwatch.com/*",
     "*://letterboxd.com/*",
