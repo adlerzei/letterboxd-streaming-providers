@@ -9,13 +9,27 @@
 <body>
 
 <div class="title">
-  Letterboxd Streaming Services
+  <div class="title-img">
+    <img src="../icons/logo_final_32.png" alt="Letterboxd Streaming Services" height="32" width="32">
+  </div>
+  <div class="title-text">
+    Letterboxd Streaming Services
+  </div>
 </div>
 
-<div class="select-boxes">
-  <select id="CountryList"></select>
-  <select id="ProviderList"></select>
-</div>
+<section id="content">
+  <div class="select-box">
+    <div class="content-text">Country</div>
+    <select id="CountryList"></select>
+    <div class="content-text">Streaming Provider</div>
+    <select id="ProviderList"></select>
+  </div>
+</section>
+
+<section id="footer">
+  <div class="footer-text">Further information? Contributing? Go <a href="https://github.com/adlerzei/letterboxd-streaming-providers#readme" title="Letterboxd Streaming Services on GitHub">here</a>!</div>
+</section>
+
 
 <script src="popup.js"></script>
 </body>
