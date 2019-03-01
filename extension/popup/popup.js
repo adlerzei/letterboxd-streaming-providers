@@ -55,8 +55,10 @@ var provider_list = document.getElementById('ProviderList');
 
 /**
  * Appends all providers from the selected country as option to the provider_list select tag.
+ *
+ * param {string} [defaultProviderName] - The (optional) name of the provider which is selected by default.
  */
-function appendOptionsToProviderList() {
+function appendOptionsToProviderList(defaultProviderName) {
   provider_list.options.length = 0;
   var fragment = document.createDocumentFragment();
   var keys = Object.keys(providers).sort(function (a, b) {
@@ -70,8 +72,14 @@ function appendOptionsToProviderList() {
       opt.innerHTML = provider;
       opt.value = provider;
       opt.label = providers[provider].name;
-      if (providers[provider].provider_id === provider_id) {
-        opt.selected = "selected";
+      if(typeof defaultProviderName === 'undefined') {
+        if (providers[provider].provider_id === provider_id) {
+          opt.selected = "selected";
+        }
+      } else {
+        if (providers[provider].name === defaultProviderName) {
+          opt.selected = "selected";
+        }
       }
       fragment.appendChild(opt);
     }
@@ -104,7 +112,9 @@ function changeCountryCode() {
   if(typeof countries !== 'undefined' && countries.hasOwnProperty(code) && countries[code].hasOwnProperty('code')) {
     country_code = countries[code].code;
     background.setCountryCode(country_code);
-    appendOptionsToProviderList();
+    let defaultProviderId = provider_list.options[provider_list.selectedIndex].label;
+    appendOptionsToProviderList(defaultProviderId);
+    changeProviderId();
   }
 }
 

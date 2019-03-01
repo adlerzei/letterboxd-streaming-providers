@@ -30,7 +30,7 @@ var availableMovies = {};
 var crawledMovies = {};
 var unsolvedRequests = {};
 var unsolvedRequestsDelay = {};
-var tmdb_key = "***REMOVED***";
+var tmdb_key;
 
 var checkCounter = {};
 
@@ -75,6 +75,13 @@ const onStartUp = async () => {
       }
     });
   }
+
+  // load TMDb key
+  loadJSON("settings/api.json", function(response) {
+    // Parse JSON string into object
+    response = JSON.parse(response);
+    tmdb_key = response.tmdb;
+  });
 
   // load provider list
   loadJSON("streaming-providers/providers.json", function(response) {
