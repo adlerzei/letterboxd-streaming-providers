@@ -12,7 +12,11 @@ var country_code = background.getCountryCode();
 
 var country_list = document.getElementById('CountryList');
 var fragment = document.createDocumentFragment();
-for(let country in countries) {
+var keys = Object.keys(countries).sort(function (a, b) {
+  return ('' + countries[a].name).localeCompare(countries[b].name);
+});
+for(let country in keys) {
+  country = keys[country];
   var opt = document.createElement('option');
   opt.innerHTML=country;
   opt.value=country;
@@ -29,7 +33,11 @@ var provider_list = document.getElementById('ProviderList');
 function appendOptionsToProviderList() {
   provider_list.options.length = 0;
   fragment = document.createDocumentFragment();
-  for (let provider in providers) {
+  var keys = Object.keys(providers).sort(function (a, b) {
+    return ('' + providers[a].name).localeCompare(providers[b].name);
+  });
+  for (let provider in keys) {
+    provider = keys[provider];
     var country = country_list.options[country_list.selectedIndex].value;
     if (providers[provider].countries.includes(country)) {
       var opt = document.createElement('option');
@@ -68,3 +76,15 @@ function changeCountryCode() {
   }
 }
 
+document.addEventListener('DOMContentLoaded', function () {
+  var links = document.getElementsByTagName("a");
+  for (var i = 0; i < links.length; i++) {
+    (function () {
+      var ln = links[i];
+      var location = ln.href;
+      ln.onclick = function () {
+        chrome.tabs.create({active: true, url: location});
+      };
+    })();
+  }
+});
