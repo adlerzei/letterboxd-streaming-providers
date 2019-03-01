@@ -76,6 +76,7 @@ select option {
 
 .footer-text {
     margin-top: 3px;
+    margin-bottom: 3px;
     font-family: Arial, Helvetica, sans-serif;
     text-align: center;
     color: #666;
