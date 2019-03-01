@@ -30,6 +30,7 @@ var availableMovies = {};
 var crawledMovies = {};
 var unsolvedRequests = {};
 var unsolvedRequestsDelay = {};
+var tmdb_key = "***REMOVED***";
 
 var checkCounter = {};
 
@@ -159,7 +160,7 @@ async function isIncluded(tabId, toFind) {
         found_perfect_match = false;
         param = eng_title.replace(' ', '%20');
 
-        xhttp.open('GET', "https://api.themoviedb.org/3/search/movie?api_key=0264d085d68e6041e7166f04e6c6115e&query=" + param, true);
+        xhttp.open('GET', "https://api.themoviedb.org/3/search/movie?api_key=" + getAPIKey() + "&query=" + param, true);
 
         xhttp.send();
 
@@ -393,6 +394,10 @@ function reloadMovieFilter() {
       checkForLetterboxd(tabId, changeInfo, tabInfo);
     }
   }
+}
+
+function getAPIKey() {
+  return tmdb_key;
 }
 
 function checkForLetterboxd(tabId, changeInfo, tabInfo) {
