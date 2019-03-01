@@ -34,6 +34,8 @@ var tmdb_key;
 
 var checkCounter = {};
 
+var filterStatus;
+
 /**
  * Loads all information from JSON files for intern computations. Also loads the current settings.
  *
@@ -46,6 +48,7 @@ const onStartUp = async () => {
   function parseSettings(item) {
     let countrySet = false;
     let providerSet = false;
+    let statusSet = false;
 
     if(item.hasOwnProperty('country_code')) {
       countrySet = true;
@@ -55,13 +58,17 @@ const onStartUp = async () => {
       providerSet = true;
       setProviderId(item.provider_id);
     }
+    if(item.hasOwnProperty('filterStatus')) {
+      statusSet = true;
+      setFilterStatus(item.filterStatus);
+    }
 
-    if((!countrySet) || (!providerSet)) {
-      loadDefaultSettings(countrySet, providerSet);
+    if((!countrySet) || (!providerSet) || (!statusSet)) {
+      loadDefaultSettings(countrySet, providerSet, statusSet);
     }
   }
 
-  function loadDefaultSettings(countrySet, providerSet) {
+  function loadDefaultSettings(countrySet, providerSet, statusSet) {
     // load default settings
     loadJSON("settings/default.json", function (response) {
       // Parse JSON string into object
@@ -72,6 +79,9 @@ const onStartUp = async () => {
       }
       if(!countrySet) {
         setCountryCode(response.country_code);
+      }
+      if(!statusSet) {
+        setFilterStatus(response.filterStatus);
       }
     });
   }
@@ -121,10 +131,11 @@ const loadJSON = (path, callback) => {
  * @param {string} country_code - The currently set country code to store.
  * @param {int} provider_id - The currently set provider id to store.
  */
-function storeSettings(country_code, provider_id) {
+function storeSettings(country_code, provider_id, filterStatus) {
   browser.storage.local.set({
     country_code: country_code,
-    provider_id: provider_id
+    provider_id: provider_id,
+    filterStatus: filterStatus
   });
 }
 
@@ -399,7 +410,7 @@ function getCountryCode() {
  */
 function setProviderId(id) {
   provider_id = Number(id);
-  storeSettings(country_code, provider_id);
+  storeSettings(country_code, provider_id, filterStatus);
   //reloadMovieFilter();
 }
 
@@ -422,13 +433,32 @@ function getCountries() {
 }
 
 /**
+ * Returns the status of the filter.
+ *
+ * @returns {boolean} - True if the filter is enabled and false else.
+ */
+function getFilterStatus() {
+  return filterStatus;
+}
+
+/**
+ * Sets the status of the filter.
+ *
+ * @param {boolean} status - True if the filter should be enabled and false else.
+ */
+function setFilterStatus(status) {
+  filterStatus = status;
+  storeSettings(country_code, provider_id, filterStatus);
+}
+
+/**
  * To change the country_code out of the settings.
  *
  * @param {string} code - The new country_code.
  */
 function setCountryCode(code) {
   country_code = code;
-  storeSettings(country_code, provider_id);
+  storeSettings(country_code, provider_id, filterStatus);
   //reloadMovieFilter();
 }
 
@@ -471,16 +501,18 @@ function getAPIKey() {
  * @param {object} tabInfo - The tabInfo from the tabs.onUpdated event.
  */
 function checkForLetterboxd(tabId, changeInfo, tabInfo) {
-  if(changeInfo.hasOwnProperty('status') && changeInfo.status === 'complete') {
-    var url = tabInfo.url;
-    if(url.includes("://letterboxd.com/") || url.includes("://www.letterboxd.com/") ) {
-      if (url.includes('watchlist') || url.includes('films') || url.includes('likes')) { // || url === "https://letterboxd.com/" || url === 'https://www.letterboxd.com/'
-        checkCounter[tabId] = 0;
-        availableMovies[tabId] = [];
-        crawledMovies[tabId] = {};
-        unsolvedRequests[tabId] = {};
-        unsolvedRequestsDelay[tabId] = 0;
-        getFilmsFromLetterboxd(tabId);
+  if(filterStatus) {
+    if (changeInfo.hasOwnProperty('status') && changeInfo.status === 'complete') {
+      var url = tabInfo.url;
+      if (url.includes("://letterboxd.com/") || url.includes("://www.letterboxd.com/")) {
+        if (url.includes('watchlist') || url.includes('films') || url.includes('likes')) { // || url === "https://letterboxd.com/" || url === 'https://www.letterboxd.com/'
+          checkCounter[tabId] = 0;
+          availableMovies[tabId] = [];
+          crawledMovies[tabId] = {};
+          unsolvedRequests[tabId] = {};
+          unsolvedRequestsDelay[tabId] = 0;
+          getFilmsFromLetterboxd(tabId);
+        }
       }
     }
   }
@@ -519,13 +551,15 @@ function handleMessage(request, sender, sendResponse) {
  * @param {object} movies - The crawled movies from Letterboxed.
  */
 function checkMovieAvailability(tabId, movies) {
-  prepareLetterboxdForFading(tabId);
-  for(let movie in movies) {
-    var inc = isIncluded(tabId, {
-      title: movie,
-      year: movies[movie].year,
-      id: movies[movie].id
-    });
+  if(filterStatus) {
+    prepareLetterboxdForFading(tabId);
+    for(let movie in movies) {
+      var inc = isIncluded(tabId, {
+        title: movie,
+        year: movies[movie].year,
+        id: movies[movie].id
+      });
+    }
   }
 }
 
