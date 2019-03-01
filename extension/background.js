@@ -34,6 +34,11 @@ var tmdb_key = "6f53b9dc54d01114b9cf816b0926ceaa";
 
 var checkCounter = {};
 
+/**
+ * Loads all information from JSON files for intern computations. Also loads the current settings.
+ *
+ * @returns {Promise<void>} - An empty Promise if the loadings worked correctly, else the Promise contains the respective errors.
+ */
 const onStartUp = async () => {
   // load stored settings from localStorage
   browser.storage.local.get(parseSettings);
@@ -84,6 +89,12 @@ const onStartUp = async () => {
   });
 };
 
+/**
+ * Called to load a JSON file.
+ *
+ * @param {string} path - The path to the JSON file.
+ * @param {function} callback - A callback function, which is called after loading the file successfully.
+ */
 const loadJSON = (path, callback) => {
   var xobj = new XMLHttpRequest();
   xobj.overrideMimeType("application/json");
@@ -98,10 +109,10 @@ const loadJSON = (path, callback) => {
 };
 
 /**
- * Stores the settings in localStorage
+ * Stores the settings in localStorage.
  *
- * @param {string} country_code - The currently set country code to store
- * @param {int} provider_id - The currently set provider id to store
+ * @param {string} country_code - The currently set country code to store.
+ * @param {int} provider_id - The currently set provider id to store.
  */
 function storeSettings(country_code, provider_id) {
   browser.storage.local.set({
@@ -113,12 +124,11 @@ function storeSettings(country_code, provider_id) {
 onStartUp();
 
 /**
- * Checks if a movie is available and adds it to availableMovies[tabId]
+ * Checks if a movie is available and adds it to availableMovies[tabId].
  *
  * @param {object} toFind - An object, which contains the movie title, the release year and the Letterboxd-intern array id.
  * @param {int} tabId - The tabId of the tab, in which Letterboxd should be filtered.
  * @returns {Promise<void>} - An empty Promise if the API calls worked correctly, else the Promise contains the respective errors.
- * @author Christian Zei
  */
 async function isIncluded(tabId, toFind) {
   var eng_title = toFind.title;
@@ -238,6 +248,16 @@ async function isIncluded(tabId, toFind) {
   };
 }
 
+/**
+ * Checks if the streaming provider offers a flatrate for the given movie released in movie_release_year.
+ *
+ * @param {int} tabId - The tabId to operate in.
+ * @param {object} rsp - The response from the ajax request.
+ * @param {int} movie_letterboxd_id - The intern ID from the array in letterboxd.com.
+ * @param {string} title - The movie title.
+ * @param {int} movie_release_year - The movie's release year.
+ * @returns {boolean} - Returns true if the searched movie is found unter the given conditions, returns false else.
+ */
 function getOffersWithReleaseYear(tabId, rsp, movie_letterboxd_id, title, movie_release_year) {
   for (let item in rsp.items) {
     if (rsp.items[item].original_title.toLowerCase() === title.toLowerCase() && rsp.items[item].original_release_year == movie_release_year) {
@@ -253,6 +273,15 @@ function getOffersWithReleaseYear(tabId, rsp, movie_letterboxd_id, title, movie_
   return false;
 }
 
+/**
+ * Checks if the streaming provider offers a flatrate for the given movie released in movie_release_year-1 or movie_release_year+1 or if the movie_release_year is invalid (=-1).
+ *
+ * @param {int} tabId - The tabId to operate in.
+ * @param {object} rsp - The response from the ajax request.
+ * @param {int} movie_letterboxd_id - The intern ID from the array in letterboxd.com.
+ * @param {string} title - The movie title.
+ * @param {int} movie_release_year - The movie's release year.
+ */
 function getOffersWithoutExactReleaseYear(tabId, rsp, movie_letterboxd_id, title, movie_release_year) {
   for (let item in rsp.items) {
     if (rsp.items[item].original_title.toLowerCase() === title.toLowerCase() &&
@@ -268,7 +297,15 @@ function getOffersWithoutExactReleaseYear(tabId, rsp, movie_letterboxd_id, title
   }
 }
 
-
+/**
+ * Returns the original movie title for a given English one and a corresponding release year.
+ *
+ * @param {int} tabId - The tabId to operate in.
+ * @param {object} title_rsp - The response from the ajax request.
+ * @param {string} eng_title - The English movie title.
+ * @param {int} movie_release_year - The movie's release year.
+ * @returns {{original_title: string, found_perfect_match: boolean}} - An object containing the original title and if this was a perfect match (eng_title and movie_release_year match up).
+ */
 function getOriginalTitleWithReleaseYear(tabId, title_rsp, eng_title, movie_release_year) {
   for (let item in title_rsp.results) {
     if (title_rsp.results[item].title.toLowerCase() === eng_title.toLowerCase() && title_rsp.results[item].release_date.includes(movie_release_year)) {
@@ -285,6 +322,15 @@ function getOriginalTitleWithReleaseYear(tabId, title_rsp, eng_title, movie_rele
   };
 }
 
+/**
+ * Returns the original movie title for a given English one and a for the given movie released in movie_release_year-1 or movie_release_year+1 or if the movie_release_year is invalid (=-1).
+ *
+ * @param {int} tabId - The tabId to operate in.
+ * @param {object} title_rsp - The response from the ajax request.
+ * @param {string} eng_title - The English movie title.
+ * @param {int} movie_release_year - The movie's release year.
+ * @returns {string} - The original movie title (if found) or an empty string if not.
+ */
 function getOriginalTitleWithoutExactReleaseYear(tabId, title_rsp, eng_title, movie_release_year) {
   for (let item in title_rsp.results) {
     if (title_rsp.results[item].title.toLowerCase() === eng_title.toLowerCase()
@@ -296,6 +342,11 @@ function getOriginalTitleWithoutExactReleaseYear(tabId, title_rsp, eng_title, mo
   return "";
 }
 
+/**
+ * Injects a content script into the Letterboxd web page to crawl the movie titles and release years.
+ *
+ * @param tabId - The tabId to operate in.
+ */
 function getFilmsFromLetterboxd(tabId) {
   browser.tabs.get(tabId, (tab) => {
     var fileName = '';
@@ -317,9 +368,9 @@ browser.runtime.onMessage.addListener(handleMessage);
 browser.tabs.onUpdated.addListener(checkForLetterboxd);
 
 /**
- * Returns the currently set provider id
+ * Returns the currently set provider id.
  *
- * @returns {int} - The currently set provider id
+ * @returns {int} - The currently set provider id.
  */
 function getProviderId() {
   return provider_id;
@@ -335,9 +386,9 @@ function getCountryCode() {
 }
 
 /**
- * To change the provider_id out of the popup
+ * To change the provider_id out of the popup.
  *
- * @param {int} id - The new provider_id
+ * @param {int} id - The new provider_id.
  */
 function setProviderId(id) {
   provider_id = Number(id);
@@ -346,27 +397,27 @@ function setProviderId(id) {
 }
 
 /**
- * Returns all supported providers
+ * Returns all supported providers.
  *
- * @returns {object} - The providers loaded from providers.json
+ * @returns {object} - The providers loaded from providers.json.
  */
 function getProviders() {
   return providers;
 }
 
 /**
- * Returns all supported countries
+ * Returns all supported countries.
  *
- * @returns {object} - The countries loaded from countries.json
+ * @returns {object} - The countries loaded from countries.json.
  */
 function getCountries() {
   return countries;
 }
 
 /**
- * To change the country_code out of the settings
+ * To change the country_code out of the settings.
  *
- * @param {string} code - The new country_code
+ * @param {string} code - The new country_code.
  */
 function setCountryCode(code) {
   country_code = code;
@@ -375,7 +426,7 @@ function setCountryCode(code) {
 }
 
 /**
- * Called to force the filters to reload with the new provider_id
+ * Called to force the filters to reload with the new provider_id.
  */
 function reloadMovieFilter() {
   browser.tabs.query({}, reloadFilterInTab);
@@ -396,10 +447,22 @@ function reloadMovieFilter() {
   }
 }
 
+/**
+ * Returns the API Key for TMDb.
+ *
+ * @returns {string} - The API key.
+ */
 function getAPIKey() {
   return tmdb_key;
 }
 
+/**
+ * Checks if the current URL of the tab matches the given pattern.
+ *
+ * @param {int} tabId - The tabId to operate in.
+ * @param {object} changeInfo - The changeInfo from the tabs.onUpdated event.
+ * @param {object} tabInfo - The tabInfo from the tabs.onUpdated event.
+ */
 function checkForLetterboxd(tabId, changeInfo, tabInfo) {
   if(changeInfo.hasOwnProperty('status') && changeInfo.status === 'complete') {
     var url = tabInfo.url;
@@ -416,6 +479,13 @@ function checkForLetterboxd(tabId, changeInfo, tabInfo) {
   }
 }
 
+/**
+ * Called from within the listener for new messages from the content script.
+ *
+ * @param {{message_type: string, message_content: object}} request - The message from the content script.
+ * @param {object} sender - The sender from the runtime.onMessage event.
+ * @param {object} sendResponse - The sendResponse from the runtime.onMessage event.
+ */
 function handleMessage(request, sender, sendResponse) {
   var tabId;
   if (sender.hasOwnProperty('tab') && sender.tab.hasOwnProperty('id')) {
@@ -435,6 +505,12 @@ function handleMessage(request, sender, sendResponse) {
   }
 }
 
+/**
+ * Calls the method for checking the movie availability for each movie in movies.
+ *
+ * @param {int} tabId - The tabId to operate in.
+ * @param {object} movies - The crawled movies from Letterboxed.
+ */
 function checkMovieAvailability(tabId, movies) {
   prepareLetterboxdForFading(tabId);
   for(let movie in movies) {
@@ -446,6 +522,11 @@ function checkMovieAvailability(tabId, movies) {
   }
 }
 
+/**
+ * Inserts CSS and a corresponding content script in Letterboxd to add a new class and its style sheets.
+ *
+ * @param tabId - The tabId to operate in.
+ */
 function prepareLetterboxdForFading(tabId) {
   browser.tabs.insertCSS(tabId, {
       file: "./style/hideunstreamed.css"
@@ -457,6 +538,12 @@ function prepareLetterboxdForFading(tabId) {
   });
 }
 
+/**
+ * Inserts a content script for unfading all unavailable movies,
+ *
+ * @param tabId - The tabId to operate in.
+ * @param movies - The crawled movies.
+ */
 function fadeUnstreamedMovies(tabId, movies) {
   browser.tabs.get(tabId, (tab) => {
     unfadeAllMovies(tabId);
@@ -503,6 +590,11 @@ function fadeUnstreamedMovies(tabId, movies) {
   });
 }
 
+/**
+ * Inserts a content script to unfade all movies on Letterboxd.
+ *
+ * @param tabId - The tabId to operate in.
+ */
 function unfadeAllMovies(tabId) {
   browser.tabs.get(tabId, (tab) => {
     var className = '';
@@ -524,6 +616,12 @@ function unfadeAllMovies(tabId) {
   });
 }
 
+/**
+ * Inserts a content script to unfade all currently faded movies in Letterboxd.
+ *
+ * @param tabId - The tabId to operate in.
+ * @param movies - The crawled movies.
+ */
 function unfadeUnstreamedMovies(tabId, movies) {
   browser.tabs.get(tabId, (tab) => {
     var className = '';
