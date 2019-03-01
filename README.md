@@ -52,7 +52,7 @@ In Firefox:
 If you like my work, you can support me via [PayPal](https://www.paypal.me/ChristianZei/5). Thank you!
 
 ## Acknowledgements
-Thanks to everyone using, supporting and contributing to the extension. Phillip Emmer is especially mentioned for the idea behind this extension.
+Thanks to everyone using, supporting and contributing to the extension. Philipp Emmer is especially mentioned for the idea behind this extension.
 
 ## What's new?
 
