@@ -18,7 +18,7 @@ Actually streaming providers of following countries are supported: Austria, Cana
 Coming soon: Australia, India, Ireland, Italy, Russia, Netherlands, Norway, Sweden
 
 ### Important Notice
-This is a third party extension and is not related to the Letterboxd developer team in any way.
+This is a third party extension and is not related to the Letterboxd developer team in any way. This product uses the TMDb API but is not endorsed or certified by TMDb. Also the extension uses the JustWatch API but is not endorsed or certified by JustWatch!
 
 ## Contributing
 
