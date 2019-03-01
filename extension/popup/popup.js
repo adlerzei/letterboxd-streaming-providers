@@ -38,7 +38,7 @@ function appendOptionsToCountryList() {
   for(let country in keys) {
     country = keys[country];
     var opt = document.createElement('option');
-    opt.innerHTML=country;
+    opt.innerHTML=countries[country].name;
     opt.value=country;
     opt.label=countries[country].name;
     if(countries[country].code === country_code) {
@@ -69,7 +69,7 @@ function appendOptionsToProviderList(defaultProviderName) {
     var country = country_list.options[country_list.selectedIndex].value;
     if (providers[provider].countries.includes(country)) {
       var opt = document.createElement('option');
-      opt.innerHTML = provider;
+      opt.innerHTML = providers[provider].name;
       opt.value = provider;
       opt.label = providers[provider].name;
       if(typeof defaultProviderName === 'undefined') {
@@ -88,6 +88,21 @@ function appendOptionsToProviderList(defaultProviderName) {
 }
 
 appendOptionsToProviderList();
+
+var filterSwitch = document.getElementById("filterSwitch");
+filterSwitch.checked = background.getFilterStatus();
+
+filterSwitch.addEventListener("change", changeFilterSwitch);
+
+/**
+ * Changes the filter status in the background page.
+ */
+function changeFilterSwitch() {
+  // enable or disable filtering
+  background.setFilterStatus(filterSwitch.checked);
+  provider_list.disabled = (!filterSwitch.checked);
+  country_list.disabled = (!filterSwitch.checked);
+}
 
 provider_list.addEventListener("change", changeProviderId);
 
@@ -118,16 +133,42 @@ function changeCountryCode() {
   }
 }
 
-// for opening the hyperlink in the popup in a new tab
-document.addEventListener('DOMContentLoaded', function () {
-  var links = document.getElementsByTagName("a");
-  for (var i = 0; i < links.length; i++) {
-    (function () {
-      var ln = links[i];
-      var location = ln.href;
-      ln.onclick = function () {
-        chrome.tabs.create({active: true, url: location});
-      };
-    })();
-  }
-});
+/**
+ * Returns the current browser name.
+ *
+ * @returns {string} - The browser's name.
+ */
+function getBrowser() {
+  // Opera 8.0+
+  var isOpera = (!!window.opr && !!opr.addons) || !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
+
+  // Firefox 1.0+
+  var isFirefox = typeof InstallTrigger !== 'undefined';
+
+  // Chrome 1 - 71
+  var isChrome = !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime);
+
+  var returnString =
+    isOpera ? 'Opera' :
+      isFirefox ? 'Firefox' :
+        isChrome ? 'Chrome' :
+          "Don't know";
+
+  return returnString;
+}
+
+if(getBrowser() !== 'Firefox') {
+  // for opening the hyperlink in the popup in a new tab
+  document.addEventListener('DOMContentLoaded', function () {
+    var links = document.getElementsByTagName("a");
+    for (var i = 0; i < links.length; i++) {
+      (function () {
+        var ln = links[i];
+        var location = ln.href;
+        ln.onclick = function () {
+          chrome.tabs.create({active: true, url: location});
+        };
+      })();
+    }
+  });
+}
