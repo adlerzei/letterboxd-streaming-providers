@@ -1,1 +1,83 @@
-html, body, .title{}
+html, body {
+    width: 300px;
+    background: #FAFAFA;
+    margin: 0;
+}
+
+.title{
+    font-size: 16px;
+    color: #000;
+    text-align: center;
+    font-weight: bold;
+    margin: 8px;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.title-text{
+    padding: 1.5% 0;
+    border: 3px dashed #FAFAFA;
+}
+
+.title-img  {
+    float: left;
+}
+
+.content-text {
+    font-family: Arial, Helvetica, sans-serif;
+    padding: 3px;
+    margin-left: 20px;
+}
+
+.select-box {
+    width: 85%;
+    padding: 5px;
+    text-align: left;
+    font-weight: bold;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+}
+
+#content {
+    border-top: 1px solid;
+    border-color: #BDBDBD;
+    background-color: #F2F2F2;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100%;
+    width: 100%;
+}
+
+select {
+    border: none;
+    width: 100%;
+    height: 40px;
+    padding-left: 10px;
+    margin-bottom: 10px;
+    margin-left: 20px;
+    margin-top: 0px;
+    color: #666;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    box-shadow: 2px 2px 5px 1px rgba(0,0,0,0.3);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+select option {
+    color: #666;
+}
+
+#footer {
+    border-top: 1px solid;
+    border-color: #BDBDBD;
+}
+
+.footer-text {
+    margin-top: 3px;
+    margin-bottom: 3px;
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
+    color: #666;
+}
