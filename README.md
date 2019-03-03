@@ -12,13 +12,16 @@ The extension uses the TMDb API for assigning the original movie titles to the e
 ### Which browser to use?
 The extension can be added into Chrome, Firefox and Opera.
 
+#### Chrome Web Store
+[Letterboxd Streaming Providers at the Chrome Web Store](https://chrome.google.com/webstore/detail/letterboxd-streaming-prov/egmanfnfgmljjmdncfoeghfmflhlmhpj)
+
 ### Which countries are supported?
 Actually streaming providers of following countries are supported: Austria, Canada, France, Germany, Japan, Mexico, Spain, Switzerland, USA, United Kingdom 
 
 Coming soon: Australia, India, Ireland, Italy, Russia, Netherlands, Norway, Sweden
 
 ### Important Notice
-This is a third party extension and is not related to the Letterboxd developer team in any way. This product uses the TMDb API but is not endorsed or certified by TMDb. Also the extension uses the JustWatch API but is not endorsed or certified by JustWatch!
+This is a third party extension and is not related to the Letterboxd developer team in any way. This product uses the TMDb API but is not endorsed or certified by TMDb. Also the extension uses the JustWatch API but is not endorsed or certified by JustWatch.
 
 ## Contributing
 
@@ -57,5 +60,5 @@ Thanks to everyone using, supporting and contributing to the extension. Philipp 
 ## What's new?
 
 ##### v1.0
-- Filter /watchlist, /films and /likes of Letterboxd for your favorite streaming providers
+- Filter `/watchlist`, `/films` and `/likes` of Letterboxd for your favorite streaming providers
 - Choose between streaming providers from Austria, Canada, France, Germany, Japan, Mexico, Spain, Switzerland, USA and United Kingdom
