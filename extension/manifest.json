@@ -3,7 +3,9 @@
   "author": "Christian Zei",
   "manifest_version": 2,
   "name": "Letterboxd Streaming Providers",
-  "version": "1.0",
+  "short_name": "LSP",
+  "homepage_url": "https://github.com/adlerzei/letterboxd-streaming-providers#readme",
+  "version": "1.0.0",
   "icons": {
     "48": "icons/logo_final_48.png",
     "128": "icons/logo_final_128.png"
