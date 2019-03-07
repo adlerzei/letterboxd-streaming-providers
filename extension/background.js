@@ -413,7 +413,7 @@ function getCountryCode() {
 function setProviderId(id) {
   provider_id = Number(id);
   storeSettings(country_code, provider_id, filterStatus);
-  //reloadMovieFilter();
+  reloadMovieFilter();
 }
 
 /**
@@ -451,6 +451,7 @@ function getFilterStatus() {
 function setFilterStatus(status) {
   filterStatus = status;
   storeSettings(country_code, provider_id, filterStatus);
+  reloadMovieFilter();
 }
 
 /**
@@ -461,7 +462,7 @@ function setFilterStatus(status) {
 function setCountryCode(code) {
   country_code = code;
   storeSettings(country_code, provider_id, filterStatus);
-  //reloadMovieFilter();
+  reloadMovieFilter();
 }
 
 /**
@@ -480,7 +481,7 @@ function reloadMovieFilter() {
         url: tab.url
       };
 
-      //unfadeUnstreamedMovies(tabId, crawledMovies[tabId]);
+      unfadeUnstreamedMovies(tabId, crawledMovies[tabId]);
       checkForLetterboxd(tabId, changeInfo, tabInfo);
     }
   }
