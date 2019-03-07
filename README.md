@@ -30,7 +30,7 @@ This is a third party extension and is not related to the Letterboxd developer t
 
 ### Developing
 - `npm install` - Installs all dependencies.
-- `npm run dev` - Builds the Firefox (.xpi) and the Chrome/Opera (.zip) builds.
+- `npm run build` - Builds the Firefox (.xpi) and the Chrome/Opera (.zip) builds.
 
 ### How to test?
 1. Run `npm install` once at the beginning of your development.
