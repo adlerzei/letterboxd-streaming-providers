@@ -25,11 +25,16 @@ var providers = background.getProviders();
 var provider_ids = background.getProviderIds();
 var country_code = background.getCountryCode();
 
-var country_list = document.getElementById('CountryList');
+var country_list = document.getElementById('country-list');
 appendOptionsToCountryList();
 
-var provider_list = document.getElementById('ProviderList');
+var provider_list = document.getElementById('provider-list');
 appendOptionsToProviderList();
+const choices = new Choices(provider_list, { 
+  removeItemButton: true,
+  position: 'bottom',
+  placeholder: false
+});
 
 var filterSwitch = document.getElementById("filterSwitch");
 filterSwitch.checked = background.getFilterStatus();
