@@ -26,6 +26,17 @@ var provider_id = background.getProviderId();
 var country_code = background.getCountryCode();
 
 var country_list = document.getElementById('CountryList');
+appendOptionsToCountryList();
+
+var provider_list = document.getElementById('ProviderList');
+appendOptionsToProviderList();
+
+var filterSwitch = document.getElementById("filterSwitch");
+filterSwitch.checked = background.getFilterStatus();
+
+filterSwitch.addEventListener("change", changeFilterSwitch);
+provider_list.addEventListener("change", changeProviderId);
+country_list.addEventListener("change", changeCountryCode);
 
 /**
  * Appends all countries as option to the country_list select tag.
@@ -35,23 +46,19 @@ function appendOptionsToCountryList() {
   var keys = Object.keys(countries).sort(function (a, b) {
     return ('' + countries[a].name).localeCompare(countries[b].name);
   });
-  for(let country in keys) {
+  for (let country in keys) {
     country = keys[country];
-    var opt = document.createElement('option');
-    opt.innerHTML=countries[country].name;
-    opt.value=country;
-    opt.label=countries[country].name;
-    if(countries[country].code === country_code) {
-      opt.selected="selected";
+    let opt = document.createElement('option');
+    opt.innerHTML = countries[country].name;
+    opt.value = country;
+    opt.label = countries[country].name;
+    if (countries[country].code === country_code) {
+      opt.selected = "selected";
     }
     fragment.appendChild(opt);
   }
   country_list.appendChild(fragment);
 }
-
-appendOptionsToCountryList();
-
-var provider_list = document.getElementById('ProviderList');
 
 /**
  * Appends all providers from the selected country as option to the provider_list select tag.
@@ -72,7 +79,7 @@ function appendOptionsToProviderList(defaultProviderName) {
       opt.innerHTML = providers[provider].name;
       opt.value = provider;
       opt.label = providers[provider].name;
-      if(typeof defaultProviderName === 'undefined') {
+      if (typeof defaultProviderName === 'undefined') {
         if (providers[provider].provider_id === provider_id) {
           opt.selected = "selected";
         }
@@ -87,13 +94,6 @@ function appendOptionsToProviderList(defaultProviderName) {
   provider_list.appendChild(fragment);
 }
 
-appendOptionsToProviderList();
-
-var filterSwitch = document.getElementById("filterSwitch");
-filterSwitch.checked = background.getFilterStatus();
-
-filterSwitch.addEventListener("change", changeFilterSwitch);
-
 /**
  * Changes the filter status in the background page.
  */
@@ -104,27 +104,23 @@ function changeFilterSwitch() {
   country_list.disabled = (!filterSwitch.checked);
 }
 
-provider_list.addEventListener("change", changeProviderId);
-
 /**
  * Called when the selected item in provider_list is changed. Changes the provider_id in the background page.
  */
 function changeProviderId() {
   let id = provider_list.options[provider_list.selectedIndex].value;
-  if(typeof providers !== 'undefined' && providers.hasOwnProperty(id) && providers[id].hasOwnProperty('provider_id')) {
+  if (typeof providers !== 'undefined' && providers.hasOwnProperty(id) && providers[id].hasOwnProperty('provider_id')) {
     provider_id = providers[id].provider_id;
     background.setProviderId(provider_id);
   }
 }
-
-country_list.addEventListener("change", changeCountryCode);
 
 /**
  * Called when the selected item in country_list is changed. Changes the country_code in the background page and forces the options in provider_list to reload.
  */
 function changeCountryCode() {
   let code = country_list.options[country_list.selectedIndex].value;
-  if(typeof countries !== 'undefined' && countries.hasOwnProperty(code) && countries[code].hasOwnProperty('code')) {
+  if (typeof countries !== 'undefined' && countries.hasOwnProperty(code) && countries[code].hasOwnProperty('code')) {
     country_code = countries[code].code;
     background.setCountryCode(country_code);
     let defaultProviderId = provider_list.options[provider_list.selectedIndex].label;
@@ -157,7 +153,7 @@ function getBrowser() {
   return returnString;
 }
 
-if(getBrowser() !== 'Firefox') {
+if (getBrowser() !== 'Firefox') {
   // for opening the hyperlink in the popup in a new tab
   document.addEventListener('DOMContentLoaded', function () {
     var links = document.getElementsByTagName("a");
@@ -166,7 +162,10 @@ if(getBrowser() !== 'Firefox') {
         var ln = links[i];
         var location = ln.href;
         ln.onclick = function () {
-          chrome.tabs.create({active: true, url: location});
+          chrome.tabs.create({
+            active: true,
+            url: location
+          });
         };
       })();
     }

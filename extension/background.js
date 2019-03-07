@@ -162,9 +162,7 @@ async function isIncluded(tabId, toFind) {
   }
 
   var title_sanitized = encodeURIComponent(eng_title);
-  var title_rsp = '';
   var rsp = "";
-  var original_title = '';
   var found_perfect_match = false;
 
   var xhttp = new XMLHttpRequest();
@@ -197,11 +195,12 @@ async function isIncluded(tabId, toFind) {
 
         xhttp.onreadystatechange = function () {
           if (xhttp.readyState === 4 && xhttp.status === 200) {
-            title_rsp = JSON.parse(xhttp.response);
+            var title_rsp = JSON.parse(xhttp.response);
 
             var rslt = getOriginalTitleWithReleaseYear(tabId, title_rsp, eng_title, movie_release_year);
             found_perfect_match = rslt.found_perfect_match;
 
+            var original_title = '';
             if (found_perfect_match) {
               original_title = rslt.original_title;
             } else {
@@ -246,7 +245,7 @@ async function isIncluded(tabId, toFind) {
               year: toFind.year,
               id: toFind.id
             };
-            unsolvedRequestsDelay = parseInt(xhttp.getResponseHeader('Retry-After'));
+            //unsolvedRequestsDelay = parseInt(xhttp.getResponseHeader('Retry-After'));
 
             if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
               fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
@@ -309,10 +308,10 @@ function getOffersWithoutExactReleaseYear(tabId, rsp, movie_letterboxd_id, title
       for (let offer in rsp.items[item].offers) {
         if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && Number(rsp.items[item].offers[offer].provider_id) === provider_id) {
           availableMovies[tabId].push(...movie_letterboxd_id);
-          break;
+          return;
         }
       }
-      break;
+      return;
     }
   }
 }
@@ -577,7 +576,7 @@ function prepareLetterboxdForFading(tabId) {
   });
 
   browser.tabs.executeScript(tabId, {
-    code: "document.body.className = document.body.className + ' hide-films-unstreamed';",
+    code: "document.body.className += ' hide-films-unstreamed';",
     allFrames: false
   });
 }
@@ -604,7 +603,7 @@ function fadeUnstreamedMovies(tabId, movies) {
         if (!availableMovies[tabId].includes(movies[movie].id[movie_id])) {
           browser.tabs.executeScript(tabId, {
             code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
-              "filmposters[" + movies[movie].id[movie_id] + "].className = filmposters[" + movies[movie].id[movie_id] + "].className + ' film-not-streamed';",
+              "filmposters[" + movies[movie].id[movie_id] + "].className += ' film-not-streamed';",
             allFrames: false
           });
         }
