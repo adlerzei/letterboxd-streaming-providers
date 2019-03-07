@@ -18,7 +18,7 @@
 // for compatibility reasons
 var browser = chrome;
 
-var provider_id; // e.g. Netflix: 8, Amazon Prime Video: 9
+var provider_ids = []; // e.g. Netflix: 8, Amazon Prime Video: 9
 
 var providers;
 
@@ -35,6 +35,7 @@ var tmdb_key;
 var checkCounter = {};
 
 var filterStatus;
+
 
 /**
  * Loads all information from JSON files for intern computations. Also loads the current settings.
@@ -54,9 +55,9 @@ const onStartUp = async () => {
       countrySet = true;
       setCountryCode(item.country_code);
     }
-    if (item.hasOwnProperty('provider_id')) {
+    if (item.hasOwnProperty('provider_ids')) {
       providerSet = true;
-      setProviderId(item.provider_id);
+      setProviderIds(item.provider_ids);
     }
     if (item.hasOwnProperty('filterStatus')) {
       statusSet = true;
@@ -75,7 +76,7 @@ const onStartUp = async () => {
       response = JSON.parse(response);
       // set the intern settings
       if (!providerSet) {
-        setProviderId(response.provider_id);
+        setProviderIds([response.provider_id]);
       }
       if (!countrySet) {
         setCountryCode(response.country_code);
@@ -129,12 +130,12 @@ const loadJSON = (path, callback) => {
  * Stores the settings in localStorage.
  *
  * @param {string} country_code - The currently set country code to store.
- * @param {int} provider_id - The currently set provider id to store.
+ * @param {Array} provider_ids - The currently set provider ids to store.
  */
-function storeSettings(country_code, provider_id, filterStatus) {
+function storeSettings(country_code, provider_ids, filterStatus) {
   browser.storage.local.set({
     country_code: country_code,
-    provider_id: provider_id,
+    provider_ids: provider_ids,
     filterStatus: filterStatus
   });
 }
@@ -162,9 +163,7 @@ async function isIncluded(tabId, toFind) {
   }
 
   var title_sanitized = encodeURIComponent(eng_title);
-  var title_rsp = '';
   var rsp = "";
-  var original_title = '';
   var found_perfect_match = false;
 
   var xhttp = new XMLHttpRequest();
@@ -197,11 +196,12 @@ async function isIncluded(tabId, toFind) {
 
         xhttp.onreadystatechange = function () {
           if (xhttp.readyState === 4 && xhttp.status === 200) {
-            title_rsp = JSON.parse(xhttp.response);
+            var title_rsp = JSON.parse(xhttp.response);
 
             var rslt = getOriginalTitleWithReleaseYear(tabId, title_rsp, eng_title, movie_release_year);
             found_perfect_match = rslt.found_perfect_match;
 
+            var original_title = '';
             if (found_perfect_match) {
               original_title = rslt.original_title;
             } else {
@@ -246,7 +246,7 @@ async function isIncluded(tabId, toFind) {
               year: toFind.year,
               id: toFind.id
             };
-            unsolvedRequestsDelay = parseInt(xhttp.getResponseHeader('Retry-After'));
+            //unsolvedRequestsDelay = parseInt(xhttp.getResponseHeader('Retry-After'));
 
             if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
               fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
@@ -282,7 +282,7 @@ function getOffersWithReleaseYear(tabId, rsp, movie_letterboxd_id, title, movie_
   for (let item in rsp.items) {
     if (rsp.items[item].original_title.toLowerCase() === title.toLowerCase() && rsp.items[item].original_release_year == movie_release_year) {
       for (let offer in rsp.items[item].offers) {
-        if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && Number(rsp.items[item].offers[offer].provider_id) === provider_id) {
+        if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && provider_ids.includes(Number(rsp.items[item].offers[offer].provider_id))) {
           availableMovies[tabId].push(...movie_letterboxd_id);
           break;
         }
@@ -307,12 +307,12 @@ function getOffersWithoutExactReleaseYear(tabId, rsp, movie_letterboxd_id, title
     if (rsp.items[item].original_title.toLowerCase() === title.toLowerCase() &&
       ((rsp.items[item].original_release_year == movie_release_year - 1)) || (rsp.items[item].original_release_year == movie_release_year + 1) || (movie_release_year === -1)) {
       for (let offer in rsp.items[item].offers) {
-        if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && Number(rsp.items[item].offers[offer].provider_id) === provider_id) {
+        if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && provider_ids.includes(Number(rsp.items[item].offers[offer].provider_id))) {
           availableMovies[tabId].push(...movie_letterboxd_id);
-          break;
+          return;
         }
       }
-      break;
+      return;
     }
   }
 }
@@ -388,12 +388,12 @@ browser.runtime.onMessage.addListener(handleMessage);
 browser.tabs.onUpdated.addListener(checkForLetterboxd);
 
 /**
- * Returns the currently set provider id.
+ * Returns the currently set provider ids.
  *
- * @returns {int} - The currently set provider id.
+ * @returns {Array} - The currently set provider ids.
  */
-function getProviderId() {
-  return provider_id;
+function getProviderIds() {
+  return provider_ids;
 }
 
 /**
@@ -406,13 +406,13 @@ function getCountryCode() {
 }
 
 /**
- * To change the provider_id out of the popup.
+ * To change the provider_ids out of the popup.
  *
- * @param {int} id - The new provider_id.
+ * @param {Array} ids - The new provider_ids.
  */
-function setProviderId(id) {
-  provider_id = Number(id);
-  storeSettings(country_code, provider_id, filterStatus);
+function setProviderIds(ids) {
+  provider_ids = ids;
+  storeSettings(country_code, provider_ids, filterStatus);
   reloadMovieFilter();
 }
 
@@ -450,7 +450,7 @@ function getFilterStatus() {
  */
 function setFilterStatus(status) {
   filterStatus = status;
-  storeSettings(country_code, provider_id, filterStatus);
+  storeSettings(country_code, provider_ids, filterStatus);
   reloadMovieFilter();
 }
 
@@ -461,7 +461,7 @@ function setFilterStatus(status) {
  */
 function setCountryCode(code) {
   country_code = code;
-  storeSettings(country_code, provider_id, filterStatus);
+  storeSettings(country_code, provider_ids, filterStatus);
   reloadMovieFilter();
 }
 
@@ -472,17 +472,19 @@ function reloadMovieFilter() {
   browser.tabs.query({}, reloadFilterInTab);
 
   function reloadFilterInTab(tabs) {
-    for (let tab of tabs) {
-      tabId = tab.id;
-      changeInfo = {
-        status: 'complete'
-      };
-      tabInfo = {
-        url: tab.url
-      };
+    for (const tab of tabs) {
+      if (tab.url && (tab.url.includes("://letterboxd.com/") || tab.url.includes("://www.letterboxd.com/"))) {
+        const tabId = tab.id;
+        const changeInfo = {
+          status: 'complete'
+        };
+        const tabInfo = {
+          url: tab.url
+        };
 
-      unfadeUnstreamedMovies(tabId, crawledMovies[tabId]);
-      checkForLetterboxd(tabId, changeInfo, tabInfo);
+        unfadeUnstreamedMovies(tabId, crawledMovies[tabId]);
+        checkForLetterboxd(tabId, changeInfo, tabInfo);
+      }
     }
   }
 }
@@ -557,7 +559,7 @@ function checkMovieAvailability(tabId, movies) {
   if (filterStatus) {
     prepareLetterboxdForFading(tabId);
     for (let movie in movies) {
-      var inc = isIncluded(tabId, {
+      isIncluded(tabId, {
         title: movie,
         year: movies[movie].year,
         id: movies[movie].id
@@ -577,7 +579,8 @@ function prepareLetterboxdForFading(tabId) {
   });
 
   browser.tabs.executeScript(tabId, {
-    code: "document.body.className = document.body.className + ' hide-films-unstreamed';",
+    code: "if(!document.body.classList.contains('hide-films-unstreamed')) " +
+      "document.body.className += ' hide-films-unstreamed';",
     allFrames: false
   });
 }
@@ -593,7 +596,7 @@ function fadeUnstreamedMovies(tabId, movies) {
     unfadeAllMovies(tabId);
 
     var className = '';
-    if (tab.url.includes('watchlist')) {
+    if (tab.url && tab.url.includes('watchlist')) {
       className = 'poster-container';
     } else {
       className = 'film-poster';
@@ -604,7 +607,7 @@ function fadeUnstreamedMovies(tabId, movies) {
         if (!availableMovies[tabId].includes(movies[movie].id[movie_id])) {
           browser.tabs.executeScript(tabId, {
             code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
-              "filmposters[" + movies[movie].id[movie_id] + "].className = filmposters[" + movies[movie].id[movie_id] + "].className + ' film-not-streamed';",
+              "filmposters[" + movies[movie].id[movie_id] + "].className += ' film-not-streamed';",
             allFrames: false
           });
         }
