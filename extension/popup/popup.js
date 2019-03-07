@@ -29,12 +29,12 @@ var country_list = document.getElementById('country-list');
 appendOptionsToCountryList();
 
 var provider_list = document.getElementById('provider-list');
-appendOptionsToProviderList();
-const choices = new Choices(provider_list, { 
+var choices = new Choices(provider_list, { 
   removeItemButton: true,
   position: 'bottom',
   placeholder: false
 });
+appendOptionsToProviderList();
 
 var filterSwitch = document.getElementById("filterSwitch");
 filterSwitch.checked = background.getFilterStatus();
@@ -69,15 +69,22 @@ function appendOptionsToCountryList() {
 /**
  * Appends all providers from the selected country as option to the provider_list select tag.
  *
- * param {string} [defaultProviderName] - The (optional) name of the provider which is selected by default.
+ * param {Array<string>} [defaultProviderNames] - The (optional) name of the provider which is selected by default.
  */
-function appendOptionsToProviderList(defaultProviderName) {
+function appendOptionsToProviderList(defaultProviderNames) {
+  // need to destroy and init choices as it won't remove the selected items on reset only
+  if(choices !== undefined) {
+    choices.destroy();
+    choices.init();
+  }
+
   provider_list.options.length = 0;
   let fragment = document.createDocumentFragment();
   const keys = Object.keys(providers).sort(function (a, b) {
     return ('' + providers[a].name).localeCompare(providers[b].name);
   });
 
+  let items = [];
   for (const providerKey in keys) {
     let provider = keys[providerKey];
 
@@ -87,19 +94,36 @@ function appendOptionsToProviderList(defaultProviderName) {
       opt.innerHTML = providers[provider].name;
       opt.value = provider;
       opt.label = providers[provider].name;
-      if (typeof defaultProviderName === 'undefined') {
+
+      // needed for Choice plugin
+      let item = {
+        label: opt.label,
+        value: opt.value,
+        selected: false
+      };
+
+      if (typeof defaultProviderNames === 'undefined') {
         if (provider_ids.includes(providers[provider].provider_id)) {
           opt.selected = "selected";
+          item.selected = true;
         }
       } else {
-        if (providers[provider].name === defaultProviderName) {
+        if (defaultProviderNames.includes(providers[provider].name)) {
           opt.selected = "selected";
+          item.selected = true;
         }
       }
+
+      items.push(item);
+
       fragment.appendChild(opt);
     }
   }
   provider_list.appendChild(fragment);
+
+  if(choices !== undefined) {
+    choices.setChoices(items, 'value', 'label', true);
+  }
 }
 
 /**
@@ -140,8 +164,9 @@ function changeCountryCode() {
   if (typeof countries !== 'undefined' && countries.hasOwnProperty(code) && countries[code].hasOwnProperty('code')) {
     country_code = countries[code].code;
     background.setCountryCode(country_code);
-    const defaultProviderId = provider_list.options[provider_list.selectedIndex].label;
-    appendOptionsToProviderList(defaultProviderId);
+    
+    const checkedProviders = Array.from(provider_list.querySelectorAll('option:checked')).map(el => el.label);
+    appendOptionsToProviderList(checkedProviders);
     changeProviderId();
   }
 }
