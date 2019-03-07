@@ -472,13 +472,13 @@ function reloadMovieFilter() {
   browser.tabs.query({}, reloadFilterInTab);
 
   function reloadFilterInTab(tabs) {
-    for (let tab of tabs) {
-      if (tab.url.includes("://letterboxd.com/") || tab.url.includes("://www.letterboxd.com/")) {
-        tabId = tab.id;
-        changeInfo = {
+    for (const tab of tabs) {
+      if (tab.url && (tab.url.includes("://letterboxd.com/") || tab.url.includes("://www.letterboxd.com/"))) {
+        const tabId = tab.id;
+        const changeInfo = {
           status: 'complete'
         };
-        tabInfo = {
+        const tabInfo = {
           url: tab.url
         };
 
@@ -559,7 +559,7 @@ function checkMovieAvailability(tabId, movies) {
   if (filterStatus) {
     prepareLetterboxdForFading(tabId);
     for (let movie in movies) {
-      var inc = isIncluded(tabId, {
+      isIncluded(tabId, {
         title: movie,
         year: movies[movie].year,
         id: movies[movie].id
