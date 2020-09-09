@@ -60,6 +60,13 @@ If you like my work, you can support me via [PayPal](https://www.paypal.me/Chris
 ## Acknowledgements
 Thanks to everyone using, supporting and contributing to the extension. Philipp Emmer is especially mentioned for the idea behind this extension.
 
+## Contributors
+<a href="https://github.com/adlerzei/letterboxd-streaming-providers/graphs/contributors">
+  <img src="https://contributors-img.web.app/image?repo=adlerzei/letterboxd-streaming-providers" />
+</a>
+
+Made with [contributors-img](https://contributors-img.web.app).
+
 ## What's new?
 
 ##### v1.0
