@@ -161,7 +161,8 @@ async function isIncluded(tabId, toFind) {
     movie_release_year = parseInt(movie_release_year);
   }
 
-  var param = eng_title.replace(' ', '+');
+  // var param = eng_title.replace(' ', '+');
+  var param = encodeURIComponent(eng_title);
   var title_rsp = '';
   var rsp = "";
   var original_title = '';
@@ -186,7 +187,7 @@ async function isIncluded(tabId, toFind) {
         }
       } else {
         found_perfect_match = false;
-        param = eng_title.replace(' ', '%20');
+        param = encodeURIComponent(eng_title);
 
         xhttp.open('GET', "https://api.themoviedb.org/3/search/movie?api_key=" + getAPIKey() + "&query=" + param, true);
 
@@ -209,7 +210,7 @@ async function isIncluded(tabId, toFind) {
 
             found_perfect_match = false;
 
-            param = eng_title.replace(' ', '+');
+            param = encodeURIComponent(eng_title);
 
             xhttp = new XMLHttpRequest();
 
@@ -278,7 +279,7 @@ async function isIncluded(tabId, toFind) {
  */
 function getOffersWithReleaseYear(tabId, rsp, movie_letterboxd_id, title, movie_release_year) {
   for (let item in rsp.items) {
-    if (rsp.items[item].original_title.toLowerCase() === title.toLowerCase() && rsp.items[item].original_release_year == movie_release_year) {
+    if (rsp.items[item].title.toLowerCase() === title.toLowerCase() && rsp.items[item].original_release_year == movie_release_year) {
       for (let offer in rsp.items[item].offers) {
         if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && Number(rsp.items[item].offers[offer].provider_id) === provider_id) {
           availableMovies[tabId].push(...movie_letterboxd_id);
@@ -302,7 +303,7 @@ function getOffersWithReleaseYear(tabId, rsp, movie_letterboxd_id, title, movie_
  */
 function getOffersWithoutExactReleaseYear(tabId, rsp, movie_letterboxd_id, title, movie_release_year) {
   for (let item in rsp.items) {
-    if (rsp.items[item].original_title.toLowerCase() === title.toLowerCase() &&
+    if (rsp.items[item].title.toLowerCase() === title.toLowerCase() &&
       ((rsp.items[item].original_release_year == movie_release_year - 1)) || (rsp.items[item].original_release_year == movie_release_year + 1) || (movie_release_year === -1)) {
       for (let offer in rsp.items[item].offers) {
         if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && Number(rsp.items[item].offers[offer].provider_id) === provider_id) {
