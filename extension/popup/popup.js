@@ -23,7 +23,8 @@ var background = browser.extension.getBackgroundPage();
 var countries = background.getCountries();
 var providers = background.getProviders();
 var provider_id = background.getProviderId();
-var country_code = background.getCountryCode();
+var justWatchCountryCode = background.getJustWatchCountryCode();
+var tmdbCountryCode = background.getTMDBCountryCode();
 
 var country_list = document.getElementById('CountryList');
 
@@ -37,12 +38,15 @@ function appendOptionsToCountryList() {
   });
   for(let country in keys) {
     country = keys[country];
+    if (!countries[country].hasOwnProperty('name') || !countries[country].hasOwnProperty('justwatch_country_code'))
+      continue;
+
     var opt = document.createElement('option');
-    opt.innerHTML=countries[country].name;
+    opt.innerHTML=countries[country].name; // TODO escape
     opt.value=country;
     opt.label=countries[country].name;
-    if(countries[country].code === country_code) {
-      opt.selected="selected";
+    if(countries[country].justwatch_country_code === justWatchCountryCode) {
+      opt.selected = "selected";
     }
     fragment.appendChild(opt);
   }
@@ -66,10 +70,13 @@ function appendOptionsToProviderList(defaultProviderName) {
   });
   for (let provider in keys) {
     provider = keys[provider];
+    if (!providers[provider].hasOwnProperty('name') || !providers[provider].hasOwnProperty('provider_id'))
+      continue;
+
     var country = country_list.options[country_list.selectedIndex].value;
     if (providers[provider].countries.includes(country)) {
       var opt = document.createElement('option');
-      opt.innerHTML = providers[provider].name;
+      opt.innerHTML = providers[provider].name; // TODO escape
       opt.value = provider;
       opt.label = providers[provider].name;
       if(typeof defaultProviderName === 'undefined') {
@@ -117,16 +124,18 @@ function changeProviderId() {
   }
 }
 
-country_list.addEventListener("change", changeCountryCode);
+country_list.addEventListener("change", changeCountryCodes);
 
 /**
- * Called when the selected item in country_list is changed. Changes the country_code in the background page and forces the options in provider_list to reload.
+ * Called when the selected item in country_list is changed. Changes the country codes in the background page and forces the options in provider_list to reload.
  */
-function changeCountryCode() {
+function changeCountryCodes() {
   let code = country_list.options[country_list.selectedIndex].value;
-  if(typeof countries !== 'undefined' && countries.hasOwnProperty(code) && countries[code].hasOwnProperty('code')) {
-    country_code = countries[code].code;
-    background.setCountryCode(country_code);
+  if(typeof countries !== 'undefined' && countries.hasOwnProperty(code) && countries[code].hasOwnProperty('justwatch_country_code') && countries[code].hasOwnProperty('tmdb_country_code')) {
+    justWatchCountryCode = countries[code].justwatch_country_code;
+    tmdbCountryCode = countries[code].tmdb_country_code;
+    background.setJustWatchCountryCode(justWatchCountryCode);
+    background.setTMDBCountryCode(tmdbCountryCode);
     let defaultProviderId = provider_list.options[provider_list.selectedIndex].label;
     appendOptionsToProviderList(defaultProviderId);
     changeProviderId();
