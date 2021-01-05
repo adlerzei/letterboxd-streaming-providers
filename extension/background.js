@@ -18,7 +18,7 @@
 // for compatibility reasons
 var browser = chrome;
 
-var provider_id; // e.g. Netflix: 8, Amazon Prime Video: 9
+var providerId; // e.g. Netflix: 8, Amazon Prime Video: 9
 
 var providers;
 
@@ -31,7 +31,7 @@ var availableMovies = {};
 var crawledMovies = {};
 var unsolvedRequests = {};
 var unsolvedRequestsDelay = {};
-var tmdb_key;
+var tmdbKey;
 
 var checkCounter = {};
 
@@ -68,16 +68,22 @@ const onStartUp = async () => {
 			providerSet = true;
 			setProviderId(item.provider_id);
 		}
-		if (item.hasOwnProperty('filterStatus')) {
+		if (item.hasOwnProperty('filter_status')) {
 			statusSet = true;
-			setFilterStatus(item.filterStatus);
+			setFilterStatus(item.filter_status);
 		}
 
-		if (version < 2) {
+		if (version < 1.2) {
 			if (item.hasOwnProperty('country_code')) {
 				countrySet = true;
 				setJustWatchCountryCode(item.country_code);
 				browser.storage.local.remove('country_code');
+			}
+
+			if (item.hasOwnProperty('filterStatus')) {
+				statusSet = true;
+				setFilterStatus(item.filterStatus);
+				browser.storage.local.remove('filterStatus');
 			}
 
 			if (countrySet) {
@@ -123,8 +129,8 @@ const onStartUp = async () => {
 			if (!providerSet && response.hasOwnProperty('provider_id')) {
 				setProviderId(response.provider_id);
 			}
-			if (!statusSet && response.hasOwnProperty('filterStatus')) {
-				setFilterStatus(response.filterStatus);
+			if (!statusSet && response.hasOwnProperty('filter_status')) {
+				setFilterStatus(response.filter_status);
 			}
 		});
 	}
@@ -133,7 +139,7 @@ const onStartUp = async () => {
 	loadJSON("settings/api.json", function (response) {
 		// Parse JSON string into object
 		response = JSON.parse(response);
-		tmdb_key = response.tmdb;
+		tmdbKey = response.tmdb;
 	});
 
 	// load provider list
@@ -173,18 +179,18 @@ const loadJSON = (path, callback) => {
  *
  * @param {string} justWatchCountryCode - The currently set country code to store.
  * @param {string} tmdbCountryCode - The currently set TMDB country code to store.
- * @param {int} provider_id - The currently set provider id to store.
+ * @param {int} providerId - The currently set provider id to store.
  * @param {boolean} filterStatus - The currently set filter status to store.
  */
-function storeSettings(justWatchCountryCode, tmdbCountryCode, provider_id, filterStatus) {
-	let version = 2;
+function storeSettings(justWatchCountryCode, tmdbCountryCode, providerId, filterStatus) {
+	let version = 1.2;
 
 	browser.storage.local.set({
 		version: version,
 		justwatch_country_code: justWatchCountryCode,
 		tmdb_country_code: tmdbCountryCode,
-		provider_id: provider_id,
-		filterStatus: filterStatus
+		provider_id: providerId,
+		filter_status: filterStatus
 	});
 }
 
@@ -198,28 +204,27 @@ onStartUp();
  * @returns {Promise<void>} - An empty Promise if the API calls worked correctly, else the Promise contains the respective errors.
  */
 async function isIncluded(tabId, toFind) {
-	var eng_title = toFind.title;
-	var movie_release_year = toFind.year;
-	var movie_letterboxd_id = toFind.id;
+	var englishTitle = toFind.title;
+	var movieReleaseYear = toFind.year;
+	var movieLetterboxdId = toFind.id;
 
-	if (isNaN(movie_release_year)) {
-		movie_release_year = -1;
+	if (isNaN(movieReleaseYear)) {
+		movieReleaseYear = -1;
 	}
 
-	if (typeof movie_release_year === 'string') {
-		movie_release_year = parseInt(movie_release_year);
+	if (typeof movieReleaseYear === 'string') {
+		movieReleaseYear = parseInt(movieReleaseYear);
 	}
 
-	var title_sanitized = encodeURIComponent(eng_title);
-	var localized_title = '';
-	var found_match = false;
+	var titleSanitized = encodeURIComponent(englishTitle);
+	var matchFound = false;
 
 	var xhttp = new XMLHttpRequest();
 
 	let justwatchRequest = {
 		page: 1,
 		page_size: 30,
-		query: title_sanitized,
+		query: titleSanitized,
 	};
 
 	xhttp.open('GET', "https://apis.justwatch.com/content/titles/" + justWatchCountryCode + "/popular?body=" + JSON.stringify(justwatchRequest), true);
@@ -228,71 +233,71 @@ async function isIncluded(tabId, toFind) {
 	xhttp.onreadystatechange = function () {
 		if (xhttp.readyState === 4 && xhttp.status === 200) {
 			var justwatch_rsp = JSON.parse(xhttp.response);
-			found_match = getOffersWithReleaseYear(tabId, justwatch_rsp, movie_letterboxd_id, eng_title, movie_release_year);
+			matchFound = getOffersWithReleaseYear(tabId, justwatch_rsp, movieLetterboxdId, englishTitle, movieReleaseYear);
 
-			if (found_match) {
+			if (matchFound) {
 				checkCounter[tabId]++;
 
 				if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
 					fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
 				}
 			} else {
-				found_match = false;
+				matchFound = false;
 
-				xhttp.open('GET', "https://api.themoviedb.org/3/search/multi?api_key=" + getAPIKey() + "&query=" + title_sanitized, true);
+				xhttp.open('GET', "https://api.themoviedb.org/3/search/multi?api_key=" + getAPIKey() + "&query=" + titleSanitized, true);
 				xhttp.send();
 
 				xhttp.onreadystatechange = function () {
 					if (xhttp.readyState === 4 && xhttp.status === 200) {
-						var tmdb_rsp = JSON.parse(xhttp.response);
+						var tmdbRsp = JSON.parse(xhttp.response);
 
-						var rslt = getIdWithReleaseYear(tabId, tmdb_rsp, eng_title, movie_release_year);
-						found_match = rslt.found_perfect_match;
+						var rslt = getIdWithReleaseYear(tabId, tmdbRsp, englishTitle, movieReleaseYear);
+						matchFound = rslt.matchFound;
 
-						var tmdb_id = -1;
-						var media_type = '';
-						if (found_match) {
-							tmdb_id = rslt.tmdb_id;
-							media_type = rslt.media_type;
+						var tmdbId = -1;
+						var mediaType = '';
+						if (matchFound) {
+							tmdbId = rslt.tmdbId;
+							mediaType = rslt.mediaType;
 						} else {
-							rslt = getIdWithoutExactReleaseYear(tabId, tmdb_rsp, eng_title, movie_release_year);
-							tmdb_id = rslt.tmdb_id;
-							media_type = rslt.media_type;
-							found_match = rslt.found_match;
+							rslt = getIdWithoutExactReleaseYear(tabId, tmdbRsp, englishTitle, movieReleaseYear);
+							tmdbId = rslt.tmdbId;
+							mediaType = rslt.mediaType;
+							matchFound = rslt.matchFound;
 						}
 
-						if (found_match) {
-							found_match = false;
+						if (matchFound) {
+							matchFound = false;
 
-							xhttp.open('GET', "https://api.themoviedb.org/3/" + media_type + "/" + tmdb_id + "?api_key=" + getAPIKey() + "&language=" + tmdbCountryCode, true); // todo escape
+							xhttp.open('GET', "https://api.themoviedb.org/3/" + mediaType + "/" + tmdbId + "?api_key=" + getAPIKey() + "&language=" + tmdbCountryCode, true); // todo escape
 							xhttp.send();
 
 							xhttp.onreadystatechange = function () {
 								if (xhttp.readyState === 4 && xhttp.status === 200) {
-									tmdb_rsp = JSON.parse(xhttp.response);
+									tmdbRsp = JSON.parse(xhttp.response);
 
-									localized_title = eng_title;
+									var titleLocalized = englishTitle;
 
-									if (media_type === 'movie') {
-										if (tmdb_rsp.hasOwnProperty('title')) {
-											localized_title = tmdb_rsp.title;
+									if (mediaType === 'movie') {
+										if (tmdbRsp.hasOwnProperty('title')) {
+											titleLocalized = tmdbRsp.title;
 										} else {
-											if (tmdb_rsp.hasOwnProperty('original_title'))
-												localized_title = tmdb_rsp.original_title;
+											if (tmdbRsp.hasOwnProperty('original_title'))
+												titleLocalized = tmdbRsp.original_title;
 										}
-									} else if (media_type === 'tv') {
-										if (tmdb_rsp.hasOwnProperty('name')) {
-											localized_title = tmdb_rsp.name;
+									} else if (mediaType === 'tv') {
+										if (tmdbRsp.hasOwnProperty('name')) {
+											titleLocalized = tmdbRsp.name;
 										} else {
-											if (tmdb_rsp.hasOwnProperty('original_name'))
-												localized_title = tmdb_rsp.original_name;
+											if (tmdbRsp.hasOwnProperty('original_name'))
+												titleLocalized = tmdbRsp.original_name;
 										}
 									}
 
-									found_match = getOffersWithReleaseYear(tabId, justwatch_rsp, movie_letterboxd_id, localized_title, movie_release_year);
+									matchFound = getOffersWithReleaseYear(tabId, justwatch_rsp, movieLetterboxdId, titleLocalized, movieReleaseYear);
 
-									if (!found_match) {
-										getOffersWithoutExactReleaseYear(tabId, justwatch_rsp, movie_letterboxd_id, localized_title, movie_release_year);
+									if (!matchFound) {
+										getOffersWithoutExactReleaseYear(tabId, justwatch_rsp, movieLetterboxdId, titleLocalized, movieReleaseYear);
 									}
 
 									checkCounter[tabId]++;
@@ -319,7 +324,7 @@ async function isIncluded(tabId, toFind) {
 							year: toFind.year,
 							id: toFind.id
 						};
-						//unsolvedRequestsDelay = parseInt(xhttp.getResponseHeader('Retry-After'));
+						unsolvedRequestsDelay = parseInt(xhttp.getResponseHeader('Retry-After'));
 
 						if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
 							fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
@@ -342,21 +347,27 @@ async function isIncluded(tabId, toFind) {
 }
 
 /**
- * Checks if the streaming provider offers a flatrate for the given movie released in movie_release_year.
+ * Checks if the streaming provider offers a flatrate for the given movie released in movieReleaseYear.
  *
  * @param {int} tabId - The tabId to operate in.
  * @param {object} rsp - The response from the ajax request.
- * @param {int} movie_letterboxd_id - The intern ID from the array in letterboxd.com.
+ * @param {int} letterboxdMovieId - The intern ID from the array in letterboxd.com.
  * @param {string} title - The movie title.
- * @param {int} movie_release_year - The movie's release year.
+ * @param {int} movieReleaseYear - The movie's release year.
  * @returns {boolean} - Returns true if the searched movie is found unter the given conditions, returns false else.
  */
-function getOffersWithReleaseYear(tabId, rsp, movie_letterboxd_id, title, movie_release_year) {
+function getOffersWithReleaseYear(tabId, rsp, letterboxdMovieId, title, movieReleaseYear) {
 	for (let item in rsp.items) {
-		if (rsp.items[item].title.toLowerCase() === title.toLowerCase() && rsp.items[item].original_release_year == movie_release_year) {
+		if (!rsp.items[item].hasOwnProperty('original_release_year') || !rsp.items[item].hasOwnProperty('title') || !rsp.items[item].hasOwnProperty('offers'))
+			continue;
+
+		if (rsp.items[item].title.toLowerCase() === title.toLowerCase() && rsp.items[item].original_release_year === movieReleaseYear) {
 			for (let offer in rsp.items[item].offers) {
-				if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && Number(rsp.items[item].offers[offer].provider_id) === provider_id) {
-					availableMovies[tabId].push(...movie_letterboxd_id);
+				if (!rsp.items[item].offers[offer].hasOwnProperty('monetization_type') || !rsp.items[item].offers[offer].hasOwnProperty('provider_id'))
+					continue;
+
+				if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && Number(rsp.items[item].offers[offer].provider_id) === providerId) {
+					availableMovies[tabId].push(...letterboxdMovieId);
 					break;
 				}
 			}
@@ -367,22 +378,28 @@ function getOffersWithReleaseYear(tabId, rsp, movie_letterboxd_id, title, movie_
 }
 
 /**
- * Checks if the streaming provider offers a flatrate for the given movie released in movie_release_year-1 or movie_release_year+1 or if the movie_release_year is invalid (=-1).
+ * Checks if the streaming provider offers a flatrate for the given movie released in movieReleaseYear-1 or movieReleaseYear+1 or if the movieReleaseYear is invalid (=-1).
  *
  * @param {int} tabId - The tabId to operate in.
  * @param {object} rsp - The response from the ajax request.
- * @param {int} movie_letterboxd_id - The intern ID from the array in letterboxd.com.
+ * @param {int} letterboxdMovieId - The intern ID from the array in letterboxd.com.
  * @param {string} title - The movie title.
- * @param {int} movie_release_year - The movie's release year.
+ * @param {int} movieReleaseYear - The movie's release year.
  */
-function getOffersWithoutExactReleaseYear(tabId, rsp, movie_letterboxd_id, title, movie_release_year) {
+function getOffersWithoutExactReleaseYear(tabId, rsp, letterboxdMovieId, title, movieReleaseYear) {
 	for (let item in rsp.items) {
+		if (!rsp.items[item].hasOwnProperty('original_release_year') || !rsp.items[item].hasOwnProperty('title') || !rsp.items[item].hasOwnProperty('offers'))
+			continue; // TODO maybe find best candidate if original_release_year was not found
+
 		// TODO cast the years correctly before comparison (check if needed at all??)
-		if (rsp.items[item].title.toLowerCase() === title.toLowerCase() &&
-			((rsp.items[item].original_release_year == movie_release_year - 1)) || (rsp.items[item].original_release_year == movie_release_year + 1) || (movie_release_year === -1)) {
+		if (rsp.items[item].title.toLowerCase() === title.toLowerCase()
+			&& ((rsp.items[item].original_release_year === movieReleaseYear - 1)) || (rsp.items[item].original_release_year === movieReleaseYear + 1) || (movieReleaseYear === -1)) {
 			for (let offer in rsp.items[item].offers) {
-				if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && Number(rsp.items[item].offers[offer].provider_id) === provider_id) {
-					availableMovies[tabId].push(...movie_letterboxd_id);
+				if (!rsp.items[item].offers[offer].hasOwnProperty('monetization_type') || !rsp.items[item].offers[offer].hasOwnProperty('provider_id'))
+					continue;
+
+				if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && Number(rsp.items[item].offers[offer].provider_id) === providerId) {
+					availableMovies[tabId].push(...letterboxdMovieId);
 					return;
 				}
 			}
@@ -395,107 +412,108 @@ function getOffersWithoutExactReleaseYear(tabId, rsp, movie_letterboxd_id, title
  * Returns the TMDB ID for a given English media title and a corresponding release year.
  *
  * @param {int} tabId - The tabId to operate in.
- * @param {object} tmdb_rsp - The response from the ajax request.
- * @param {string} eng_title - The English movie title.
- * @param {int} release_year - The media's release year.
- * @returns {{tmdb_id: int, media_type: string, found_perfect_match: boolean}} - An object containing the TMDB movie ID, the media type and if this was a perfect match (eng_title and movie_release_year match up).
+ * @param {object} tmdbRsp - The response from the ajax request.
+ * @param {string} titleEnglish - The English movie title.
+ * @param {int} releaseYear - The media's release year.
+ * @returns {{tmdbId: int, mediaType: string, matchFound: boolean}} - An object containing the TMDB movie ID, the media type and if this was a perfect match (titleEnglish and movie_release_year match up).
  */
-function getIdWithReleaseYear(tabId, tmdb_rsp, eng_title, release_year) {
-	if (release_year !== -1) {
-		for (let item in tmdb_rsp.results) {
-			if (!tmdb_rsp.results[item].hasOwnProperty('media_type'))
+function getIdWithReleaseYear(tabId, tmdbRsp, titleEnglish, releaseYear) {
+	if (releaseYear !== -1) {
+		for (let item in tmdbRsp.results) {
+			if (!tmdbRsp.results[item].hasOwnProperty('media_type'))
 				continue;
 
-			let item_title = '';
-			let item_release_date = '';
-			if (tmdb_rsp.results[item].media_type === 'movie') {
-				if (!tmdb_rsp.results[item].hasOwnProperty('release_date') || !tmdb_rsp.results[item].hasOwnProperty('title'))
+			let itemTitle = '';
+			let itemReleaseDate = '';
+			if (tmdbRsp.results[item].media_type === 'movie') {
+				if (!tmdbRsp.results[item].hasOwnProperty('release_date') || !tmdbRsp.results[item].hasOwnProperty('title'))
 					continue;
 
-				item_title = tmdb_rsp.results[item].title;
-				item_release_date = tmdb_rsp.results[item].release_date;
-			} else if (tmdb_rsp.results[item].media_type === 'tv') {
-				if (!tmdb_rsp.results[item].hasOwnProperty('first_air_date') || !tmdb_rsp.results[item].hasOwnProperty('name'))
+				itemTitle = tmdbRsp.results[item].title;
+				itemReleaseDate = tmdbRsp.results[item].release_date;
+			} else if (tmdbRsp.results[item].media_type === 'tv') {
+				if (!tmdbRsp.results[item].hasOwnProperty('first_air_date') || !tmdbRsp.results[item].hasOwnProperty('name'))
 					continue;
 
-				item_title = tmdb_rsp.results[item].name;
-				item_release_date = tmdb_rsp.results[item].first_air_date;
+				itemTitle = tmdbRsp.results[item].name;
+				itemReleaseDate = tmdbRsp.results[item].first_air_date;
 			} else {
 				continue;
 			}
 
-			let item_release_year = item_release_date.split('-')[0];
-			if (typeof item_release_year === 'string') {
-				item_release_year = parseInt(item_release_year);
+			let itemReleaseYear = itemReleaseDate.split('-')[0];
+			if (typeof itemReleaseYear === 'string') {
+				itemReleaseYear = parseInt(itemReleaseYear);
 			}
 
-			if (item_title.toLowerCase() === eng_title.toLowerCase() && item_release_year === release_year) {
+			if (itemTitle.toLowerCase() === titleEnglish.toLowerCase() && itemReleaseYear === releaseYear) {
 				return {
-					tmdb_id: tmdb_rsp.results[item].id,
-					media_type: tmdb_rsp.results[item].media_type,
-					found_perfect_match: true
+					tmdbId: tmdbRsp.results[item].id,
+					mediaType: tmdbRsp.results[item].media_type,
+					matchFound: true
 				};
 			}
 		}
 	}
 
 	return {
-		movie_id: -1,
-		found_perfect_match: false
+		tmdbId: -1,
+		mediaType: '',
+		matchFound: false
 	};
 }
 
 /**
- * Returns the TMDB ID for a given English media title and a for the given movie released in release_year-1 or release_year+1 or if the release_year is invalid (=-1).
+ * Returns the TMDB ID for a given English media title and a for the given movie released in releaseYear-1 or releaseYear+1 or if the releaseYear is invalid (=-1).
  *
  * @param {int} tabId - The tabId to operate in.
- * @param {object} tmdb_rsp - The response from the ajax request.
- * @param {string} eng_title - The English movie title.
- * @param {int} release_year - The media's release year.
- * @returns {{tmdb_id: int, media_type: string, found_match: boolean}} - An object containing the TMDB movie ID, the media type and if a match was found.
+ * @param {object} tmdbRsp - The response from the ajax request.
+ * @param {string} titleEnglish - The English movie title.
+ * @param {int} releaseYear - The media's release year.
+ * @returns {{tmdbId: int, mediaType: string, matchFound: boolean}} - An object containing the TMDB movie ID, the media type and if a match was found.
  */
-function getIdWithoutExactReleaseYear(tabId, tmdb_rsp, eng_title, release_year) {
-	for (let item in tmdb_rsp.results) {
-		if (!tmdb_rsp.results[item].hasOwnProperty('media_type'))
+function getIdWithoutExactReleaseYear(tabId, tmdbRsp, titleEnglish, releaseYear) {
+	for (let item in tmdbRsp.results) {
+		if (!tmdbRsp.results[item].hasOwnProperty('media_type'))
 			continue;
 
-		let item_title = '';
-		let item_release_date = '';
-		if (tmdb_rsp.results[item].media_type === 'movie') {
-			if (!tmdb_rsp.results[item].hasOwnProperty('release_date') || !tmdb_rsp.results[item].hasOwnProperty('title'))
+		let itemTitle = '';
+		let itemReleaseDate = '';
+		if (tmdbRsp.results[item].media_type === 'movie') {
+			if (!tmdbRsp.results[item].hasOwnProperty('release_date') || !tmdbRsp.results[item].hasOwnProperty('title'))
 				continue; // TODO maybe find best candidate if this happens?
 
-			item_title = tmdb_rsp.results[item].title;
-			item_release_date = tmdb_rsp.results[item].release_date;
-		} else if (tmdb_rsp.results[item].media_type === 'tv') {
-			if (!tmdb_rsp.results[item].hasOwnProperty('first_air_date') || !tmdb_rsp.results[item].hasOwnProperty('name'))
+			itemTitle = tmdbRsp.results[item].title;
+			itemReleaseDate = tmdbRsp.results[item].release_date;
+		} else if (tmdbRsp.results[item].media_type === 'tv') {
+			if (!tmdbRsp.results[item].hasOwnProperty('first_air_date') || !tmdbRsp.results[item].hasOwnProperty('name'))
 				continue; // TODO maybe find best candidate if this happens?
 
-			item_title = tmdb_rsp.results[item].name;
-			item_release_date = tmdb_rsp.results[item].first_air_date;
+			itemTitle = tmdbRsp.results[item].name;
+			itemReleaseDate = tmdbRsp.results[item].first_air_date;
 		} else {
 			continue;
 		}
 
-		let item_release_year = item_release_date.split('-')[0];
-		if (typeof item_release_year === 'string') {
-			item_release_year = parseInt(item_release_year);
+		let itemReleaseYear = itemReleaseDate.split('-')[0];
+		if (typeof itemReleaseYear === 'string') {
+			itemReleaseYear = parseInt(itemReleaseYear);
 		}
 
-		if (item_title.toLowerCase() === eng_title.toLowerCase()
-			&& ((release_year === -1) || (item_release_year === release_year - 1) || (item_release_year === release_year + 1))) {
+		if (itemTitle.toLowerCase() === titleEnglish.toLowerCase()
+			&& ((releaseYear === -1) || (itemReleaseYear === releaseYear - 1) || (itemReleaseYear === releaseYear + 1))) {
 			return {
-				tmdb_id: tmdb_rsp.results[item].id,
-				media_type: tmdb_rsp.results[item].media_type,
-				found_match: true
+				tmdbId: tmdbRsp.results[item].id,
+				mediaType: tmdbRsp.results[item].media_type,
+				matchFound: true
 			};
 		}
 	}
 
 	return {
-		tmdb_id: '',
-		media_type: -1,
-		found_match: false
+		tmdbId: -1,
+		mediaType: '',
+		matchFound: false
 	};
 }
 
@@ -530,7 +548,7 @@ browser.tabs.onUpdated.addListener(checkForLetterboxd);
  * @returns {int} - The currently set provider id.
  */
 function getProviderId() {
-	return provider_id;
+	return providerId;
 }
 
 /**
@@ -552,13 +570,13 @@ function getTMDBCountryCode() {
 }
 
 /**
- * To change the provider_id out of the popup.
+ * To change the provider ID out of the popup.
  *
- * @param {int} id - The new provider_id.
+ * @param {int} id - The new provider ID.
  */
 function setProviderId(id) {
-	provider_id = Number(id);
-	storeSettings(justWatchCountryCode, tmdbCountryCode, provider_id, filterStatus);
+	providerId = Number(id);
+	storeSettings(justWatchCountryCode, tmdbCountryCode, providerId, filterStatus);
 	reloadMovieFilter();
 }
 
@@ -596,7 +614,7 @@ function getFilterStatus() {
  */
 function setFilterStatus(status) {
 	filterStatus = status;
-	storeSettings(justWatchCountryCode, tmdbCountryCode, provider_id, filterStatus);
+	storeSettings(justWatchCountryCode, tmdbCountryCode, providerId, filterStatus);
 	reloadMovieFilter();
 }
 
@@ -607,7 +625,7 @@ function setFilterStatus(status) {
  */
 function setJustWatchCountryCode(code) {
 	justWatchCountryCode = code;
-	storeSettings(justWatchCountryCode, tmdbCountryCode, provider_id, filterStatus);
+	storeSettings(justWatchCountryCode, tmdbCountryCode, providerId, filterStatus);
 	reloadMovieFilter();
 }
 
@@ -618,11 +636,11 @@ function setJustWatchCountryCode(code) {
  */
 function setTMDBCountryCode(code) {
 	tmdbCountryCode = code;
-	storeSettings(justWatchCountryCode, tmdbCountryCode, provider_id, filterStatus);
+	storeSettings(justWatchCountryCode, tmdbCountryCode, providerId, filterStatus);
 }
 
 /**
- * Called to force the filters to reload with the new provider_id.
+ * Called to force the filters to reload with the new provider ID.
  */
 function reloadMovieFilter() {
 	browser.tabs.query({}, reloadFilterInTab);
@@ -649,7 +667,7 @@ function reloadMovieFilter() {
  * @returns {string} - The API key.
  */
 function getAPIKey() {
-	return tmdb_key;
+	return tmdbKey;
 }
 
 /**
@@ -680,7 +698,7 @@ function checkForLetterboxd(tabId, changeInfo, tabInfo) {
 /**
  * Called from within the listener for new messages from the content script.
  *
- * @param {{message_type: string, message_content: object}} request - The message from the content script.
+ * @param {{messageType: string, messageContent: object}} request - The message from the content script.
  * @param {object} sender - The sender from the runtime.onMessage event.
  * @param {object} sendResponse - The sendResponse from the runtime.onMessage event.
  */
@@ -691,9 +709,9 @@ function handleMessage(request, sender, sendResponse) {
 	} else {
 		console.log("Error: missing TabId");
 	}
-	if (request.hasOwnProperty('message_type')) {
-		if (request.message_type === 'movie-titles') {
-			crawledMovies[tabId] = request.message_content;
+	if (request.hasOwnProperty('messageType') && request.hasOwnProperty('messageContent')) {
+		if (request.messageType === 'movie-titles') {
+			crawledMovies[tabId] = request.messageContent;
 			if (Object.keys(crawledMovies[tabId]).length === 0) {
 				getFilmsFromLetterboxd(tabId);
 			} else {
@@ -831,11 +849,11 @@ function unfadeUnstreamedMovies(tabId, movies) {
 			className = 'film-poster';
 		}
 		for (let movie in movies) {
-			for (let movie_id in movies[movie].id) {
-				if (!availableMovies[tabId].includes(movies[movie].id[movie_id])) {
+			for (let movieId in movies[movie].id) {
+				if (!availableMovies[tabId].includes(movies[movie].id[movieId])) {
 					browser.tabs.executeScript(tabId, {
 						code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
-							"filmposters[" + movies[movie].id[movie_id] + "].className = filmposters[" + movies[movie].id[movie_id] + "].className.replace(' film-not-streamed', '');",
+							"filmposters[" + movies[movie].id[movieId] + "].className = filmposters[" + movies[movie].id[movieId] + "].className.replace(' film-not-streamed', '');",
 						allFrames: false
 					});
 				}
