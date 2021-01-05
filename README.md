@@ -76,7 +76,7 @@ Made with [contributors-img](https://contributors-img.web.app).
 - Choose between streaming providers from Austria, Canada, France, Germany, Japan, Mexico, Spain, Switzerland, USA and United Kingdom.
 
 ##### v1.1
-- Renew TMDB API key
+- TMDB API key renewed
 - Fixed bug, that caused the JustWatch request failing on special characters
 - Fixed bug, now all existing providers can be used
 - Minor bugfixes
