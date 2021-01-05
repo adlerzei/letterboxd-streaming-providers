@@ -324,7 +324,8 @@ async function isIncluded(tabId, toFind) {
 							year: toFind.year,
 							id: toFind.id
 						};
-						unsolvedRequestsDelay = parseInt(xhttp.getResponseHeader('Retry-After'));
+
+						//unsolvedRequestsDelay[tabId] = parseInt(xhttp.getResponseHeader('Retry-After')); // commented out to lower traffic
 
 						if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
 							fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
@@ -687,7 +688,7 @@ function checkForLetterboxd(tabId, changeInfo, tabInfo) {
 					availableMovies[tabId] = [];
 					crawledMovies[tabId] = {};
 					unsolvedRequests[tabId] = {};
-					unsolvedRequestsDelay[tabId] = 0;
+					unsolvedRequestsDelay[tabId] = 10000;
 					getFilmsFromLetterboxd(tabId);
 				}
 			}
@@ -794,8 +795,8 @@ function fadeUnstreamedMovies(tabId, movies) {
 
 		// if there are unsolved requests left: solve them
 		if (Object.keys(unsolvedRequests[tabId]).length !== 0) {
-			if (isNaN(unsolvedRequestsDelay)) {
-				unsolvedRequestsDelay = 10000;
+			if (isNaN(unsolvedRequestsDelay[tabId])) {
+				unsolvedRequestsDelay[tabId] = 10000;
 			}
 
 			// but first wait for a delay to limit the traffic
@@ -803,7 +804,7 @@ function fadeUnstreamedMovies(tabId, movies) {
 				var movies = JSON.parse(JSON.stringify(unsolvedRequests[tabId]));
 				unsolvedRequests[tabId] = {};
 				checkMovieAvailability(tabId, movies);
-			}, unsolvedRequestsDelay);
+			}, unsolvedRequestsDelay[tabId]);
 		}
 	});
 }
