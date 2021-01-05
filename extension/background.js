@@ -526,7 +526,7 @@ function getIdWithoutExactReleaseYear(tabId, tmdbRsp, titleEnglish, releaseYear)
 function getFilmsFromLetterboxd(tabId) {
 	browser.tabs.get(tabId, (tab) => {
 		var fileName = '';
-		if (tab.url.includes('watchlist')) {
+		if (tab.url.includes('/watchlist/') || tab.url.includes('/list/')) {
 			fileName = "./scripts/getFilmsFromLetterboxdWatchlist.js";
 		} else {
 			fileName = "./scripts/getFilmsFromLetterboxd.js";
@@ -683,7 +683,7 @@ function checkForLetterboxd(tabId, changeInfo, tabInfo) {
 		if (changeInfo.hasOwnProperty('status') && changeInfo.status === 'complete') {
 			var url = tabInfo.url;
 			if (url.includes("://letterboxd.com/") || url.includes("://www.letterboxd.com/")) {
-				if (url.includes('watchlist') || url.includes('films') || url.includes('likes')) { // || url === "https://letterboxd.com/" || url === 'https://www.letterboxd.com/'
+				if (url.includes('/watchlist/') || url.includes('/films/') || url.includes('/likes/') ||  url.includes('/list/')) { // || url === "https://letterboxd.com/" || url === 'https://www.letterboxd.com/'
 					checkCounter[tabId] = 0;
 					availableMovies[tabId] = [];
 					crawledMovies[tabId] = {};
@@ -768,7 +768,7 @@ function fadeUnstreamedMovies(tabId, movies) {
 		unfadeAllMovies(tabId);
 
 		var className = '';
-		if (tab.url.includes('watchlist')) {
+		if (tab.url.includes('/watchlist/') || tab.url.includes('/list/')) {
 			className = 'poster-container';
 		} else {
 			className = 'film-poster';
@@ -817,7 +817,7 @@ function fadeUnstreamedMovies(tabId, movies) {
 function unfadeAllMovies(tabId) {
 	browser.tabs.get(tabId, (tab) => {
 		var className = '';
-		if (tab.url.includes('watchlist')) {
+		if (tab.url.includes('/watchlist/') || tab.url.includes('/list/')) {
 			className = 'poster-container';
 		} else {
 			className = 'film-poster';
@@ -844,7 +844,7 @@ function unfadeAllMovies(tabId) {
 function unfadeUnstreamedMovies(tabId, movies) {
 	browser.tabs.get(tabId, (tab) => {
 		var className = '';
-		if (tab.url.includes('watchlist')) {
+		if (tab.url.includes('/watchlist/') || tab.url.includes('/list/')) {
 			className = 'poster-container';
 		} else {
 			className = 'film-poster';
