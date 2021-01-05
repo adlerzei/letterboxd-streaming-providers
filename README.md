@@ -86,3 +86,4 @@ Made with [contributors-img](https://contributors-img.web.app).
 - Fixed bug, that some movies weren't resolved correctly due to changes in the JustWatch API
 - Added support for TV shows that are present on Letterboxd (e.g. "The Queen's Gambit")
 - Added hot reload when settings are changed in the popup
+- Add filtering of Letterboxd lists, that can be found under `/list`
