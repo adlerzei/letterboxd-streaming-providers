@@ -14,43 +14,43 @@
  */
 
 if (typeof browser === 'undefined') {
-  var browser = chrome;
+	var browser = chrome;
 }
 
 var filmposters = document.body.getElementsByClassName('film-poster');
 
 var movies = {};
 for (let poster = 0; poster < filmposters['length']; poster++) {
-  if (filmposters[poster].attributes.hasOwnProperty('data-film-name')) {
-    let film_name = filmposters[poster].attributes['data-film-name'].value;
+	if (filmposters[poster].attributes.hasOwnProperty('data-film-name')) {
+		let film_name = filmposters[poster].attributes['data-film-name'].value;
 
-    if(movies.hasOwnProperty(film_name)) {
-      if(movies[film_name].year === -1) {
-        movies[film_name].year = filmposters[poster].attributes['data-film-release-year'].value;
-      }
+		if (movies.hasOwnProperty(film_name)) {
+			if (movies[film_name].year === -1) {
+				movies[film_name].year = filmposters[poster].attributes['data-film-release-year'].value;
+			}
 
-      movies[film_name].id.push(poster);
-    } else {
-      movies[film_name] = {
-        year: filmposters[poster].attributes['data-film-release-year'].value,
-        id: [poster]
-      };
-    }
-  } else {
-    let film_name = filmposters[poster].children[0].alt;
+			movies[film_name].id.push(poster);
+		} else {
+			movies[film_name] = {
+				year: filmposters[poster].attributes['data-film-release-year'].value,
+				id: [poster]
+			};
+		}
+	} else {
+		let film_name = filmposters[poster].children[0].alt;
 
-    if(movies.hasOwnProperty(film_name)) {
-      movies[film_name].id.push(poster);
-    } else {
-      movies[film_name] = {
-        year: -1,
-        id: [poster]
-      };
-    }
-  }
+		if (movies.hasOwnProperty(film_name)) {
+			movies[film_name].id.push(poster);
+		} else {
+			movies[film_name] = {
+				year: -1,
+				id: [poster]
+			};
+		}
+	}
 }
 
 browser.runtime.sendMessage({
-  message_type: 'movie-titles',
-  message_content: movies
+	message_type: 'movie-titles',
+	message_content: movies
 });
