@@ -64,11 +64,11 @@ const onStartUp = async () => {
       languageSet = true;
       setTMDBCountryCode(item.tmdb_country_code);
     }
-    if(item.hasOwnProperty('provider_id')) {
+    if (item.hasOwnProperty('provider_id')) {
       providerSet = true;
       setProviderId(item.provider_id);
     }
-    if(item.hasOwnProperty('filterStatus')) {
+    if (item.hasOwnProperty('filterStatus')) {
       statusSet = true;
       setFilterStatus(item.filterStatus);
     }
@@ -130,20 +130,20 @@ const onStartUp = async () => {
   }
 
   // load TMDb key
-  loadJSON("settings/api.json", function(response) {
+  loadJSON("settings/api.json", function (response) {
     // Parse JSON string into object
     response = JSON.parse(response);
     tmdb_key = response.tmdb;
   });
 
   // load provider list
-  loadJSON("streaming-providers/providers.json", function(response) {
+  loadJSON("streaming-providers/providers.json", function (response) {
     // Parse JSON string into object
     providers = JSON.parse(response);
   });
 
   // load country list
-  loadJSON("streaming-providers/countries.json", function(response) {
+  loadJSON("streaming-providers/countries.json", function (response) {
     // Parse JSON string into object
     countries = JSON.parse(response);
   });
@@ -172,7 +172,7 @@ const loadJSON = (path, callback) => {
  * Stores the settings in localStorage.
  *
  * @param {string} justWatchCountryCode - The currently set country code to store.
- * @param {string} tmdbCountryCode - The currently set ISO-3166-1 code to store.
+ * @param {string} tmdbCountryCode - The currently set TMDB country code to store.
  * @param {int} provider_id - The currently set provider id to store.
  * @param {boolean} filterStatus - The currently set filter status to store.
  */
@@ -210,7 +210,7 @@ async function isIncluded(tabId, toFind) {
     movie_release_year = parseInt(movie_release_year);
   }
 
-  var param = encodeURIComponent(eng_title);
+  var title_sanitized = encodeURIComponent(eng_title);
   var tmdb_rsp = '';
   var justwatch_rsp = '';
   var tmdb_id = -1;
@@ -219,7 +219,14 @@ async function isIncluded(tabId, toFind) {
   var found_match = false;
 
   var xhttp = new XMLHttpRequest();
-  xhttp.open('GET', "https://apis.justwatch.com/content/titles/" + justWatchCountryCode + "/popular?body=%7B%22age_certifications%22:null,%22content_types%22:null,%22genres%22:null,%22languages%22:null,%22max_price%22:null,%22min_price%22:null,%22page%22:1,%22page_size%22:30,%22presentation_types%22:null,%22providers%22:null,%22query%22:%22" + param + "%22,%22release_year_from%22:null,%22release_year_until%22:null,%22scoring_filter_types%22:null,%22timeline_type%22:null%7D", true);
+  
+  let justwatchRequest = {
+    page: 1,
+    page_size: 30,
+    query: title_sanitized,
+  };
+
+  xhttp.open('GET', "https://apis.justwatch.com/content/titles/" + justWatchCountryCode + "/popular?body=" + JSON.stringify(justwatchRequest), true);
   xhttp.send();
 
   xhttp.onreadystatechange = function () {
@@ -235,9 +242,8 @@ async function isIncluded(tabId, toFind) {
         }
       } else {
         found_match = false;
-        param = encodeURIComponent(eng_title);
 
-        xhttp.open('GET', "https://api.themoviedb.org/3/search/multi?api_key=" + getAPIKey() + "&query=" + param, true);
+        xhttp.open('GET', "https://api.themoviedb.org/3/search/multi?api_key=" + getAPIKey() + "&query=" + title_sanitized, true);
         xhttp.send();
 
         xhttp.onreadystatechange = function () {
@@ -556,7 +562,7 @@ function getTMDBCountryCode() {
 function setProviderId(id) {
   provider_id = Number(id);
   storeSettings(justWatchCountryCode, tmdbCountryCode, provider_id, filterStatus);
-  //reloadMovieFilter();
+  reloadMovieFilter();
 }
 
 /**
@@ -594,6 +600,7 @@ function getFilterStatus() {
 function setFilterStatus(status) {
   filterStatus = status;
   storeSettings(justWatchCountryCode, tmdbCountryCode, provider_id, filterStatus);
+  reloadMovieFilter();
 }
 
 /**
@@ -604,7 +611,7 @@ function setFilterStatus(status) {
 function setJustWatchCountryCode(code) {
   justWatchCountryCode = code;
   storeSettings(justWatchCountryCode, tmdbCountryCode, provider_id, filterStatus);
-  //reloadMovieFilter();
+  reloadMovieFilter();
 }
 
 /**
@@ -633,7 +640,7 @@ function reloadMovieFilter() {
         url: tab.url
       };
 
-      //unfadeUnstreamedMovies(tabId, crawledMovies[tabId]);
+      unfadeUnstreamedMovies(tabId, crawledMovies[tabId]);
       checkForLetterboxd(tabId, changeInfo, tabInfo);
     }
   }
@@ -656,7 +663,7 @@ function getAPIKey() {
  * @param {object} tabInfo - The tabInfo from the tabs.onUpdated event.
  */
 function checkForLetterboxd(tabId, changeInfo, tabInfo) {
-  if(filterStatus) {
+  if (filterStatus) {
     if (changeInfo.hasOwnProperty('status') && changeInfo.status === 'complete') {
       var url = tabInfo.url;
       if (url.includes("://letterboxd.com/") || url.includes("://www.letterboxd.com/")) {
@@ -688,9 +695,9 @@ function handleMessage(request, sender, sendResponse) {
     console.log("Error: missing TabId");
   }
   if (request.hasOwnProperty('message_type')) {
-    if(request.message_type === 'movie-titles') {
+    if (request.message_type === 'movie-titles') {
       crawledMovies[tabId] = request.message_content;
-      if(Object.keys(crawledMovies[tabId]).length === 0) {
+      if (Object.keys(crawledMovies[tabId]).length === 0) {
         getFilmsFromLetterboxd(tabId);
       } else {
         checkMovieAvailability(tabId, crawledMovies[tabId]);
@@ -706,9 +713,9 @@ function handleMessage(request, sender, sendResponse) {
  * @param {object} movies - The crawled movies from Letterboxed.
  */
 function checkMovieAvailability(tabId, movies) {
-  if(filterStatus) {
+  if (filterStatus) {
     prepareLetterboxdForFading(tabId);
-    for(let movie in movies) {
+    for (let movie in movies) {
       var inc = isIncluded(tabId, {
         title: movie,
         year: movies[movie].year,
@@ -725,12 +732,12 @@ function checkMovieAvailability(tabId, movies) {
  */
 function prepareLetterboxdForFading(tabId) {
   browser.tabs.insertCSS(tabId, {
-      file: "./style/hideunstreamed.css"
+    file: "./style/hideunstreamed.css"
   });
 
   browser.tabs.executeScript(tabId, {
-      code: "document.body.className = document.body.className + ' hide-films-unstreamed';",
-      allFrames: false
+    code: "document.body.className = document.body.className + ' hide-films-unstreamed';",
+    allFrames: false
   });
 }
 
@@ -745,15 +752,15 @@ function fadeUnstreamedMovies(tabId, movies) {
     unfadeAllMovies(tabId);
 
     var className = '';
-    if(tab.url.includes('watchlist')) {
+    if (tab.url.includes('watchlist')) {
       className = 'poster-container';
     } else {
       className = 'film-poster';
     }
 
-    for(let movie in movies) {
+    for (let movie in movies) {
       for (let movie_id in movies[movie].id) {
-        if(!availableMovies[tabId].includes(movies[movie].id[movie_id])) {
+        if (!availableMovies[tabId].includes(movies[movie].id[movie_id])) {
           browser.tabs.executeScript(tabId, {
             code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
               "filmposters[" + movies[movie].id[movie_id] + "].className = filmposters[" + movies[movie].id[movie_id] + "].className + ' film-not-streamed';",
@@ -764,15 +771,15 @@ function fadeUnstreamedMovies(tabId, movies) {
     }
 
     // short delay for the overview page, needs to reload intern javascript
-    if(tab.url.includes('letterboxd.com/films/')) {
+    if (tab.url.includes('letterboxd.com/films/')) {
       setTimeout(function () {
         fadeUnstreamedMovies(tabId, movies);
       }, 500);
     }
 
     // if there are unsolved requests left: solve them
-    if(Object.keys(unsolvedRequests[tabId]).length !== 0) {
-      if(isNaN(unsolvedRequestsDelay)) {
+    if (Object.keys(unsolvedRequests[tabId]).length !== 0) {
+      if (isNaN(unsolvedRequestsDelay)) {
         unsolvedRequestsDelay = 10000;
       }
 
@@ -831,7 +838,7 @@ function unfadeUnstreamedMovies(tabId, movies) {
         if (!availableMovies[tabId].includes(movies[movie].id[movie_id])) {
           browser.tabs.executeScript(tabId, {
             code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
-            "filmposters[" + movies[movie].id[movie_id] + "].className = filmposters[" + movies[movie].id[movie_id] + "].className.replace(' film-not-streamed', '');",
+              "filmposters[" + movies[movie].id[movie_id] + "].className = filmposters[" + movies[movie].id[movie_id] + "].className.replace(' film-not-streamed', '');",
             allFrames: false
           });
         }
