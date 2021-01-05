@@ -211,10 +211,6 @@ async function isIncluded(tabId, toFind) {
   }
 
   var title_sanitized = encodeURIComponent(eng_title);
-  var tmdb_rsp = '';
-  var justwatch_rsp = '';
-  var tmdb_id = -1;
-  var media_type = '';
   var localized_title = '';
   var found_match = false;
 
@@ -231,7 +227,7 @@ async function isIncluded(tabId, toFind) {
 
   xhttp.onreadystatechange = function () {
     if (xhttp.readyState === 4 && xhttp.status === 200) {
-      justwatch_rsp = JSON.parse(xhttp.response);
+      var justwatch_rsp = JSON.parse(xhttp.response);
       found_match = getOffersWithReleaseYear(tabId, justwatch_rsp, movie_letterboxd_id, eng_title, movie_release_year);
 
       if (found_match) {
@@ -248,11 +244,13 @@ async function isIncluded(tabId, toFind) {
 
         xhttp.onreadystatechange = function () {
           if (xhttp.readyState === 4 && xhttp.status === 200) {
-            tmdb_rsp = JSON.parse(xhttp.response);
+            var tmdb_rsp = JSON.parse(xhttp.response);
 
             var rslt = getIdWithReleaseYear(tabId, tmdb_rsp, eng_title, movie_release_year);
             found_match = rslt.found_perfect_match;
 
+            var tmdb_id = -1;
+            var media_type = '';
             if (found_match) {
               tmdb_id = rslt.tmdb_id;
               media_type = rslt.media_type;
@@ -322,7 +320,7 @@ async function isIncluded(tabId, toFind) {
               year: toFind.year,
               id: toFind.id
             };
-            unsolvedRequestsDelay = parseInt(xhttp.getResponseHeader('Retry-After'));
+            //unsolvedRequestsDelay = parseInt(xhttp.getResponseHeader('Retry-After'));
 
             if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
               fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
@@ -386,10 +384,10 @@ function getOffersWithoutExactReleaseYear(tabId, rsp, movie_letterboxd_id, title
       for (let offer in rsp.items[item].offers) {
         if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && Number(rsp.items[item].offers[offer].provider_id) === provider_id) {
           availableMovies[tabId].push(...movie_letterboxd_id);
-          break;
+          return;
         }
       }
-      break;
+      return;
     }
   }
 }
@@ -736,7 +734,7 @@ function prepareLetterboxdForFading(tabId) {
   });
 
   browser.tabs.executeScript(tabId, {
-    code: "document.body.className = document.body.className + ' hide-films-unstreamed';",
+    code: "document.body.className += ' hide-films-unstreamed';",
     allFrames: false
   });
 }
@@ -763,7 +761,7 @@ function fadeUnstreamedMovies(tabId, movies) {
         if (!availableMovies[tabId].includes(movies[movie].id[movie_id])) {
           browser.tabs.executeScript(tabId, {
             code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
-              "filmposters[" + movies[movie].id[movie_id] + "].className = filmposters[" + movies[movie].id[movie_id] + "].className + ' film-not-streamed';",
+              "filmposters[" + movies[movie].id[movie_id] + "].className += ' film-not-streamed';",
             allFrames: false
           });
         }
