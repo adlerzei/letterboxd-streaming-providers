@@ -232,8 +232,8 @@ async function isIncluded(tabId, toFind) {
 
 	xhttp.onreadystatechange = function () {
 		if (xhttp.readyState === 4 && xhttp.status === 200) {
-			var justwatch_rsp = JSON.parse(xhttp.response);
-			matchFound = getOffersWithReleaseYear(tabId, justwatch_rsp, movieLetterboxdId, englishTitle, movieReleaseYear);
+			var justwatchRsp = JSON.parse(xhttp.response);
+			matchFound = getOffersWithReleaseYear(tabId, justwatchRsp, movieLetterboxdId, englishTitle, movieReleaseYear);
 
 			if (matchFound) {
 				checkCounter[tabId]++;
@@ -294,10 +294,10 @@ async function isIncluded(tabId, toFind) {
 										}
 									}
 
-									matchFound = getOffersWithReleaseYear(tabId, justwatch_rsp, movieLetterboxdId, titleLocalized, movieReleaseYear);
+									matchFound = getOffersWithReleaseYear(tabId, justwatchRsp, movieLetterboxdId, titleLocalized, movieReleaseYear);
 
 									if (!matchFound) {
-										getOffersWithoutExactReleaseYear(tabId, justwatch_rsp, movieLetterboxdId, titleLocalized, movieReleaseYear);
+										getOffersWithoutExactReleaseYear(tabId, justwatchRsp, movieLetterboxdId, titleLocalized, movieReleaseYear);
 									}
 
 									checkCounter[tabId]++;
