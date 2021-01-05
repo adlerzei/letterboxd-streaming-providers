@@ -632,11 +632,11 @@ function reloadMovieFilter() {
 
   function reloadFilterInTab(tabs) {
     for (let tab of tabs) {
-      tabId = tab.id;
-      changeInfo = {
+      let tabId = tab.id;
+      let changeInfo = {
         status: 'complete'
       };
-      tabInfo = {
+      let tabInfo = {
         url: tab.url
       };
 
