@@ -72,11 +72,11 @@ Made with [contributors-img](https://contributors-img.web.app).
 ## What's new?
 
 ##### v1.0
-- Filter `/watchlist`, `/films` and `/likes` of Letterboxd for your favorite streaming providers.
-- Choose between streaming providers from Austria, Canada, France, Germany, Japan, Mexico, Spain, Switzerland, USA and United Kingdom.
+- Filter `/watchlist`, `/films` and `/likes` of Letterboxd for your favorite streaming providers
+- Choose between streaming providers from Austria, Canada, France, Germany, Japan, Mexico, Spain, Switzerland, USA and United Kingdom
 
 ##### v1.1
-- TMDB API key renewed
+- TMDb API key renewed
 - Fixed bug, that caused the JustWatch request failing on special characters
 - Fixed bug, now all existing providers can be used
 - Minor bugfixes
@@ -87,3 +87,6 @@ Made with [contributors-img](https://contributors-img.web.app).
 - Added support for TV shows that are present on Letterboxd (e.g. "The Queen's Gambit")
 - Added hot reload when settings are changed in the popup
 - Add filtering of Letterboxd lists, that can be found under `/list`
+
+##### v1.3
+- Fixed broken filtering for United Kingdom
