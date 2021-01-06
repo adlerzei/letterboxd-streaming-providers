@@ -369,7 +369,7 @@ function getOffersWithReleaseYear(tabId, rsp, letterboxdMovieId, title, movieRel
 
 				if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && Number(rsp.items[item].offers[offer].provider_id) === providerId) {
 					availableMovies[tabId].push(...letterboxdMovieId);
-					break;
+					return true;
 				}
 			}
 			return true;
