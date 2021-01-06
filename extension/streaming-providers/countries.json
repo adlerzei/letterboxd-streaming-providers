@@ -15,8 +15,8 @@
     "name": "Canada"
   },
   "uk": {
-    "justwatch_country_code": "en_UK",
-    "tmdb_country_code": "en-UK",
+    "justwatch_country_code": "en_GB",
+    "tmdb_country_code": "en-GB",
     "name": "United Kingdom"
   },
   "mx": {
