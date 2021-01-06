@@ -90,3 +90,4 @@ Made with [contributors-img](https://contributors-img.web.app).
 
 ##### v1.3
 - Fixed broken filtering for United Kingdom
+- Minor bugfixes
