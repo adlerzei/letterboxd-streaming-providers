@@ -525,12 +525,7 @@ function getIdWithoutExactReleaseYear(tabId, tmdbRsp, titleEnglish, releaseYear)
  */
 function getFilmsFromLetterboxd(tabId) {
 	browser.tabs.get(tabId, (tab) => {
-		var fileName = '';
-		if (tab.url.includes('/watchlist/') || tab.url.includes('/list/')) {
-			fileName = "./scripts/getFilmsFromLetterboxdWatchlist.js";
-		} else {
-			fileName = "./scripts/getFilmsFromLetterboxd.js";
-		}
+		let fileName = "./scripts/getFilmsFromLetterboxd.js";
 
 		browser.tabs.executeScript(tabId, {
 			file: fileName,
@@ -767,12 +762,7 @@ function fadeUnstreamableMovies(tabId, movies) {
 	browser.tabs.get(tabId, (tab) => {
 		unfadeAllMovies(tabId);
 
-		var className = '';
-		if (tab.url.includes('/watchlist/') || tab.url.includes('/list/')) {
-			className = 'poster-container';
-		} else {
-			className = 'film-poster';
-		}
+		var className = 'poster-container';
 
 		for (let movie in movies) {
 			for (let movie_id in movies[movie].id) {
@@ -819,12 +809,7 @@ function unfadeAllMovies(tabId) {
 		if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/'))
 			return;
 			
-		var className = '';
-		if (tab.url.includes('/watchlist/') || tab.url.includes('/list/')) {
-			className = 'poster-container';
-		} else {
-			className = 'film-poster';
-		}
+		var className = 'poster-container';
 
 		browser.tabs.executeScript(tabId, {
 			code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
@@ -849,12 +834,8 @@ function unfadeUnstreamedMovies(tabId, movies) {
 		if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/'))
 			return;
 			
-		var className = '';
-		if (tab.url.includes('/watchlist/') || tab.url.includes('/list/')) {
-			className = 'poster-container';
-		} else {
-			className = 'film-poster';
-		}
+		var className = 'poster-container';
+
 		for (let movie in movies) {
 			for (let movieId in movies[movie].id) {
 				if (!availableMovies[tabId].includes(movies[movie].id[movieId])) {
