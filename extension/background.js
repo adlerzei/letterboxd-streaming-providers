@@ -239,7 +239,7 @@ async function isIncluded(tabId, toFind) {
 				checkCounter[tabId]++;
 
 				if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
-					fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
+					fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
 				}
 			} else {
 				matchFound = false;
@@ -303,19 +303,19 @@ async function isIncluded(tabId, toFind) {
 									checkCounter[tabId]++;
 
 									if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
-										fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
+										fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
 									}
 								} else if (xhttp.readyState === 4 && xhttp.status !== 200) {
 									checkCounter[tabId]++;
 									if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
-										fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
+										fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
 									}
 								}
 							};
 						} else {
 							checkCounter[tabId]++;
 							if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
-								fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
+								fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
 							}
 						}
 					} else if (xhttp.readyState === 4 && xhttp.status === 429) {
@@ -328,12 +328,12 @@ async function isIncluded(tabId, toFind) {
 						//unsolvedRequestsDelay[tabId] = parseInt(xhttp.getResponseHeader('Retry-After')); // commented out to lower traffic
 
 						if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
-							fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
+							fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
 						}
 					} else if (xhttp.readyState === 4 && xhttp.status !== 200 && xhttp.status !== 429) {
 						checkCounter[tabId]++;
 						if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
-							fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
+							fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
 						}
 					}
 				};
@@ -341,7 +341,7 @@ async function isIncluded(tabId, toFind) {
 		} else if (xhttp.readyState === 4 && xhttp.status !== 200) {
 			checkCounter[tabId]++;
 			if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
-				fadeUnstreamedMovies(tabId, crawledMovies[tabId]);
+				fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
 			}
 		}
 	};
@@ -763,7 +763,7 @@ function prepareLetterboxdForFading(tabId) {
  * @param tabId - The tabId to operate in.
  * @param movies - The crawled movies.
  */
-function fadeUnstreamedMovies(tabId, movies) {
+function fadeUnstreamableMovies(tabId, movies) {
 	browser.tabs.get(tabId, (tab) => {
 		unfadeAllMovies(tabId);
 
@@ -786,12 +786,12 @@ function fadeUnstreamedMovies(tabId, movies) {
 			}
 		}
 
-		// short delay for the overview page, needs to reload intern javascript
-		if (tab.url.includes('letterboxd.com/films/')) {
-			setTimeout(function () {
-				fadeUnstreamedMovies(tabId, movies);
-			}, 500);
-		}
+		// // short delay for the overview page, needs to reload intern javascript
+		// if (tab.url.includes('letterboxd.com/films/')) {
+		// 	setTimeout(function () {
+		// 		fadeUnstreamableMovies(tabId, movies);
+		// 	}, 500);
+		// }
 
 		// if there are unsolved requests left: solve them
 		if (Object.keys(unsolvedRequests[tabId]).length !== 0) {
@@ -816,6 +816,9 @@ function fadeUnstreamedMovies(tabId, movies) {
  */
 function unfadeAllMovies(tabId) {
 	browser.tabs.get(tabId, (tab) => {
+		if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/'))
+			return;
+			
 		var className = '';
 		if (tab.url.includes('/watchlist/') || tab.url.includes('/list/')) {
 			className = 'poster-container';
@@ -843,6 +846,9 @@ function unfadeAllMovies(tabId) {
  */
 function unfadeUnstreamedMovies(tabId, movies) {
 	browser.tabs.get(tabId, (tab) => {
+		if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/'))
+			return;
+			
 		var className = '';
 		if (tab.url.includes('/watchlist/') || tab.url.includes('/list/')) {
 			className = 'poster-container';
