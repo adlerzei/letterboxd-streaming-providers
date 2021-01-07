@@ -37,6 +37,8 @@ var checkCounter = {};
 
 var filterStatus;
 
+var reloadActive = {};
+
 /**
  * Loads all information from JSON files for intern computations. Also loads the current settings.
  *
@@ -566,17 +568,6 @@ function getTMDBCountryCode() {
 }
 
 /**
- * To change the provider ID out of the popup.
- *
- * @param {int} id - The new provider ID.
- */
-function setProviderId(id) {
-	providerId = Number(id);
-	storeSettings(justWatchCountryCode, tmdbCountryCode, providerId, filterStatus);
-	reloadMovieFilter();
-}
-
-/**
  * Returns all supported providers.
  *
  * @returns {object} - The providers loaded from providers.json.
@@ -604,11 +595,28 @@ function getFilterStatus() {
 }
 
 /**
+ * To change the provider ID out of the popup.
+ *
+ * @param {int} id - The new provider ID.
+ */
+function setProviderId(id) {
+	if (providerId === Number(id))
+		return;
+
+	providerId = Number(id);
+	storeSettings(justWatchCountryCode, tmdbCountryCode, providerId, filterStatus);
+	reloadMovieFilter();
+}
+
+/**
  * Sets the status of the filter.
  *
  * @param {boolean} status - True if the filter should be enabled and false else.
  */
 function setFilterStatus(status) {
+	if (status === filterStatus)
+		return;
+
 	filterStatus = status;
 	storeSettings(justWatchCountryCode, tmdbCountryCode, providerId, filterStatus);
 	reloadMovieFilter();
@@ -620,6 +628,9 @@ function setFilterStatus(status) {
  * @param {string} code - The new JustWatch country code.
  */
 function setJustWatchCountryCode(code) {
+	if (code === justWatchCountryCode)
+		return;
+
 	justWatchCountryCode = code;
 	storeSettings(justWatchCountryCode, tmdbCountryCode, providerId, filterStatus);
 	reloadMovieFilter();
@@ -631,6 +642,9 @@ function setJustWatchCountryCode(code) {
  * @param {string} code - The new TMDB country code.
  */
 function setTMDBCountryCode(code) {
+	if (code === tmdbCountryCode)
+		return;
+
 	tmdbCountryCode = code;
 	storeSettings(justWatchCountryCode, tmdbCountryCode, providerId, filterStatus);
 }
@@ -644,6 +658,12 @@ function reloadMovieFilter() {
 	function reloadFilterInTab(tabs) {
 		for (let tab of tabs) {
 			let tabId = tab.id;
+
+			if (reloadActive[tabId])
+				continue;
+			else
+				reloadActive[tabId] = true;
+
 			let changeInfo = {
 				status: 'complete'
 			};
@@ -676,9 +696,9 @@ function getAPIKey() {
 function checkForLetterboxd(tabId, changeInfo, tabInfo) {
 	if (filterStatus) {
 		if (changeInfo.hasOwnProperty('status') && changeInfo.status === 'complete') {
-			var url = tabInfo.url;
+			let url = tabInfo.url;
 			if (url.includes("://letterboxd.com/") || url.includes("://www.letterboxd.com/")) {
-				if (url.includes('/watchlist/') || url.includes('/films/') || url.includes('/likes/') ||  url.includes('/list/')) { // || url === "https://letterboxd.com/" || url === 'https://www.letterboxd.com/'
+				if (url.includes('/watchlist/') || url.includes('/films/') || url.includes('/likes/') || url.includes('/list/')) { // || url === "https://letterboxd.com/" || url === 'https://www.letterboxd.com/'
 					checkCounter[tabId] = 0;
 					availableMovies[tabId] = [];
 					crawledMovies[tabId] = {};
@@ -688,6 +708,8 @@ function checkForLetterboxd(tabId, changeInfo, tabInfo) {
 				}
 			}
 		}
+	} else {
+		reloadActive[tabId] = false;
 	}
 }
 
@@ -733,6 +755,8 @@ function checkMovieAvailability(tabId, movies) {
 				id: movies[movie].id
 			});
 		}
+	} else {
+		reloadActive[tabId] = false;
 	}
 }
 
@@ -759,44 +783,44 @@ function prepareLetterboxdForFading(tabId) {
  * @param movies - The crawled movies.
  */
 function fadeUnstreamableMovies(tabId, movies) {
-	browser.tabs.get(tabId, (tab) => {
-		unfadeAllMovies(tabId);
+	unfadeAllMovies(tabId);
 
-		var className = 'poster-container';
+	var className = 'poster-container';
 
-		for (let movie in movies) {
-			for (let movie_id in movies[movie].id) {
-				if (!availableMovies[tabId].includes(movies[movie].id[movie_id])) {
-					browser.tabs.executeScript(tabId, {
-						code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
-							"filmposters[" + movies[movie].id[movie_id] + "].className += ' film-not-streamed';",
-						allFrames: false
-					});
-				}
+	for (let movie in movies) {
+		for (let movie_id in movies[movie].id) {
+			if (!availableMovies[tabId].includes(movies[movie].id[movie_id])) {
+				browser.tabs.executeScript(tabId, {
+					code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
+						"filmposters[" + movies[movie].id[movie_id] + "].className += ' film-not-streamed';",
+					allFrames: false
+				});
 			}
 		}
+	}
 
-		// // short delay for the overview page, needs to reload intern javascript
-		// if (tab.url.includes('letterboxd.com/films/')) {
-		// 	setTimeout(function () {
-		// 		fadeUnstreamableMovies(tabId, movies);
-		// 	}, 500);
-		// }
+	// // short delay for the overview page, needs to reload intern javascript
+	// if (tab.url.includes('letterboxd.com/films/')) {
+	// 	setTimeout(function () {
+	// 		fadeUnstreamableMovies(tabId, movies);
+	// 	}, 500);
+	// }
 
-		// if there are unsolved requests left: solve them
-		if (Object.keys(unsolvedRequests[tabId]).length !== 0) {
-			if (isNaN(unsolvedRequestsDelay[tabId])) {
-				unsolvedRequestsDelay[tabId] = 10000;
-			}
-
-			// but first wait for a delay to limit the traffic
-			setTimeout(function () {
-				var movies = JSON.parse(JSON.stringify(unsolvedRequests[tabId]));
-				unsolvedRequests[tabId] = {};
-				checkMovieAvailability(tabId, movies);
-			}, unsolvedRequestsDelay[tabId]);
+	// if there are unsolved requests left: solve them
+	if (Object.keys(unsolvedRequests[tabId]).length !== 0) {
+		if (isNaN(unsolvedRequestsDelay[tabId])) {
+			unsolvedRequestsDelay[tabId] = 10000;
 		}
-	});
+
+		// but first wait for a delay to limit the traffic
+		setTimeout(function () {
+			var movies = JSON.parse(JSON.stringify(unsolvedRequests[tabId]));
+			unsolvedRequests[tabId] = {};
+			checkMovieAvailability(tabId, movies);
+		}, unsolvedRequestsDelay[tabId]);
+	}
+
+	reloadActive[tabId] = false;
 }
 
 /**
@@ -808,7 +832,7 @@ function unfadeAllMovies(tabId) {
 	browser.tabs.get(tabId, (tab) => {
 		if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/'))
 			return;
-			
+
 		var className = 'poster-container';
 
 		browser.tabs.executeScript(tabId, {
@@ -833,7 +857,7 @@ function unfadeUnstreamedMovies(tabId, movies) {
 	browser.tabs.get(tabId, (tab) => {
 		if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/'))
 			return;
-			
+
 		var className = 'poster-container';
 
 		for (let movie in movies) {
