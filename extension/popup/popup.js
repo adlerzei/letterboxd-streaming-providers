@@ -39,6 +39,7 @@ filterSwitch.addEventListener("change", changeFilterSwitch);
 providerList.addEventListener("change", changeProviderId);
 countryList.addEventListener("change", changeCountryCodes);
 
+
 /**
  * Appends all countries as option to the countryList select tag.
  */
