@@ -90,4 +90,6 @@ Made with [contributors-img](https://contributors-img.web.app).
 
 ##### v1.3
 - Fixed broken filtering for United Kingdom
+- Fix buggy hot reloading
+- Added temporary fix for broken movie title localization for Austria and Switzerland
 - Minor bugfixes
