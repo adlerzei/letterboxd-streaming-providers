@@ -568,7 +568,7 @@ function getOffersWithoutExactReleaseYear(tabId, rsp, letterboxdMovieId, title, 
 }
 
 /**
- * Returns the TMDB ID for a given English media title and a corresponding release year.
+ * Returns the TMDb ID for a given English media title and a corresponding release year.
  *
  * @param {int} tabId - The tabId to operate in.
  * @param {object} tmdbRsp - The response from the ajax request.
