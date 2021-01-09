@@ -25,6 +25,7 @@ var providers = background.getProviders();
 var providerId = background.getProviderId();
 var justWatchCountryCode = background.getJustWatchCountryCode();
 var tmdbCountryCode = background.getTMDBCountryCode();
+var tmdbCountryCode2 = background.getTMDBCountryCode2();
 
 var countryList = document.getElementById('CountryList');
 appendOptionsToCountryList();
@@ -131,8 +132,15 @@ function changeCountryCodes() {
 	if (typeof countries !== 'undefined' && countries.hasOwnProperty(code) && countries[code].hasOwnProperty('justwatch_country_code') && countries[code].hasOwnProperty('tmdb_country_code')) {
 		justWatchCountryCode = countries[code].justwatch_country_code;
 		tmdbCountryCode = countries[code].tmdb_country_code;
+		if (countries[code].hasOwnProperty('tmdb_country_code_2'))
+			tmdbCountryCode2 = countries[code].tmdb_country_code_2;
+		else
+			tmdbCountryCode2 = '';
+
 		background.setJustWatchCountryCode(justWatchCountryCode);
 		background.setTMDBCountryCode(tmdbCountryCode);
+		background.setTMDBCountryCode2(tmdbCountryCode2);
+
 		let defaultProviderId = providerList.options[providerList.selectedIndex].label;
 		appendOptionsToProviderList(defaultProviderId);
 		changeProviderId();
