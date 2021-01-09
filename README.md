@@ -99,4 +99,4 @@ Made with [contributors-img](https://contributors-img.web.app).
 - Small backend changes
 - Minor bug fixes
 - Added all streaming providers that are available on JustWatch and offer free/flatrate access
-- Added support for the following countries: Brazil, Argentinia, Australia
+- Added support for the following countries: Brazil, Argentina, Australia
