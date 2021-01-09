@@ -51,5 +51,22 @@
     "justwatch_country_code": "ja_JP",
     "tmdb_country_code": "ja-JP",
     "name": "Japan"
+  },
+  "br": {
+    "justwatch_country_code": "pt_BR",
+    "tmdb_country_code": "pt-BR",
+    "tmdb_country_code_2": "pt",
+    "name": "Brazil"
+  },
+  "ar": {
+    "justwatch_country_code": "es_AR",
+    "tmdb_country_code": "es-AR",
+    "tmdb_country_code_2": "es",
+    "name": "Argentina"
+  },
+  "au": {
+    "justwatch_country_code": "en_AU",
+    "tmdb_country_code": "en-AU",
+    "name": "Australia"
   }
 }
