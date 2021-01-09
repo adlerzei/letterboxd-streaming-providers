@@ -93,3 +93,9 @@ Made with [contributors-img](https://contributors-img.web.app).
 - Fix buggy hot reloading
 - Added temporary fix for broken movie title localization for Austria and Switzerland
 - Minor bugfixes
+
+##### v1.4
+- Added clean fix for broken movie title localization for Austria and Switzerland
+- Small backend changes
+- Minor bug fixes
+- Add support for the following countries: Brazil, Argentinia, Australia
