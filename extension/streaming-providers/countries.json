@@ -22,11 +22,13 @@
   "mx": {
     "justwatch_country_code": "es_MX",
     "tmdb_country_code": "es-MX",
+    "tmdb_country_code_2": "es",
     "name": "Mexico"
   },
   "at": {
     "justwatch_country_code": "de_AT",
-    "tmdb_country_code": "de",
+    "tmdb_country_code": "de-AT",
+    "tmdb_country_code_2": "de",
     "name": "Austria"
   },
   "fr": {
@@ -41,7 +43,8 @@
   },
   "ch": {
     "justwatch_country_code": "de_CH",
-    "tmdb_country_code": "de",
+    "tmdb_country_code": "de-CH",
+    "tmdb_country_code_2": "de",
     "name": "Switzerland"
   },
   "jp": {
