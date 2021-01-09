@@ -98,4 +98,5 @@ Made with [contributors-img](https://contributors-img.web.app).
 - Added clean fix for broken movie title localization for Austria and Switzerland
 - Small backend changes
 - Minor bug fixes
-- Add support for the following countries: Brazil, Argentinia, Australia
+- Added all streaming providers that are available on JustWatch and offer free/flatrate access
+- Added support for the following countries: Brazil, Argentinia, Australia
