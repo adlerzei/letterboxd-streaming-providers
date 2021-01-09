@@ -243,6 +243,14 @@ async function isIncluded(tabId, toFind) {
 	xhttp.onreadystatechange = createJustWatchCallback(xhttp, tabId, toFind);
 }
 
+/**
+ * Returns a callback function that processes the JustWatch request response.
+ *
+ * @param {XMLHttpRequest} xhttp - The XMLHttpRequest object from the ajax request.
+ * @param {int} tabId - The tabId of the tab, in which Letterboxd should be filtered.
+ * @param {object} toFind - An object, which contains the movie title, the release year and the Letterboxd-intern array id.
+ * @returns {function(): void} - The callback function.
+ */
 function createJustWatchCallback(xhttp, tabId, toFind) {
 	return function() {
 		if (xhttp.readyState === 4 && xhttp.status === 200) {
@@ -286,6 +294,15 @@ function createJustWatchCallback(xhttp, tabId, toFind) {
 	};
 }
 
+/**
+ * Returns a callback function that processes the TMDb search request response.
+ *
+ * @param {XMLHttpRequest} xhttp - The XMLHttpRequest object from the ajax request.
+ * @param {object} justwatchRsp - The response from the preceding JustWatch request.
+ * @param {int} tabId - The tabId of the tab, in which Letterboxd should be filtered.
+ * @param {object} toFind - An object, which contains the movie title, the release year and the Letterboxd-intern array id.
+ * @returns {function(): void} - The callback function.
+ */
 function createTMDbSearchCallback(xhttp, justwatchRsp, tabId, toFind) {
 	return function() {
 		if (xhttp.readyState === 4 && xhttp.status === 200) {
@@ -354,6 +371,15 @@ function createTMDbSearchCallback(xhttp, justwatchRsp, tabId, toFind) {
 	}
 }
 
+/**
+ * Returns a callback function that processes the TMDb translation request response.
+ *
+ * @param {XMLHttpRequest} xhttp - The XMLHttpRequest object from the ajax request.
+ * @param {object} justwatchRsp - The response from the preceding JustWatch request.
+ * @param {int} tabId - The tabId of the tab, in which Letterboxd should be filtered.
+ * @param {object} toFind - An object, which contains the movie title, the release year, the media type, the TMDb id and the Letterboxd-intern array id.
+ * @returns {function(): void} - The callback function.
+ */
 function createTMDbMediaTranslationsCallback(xhttp, justwatchRsp, tabId, toFind) {
 	return function() {
 		if (xhttp.readyState === 4 && xhttp.status === 200) {
@@ -381,6 +407,15 @@ function createTMDbMediaTranslationsCallback(xhttp, justwatchRsp, tabId, toFind)
 	};
 }
 
+/**
+ * Returns a callback function that processes the TMDb media info request response.
+ *
+ * @param {XMLHttpRequest} xhttp - The XMLHttpRequest object from the ajax request.
+ * @param {object} justwatchRsp - The response from the preceding JustWatch request.
+ * @param {int} tabId - The tabId of the tab, in which Letterboxd should be filtered.
+ * @param {object} toFind - An object, which contains the movie title, the release year, the media type, the TMDb id and the Letterboxd-intern array id.
+ * @returns {function(): void} - The callback function.
+ */
 function createTMDbMediaInfoCallback(xhttp, justwatchRsp, tabId, toFind) {
 	return function() {
 		if (xhttp.readyState === 4 && xhttp.status === 200) {
