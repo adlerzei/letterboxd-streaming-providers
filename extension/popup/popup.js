@@ -73,8 +73,8 @@ function appendOptionsToCountryList() {
  */
 function appendOptionsToProviderList(defaultProviderName) {
 	providerList.options.length = 0;
-	var fragment = document.createDocumentFragment();
-	var keys = Object.keys(providers).sort(function (a, b) {
+	let fragment = document.createDocumentFragment();
+	let keys = Object.keys(providers).sort(function (a, b) {
 		return ('' + providers[a].name).localeCompare(providers[b].name);
 	});
 	for (let provider in keys) {
@@ -82,9 +82,9 @@ function appendOptionsToProviderList(defaultProviderName) {
 		if (!providers[provider].hasOwnProperty('name') || !providers[provider].hasOwnProperty('provider_id'))
 			continue;
 
-		var country = countryList.options[countryList.selectedIndex].value;
+		let country = countryList.options[countryList.selectedIndex].value;
 		if (providers[provider].countries.includes(country)) {
-			var opt = document.createElement('option');
+			let opt = document.createElement('option');
 			opt.innerHTML = providers[provider].name; // TODO escape
 			opt.value = provider;
 			opt.label = providers[provider].name;
