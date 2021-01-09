@@ -965,30 +965,3 @@ function unfadeAllMovies(tabId) {
 		});
 	});
 }
-
-/**
- * Inserts a content script to unfade all currently faded movies in Letterboxd.
- *
- * @param tabId - The tabId to operate in.
- * @param movies - The crawled movies.
- */
-function unfadeUnstreamedMovies(tabId, movies) {
-	browser.tabs.get(tabId, (tab) => {
-		if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/'))
-			return;
-
-		var className = 'poster-container';
-
-		for (let movie in movies) {
-			for (let movieId in movies[movie].id) {
-				if (!availableMovies[tabId].includes(movies[movie].id[movieId])) {
-					browser.tabs.executeScript(tabId, {
-						code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
-							"filmposters[" + movies[movie].id[movieId] + "].className = filmposters[" + movies[movie].id[movieId] + "].className.replace(' film-not-streamed', '');",
-						allFrames: false
-					});
-				}
-			}
-		}
-	});
-}
