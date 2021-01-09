@@ -46,6 +46,14 @@ var reloadActive = {};
  * @returns {Promise<void>} - An empty Promise if the loadings worked correctly, else the Promise contains the respective errors.
  */
 const onStartUp = async () => {
+	// load country list
+	loadJSON("countries/countries.json", function (response) {
+		// Parse JSON string into object
+		countries = JSON.parse(response);
+
+		requestProviderList();
+	});
+
 	// load TMDb key
 	loadJSON("settings/api.json", function (response) {
 		// Parse JSON string into object
@@ -53,20 +61,49 @@ const onStartUp = async () => {
 		tmdbKey = response.tmdb;
 	});
 
-	// load provider list
-	loadJSON("streaming-providers/providers.json", function (response) {
-		// Parse JSON string into object
-		providers = JSON.parse(response);
-	});
-
-	// load country list
-	loadJSON("streaming-providers/countries.json", function (response) {
-		// Parse JSON string into object
-		countries = JSON.parse(response);
-	});
-
 	// load stored settings from localStorage
 	browser.storage.local.get(parseSettings);
+
+	function requestProviderList() {
+		for (let country in countries) {
+			if (!countries[country].hasOwnProperty('justwatch_country_code'))
+				continue;
+
+			let country_code = countries[country].justwatch_country_code; // TODO escape
+
+			let xhttp = new XMLHttpRequest();
+			xhttp.open("GET", "https://apis.justwatch.com/content/providers/locale/" + country_code, true);
+			xhttp.send();
+			xhttp.onreadystatechange = createProviderDataCallback(xhttp, country);
+		}
+	}
+
+	function createProviderDataCallback(xhttp, country) {
+		return function() {
+			if (xhttp.readyState === 4 && xhttp.status === 200) {
+				let rsp = JSON.parse(xhttp.response);
+				for (let entry of rsp) {
+					if (!entry.hasOwnProperty('id') || !entry.hasOwnProperty('short_name') || !entry.hasOwnProperty('clear_name') || !entry.hasOwnProperty('monetization_types'))
+						continue;
+
+					if (!entry.monetization_types.includes('flatrate') && !entry.monetization_types.includes('free'))
+						continue;
+
+					if (!providers.hasOwnProperty(entry.short_name)) {
+						providers[entry.short_name] = {
+							'provider_id': Number(entry.id),
+							'name': entry.clear_name,
+							'countries': []
+						};
+					}
+
+					if (!providers[entry.short_name].countries.includes(country)) {
+						providers[entry.short_name].countries.push(country);
+					}
+				}
+			}
+		}
+	}
 
 	function parseSettings(item) {
 		let version = 0;
@@ -484,9 +521,11 @@ function getOffersWithReleaseYear(tabId, rsp, letterboxdMovieId, title, movieRel
 				if (!rsp.items[item].offers[offer].hasOwnProperty('monetization_type') || !rsp.items[item].offers[offer].hasOwnProperty('provider_id'))
 					continue;
 
-				if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && Number(rsp.items[item].offers[offer].provider_id) === providerId) {
-					availableMovies[tabId].push(...letterboxdMovieId);
-					return true;
+				if (rsp.items[item].offers[offer].monetization_type === 'flatrate' || rsp.items[item].offers[offer].monetization_type === 'free') {
+					if (Number(rsp.items[item].offers[offer].provider_id) === providerId) {
+						availableMovies[tabId].push(...letterboxdMovieId);
+						return true;
+					}
 				}
 			}
 			return true;
@@ -516,9 +555,11 @@ function getOffersWithoutExactReleaseYear(tabId, rsp, letterboxdMovieId, title, 
 				if (!rsp.items[item].offers[offer].hasOwnProperty('monetization_type') || !rsp.items[item].offers[offer].hasOwnProperty('provider_id'))
 					continue;
 
-				if (rsp.items[item].offers[offer].monetization_type === 'flatrate' && Number(rsp.items[item].offers[offer].provider_id) === providerId) {
-					availableMovies[tabId].push(...letterboxdMovieId);
-					return;
+				if (rsp.items[item].offers[offer].monetization_type === 'flatrate' || rsp.items[item].offers[offer].monetization_type === 'free') {
+					if (Number(rsp.items[item].offers[offer].provider_id) === providerId) {
+						availableMovies[tabId].push(...letterboxdMovieId);
+						return;
+					}
 				}
 			}
 			return;
@@ -714,7 +755,7 @@ function getTMDBCountryCode2() {
 /**
  * Returns all supported providers.
  *
- * @returns {object} - The providers loaded from providers.json.
+ * @returns {object} - The providers requested from JustWatch.
  */
 function getProviders() {
 	return providers;
