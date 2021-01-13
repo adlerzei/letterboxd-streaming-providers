@@ -528,7 +528,6 @@ function getOffersWithReleaseYear(tabId, rsp, letterboxdMovieId, title, movieRel
 					}
 				}
 			}
-			return true;
 		}
 	}
 	return false;
@@ -550,7 +549,7 @@ function getOffersWithoutExactReleaseYear(tabId, rsp, letterboxdMovieId, title, 
 
 		// TODO cast the years correctly before comparison (check if needed at all??)
 		if (rsp.items[item].title.toLowerCase() === title.toLowerCase()
-			&& ((rsp.items[item].original_release_year === movieReleaseYear - 1)) || (rsp.items[item].original_release_year === movieReleaseYear + 1) || (movieReleaseYear === -1)) {
+			&& ((rsp.items[item].original_release_year === movieReleaseYear - 1) || (rsp.items[item].original_release_year === movieReleaseYear + 1) || (movieReleaseYear === -1))) {
 			for (let offer in rsp.items[item].offers) {
 				if (!rsp.items[item].offers[offer].hasOwnProperty('monetization_type') || !rsp.items[item].offers[offer].hasOwnProperty('provider_id'))
 					continue;
@@ -714,7 +713,7 @@ function getFilmsFromLetterboxd(tabId) {
 
 browser.runtime.onMessage.addListener(handleMessage);
 
-browser.tabs.onUpdated.addListener(checkForLetterboxd);
+browser.tabs.onUpdated.addListener(checkLetterboxdForPageReload);
 
 /**
  * Returns the currently set provider id.
@@ -883,6 +882,20 @@ function reloadMovieFilter() {
  */
 function getAPIKey() {
 	return tmdbKey;
+}
+
+/**
+ * Waits for a short delay and then calls checkForLetterboxd.
+ *
+ * @param {int} tabId - The tabId to operate in.
+ * @param {object} changeInfo - The changeInfo from the tabs.onUpdated event.
+ * @param {object} tabInfo - The tabInfo from the tabs.onUpdated event.
+ */
+function checkLetterboxdForPageReload(tabId, changeInfo, tabInfo) {
+	// short timeout, wait for the page to load all release years (and other movie info)
+	setTimeout(function () {
+		checkForLetterboxd(tabId, changeInfo, tabInfo);
+	}, 500);
 }
 
 /**
