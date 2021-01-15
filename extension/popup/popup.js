@@ -55,7 +55,7 @@ function appendOptionsToCountryList() {
 			continue;
 
 		let opt = document.createElement('option');
-		opt.innerHTML = countries[country].name; // TODO escape
+		opt.insertAdjacentHTML('beforeend', countries[country].name);
 		opt.value = country;
 		opt.label = countries[country].name;
 		if (countries[country].justwatch_country_code === justWatchCountryCode) {
@@ -85,7 +85,7 @@ function appendOptionsToProviderList(defaultProviderName) {
 		let country = countryList.options[countryList.selectedIndex].value;
 		if (providers[provider].countries.includes(country)) {
 			let opt = document.createElement('option');
-			opt.innerHTML = providers[provider].name; // TODO escape
+			opt.insertAdjacentHTML('beforeend', providers[provider].name);
 			opt.value = provider;
 			opt.label = providers[provider].name;
 			if (typeof defaultProviderName === 'undefined') {
