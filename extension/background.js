@@ -18,7 +18,7 @@
 // for compatibility reasons
 var browser = chrome;
 
-var providerId = 0; // e.g. Netflix: 8, Amazon Prime Video: 9
+var selectedProviderIds = [0]; // e.g. Netflix: 8, Amazon Prime Video: 9
 
 var providers = {};
 
@@ -126,9 +126,9 @@ const onStartUp = async () => {
 		if (item.hasOwnProperty('tmdb_country_code_2')) {
 			setTMDBCountryCode2(item.tmdb_country_code_2);
 		}
-		if (item.hasOwnProperty('provider_id')) {
+		if (item.hasOwnProperty('selected_provider_ids')) {
 			providerSet = true;
-			setProviderId(item.provider_id);
+			setSelectedProviderIds(JSON.parse(item.selected_provider_ids));
 		}
 		if (item.hasOwnProperty('filter_status')) {
 			statusSet = true;
@@ -203,7 +203,7 @@ const onStartUp = async () => {
 				setTMDBCountryCode(response.tmdb_country_code);
 			}
 			if (!providerSet && response.hasOwnProperty('provider_id')) {
-				setProviderId(response.provider_id);
+				setSelectedProviderIds([response.provider_id]);
 			}
 			if (!statusSet && response.hasOwnProperty('filter_status')) {
 				setFilterStatus(response.filter_status);
@@ -237,18 +237,18 @@ const loadJSON = (path, callback) => {
  * @param {string} justWatchCountryCode - The currently set country code to store.
  * @param {string} tmdbCountryCode - The currently set TMDb country code to store.
  * @param {string} tmdbCountryCode2 - The currently set TMDb country code 2 to store.
- * @param {int} providerId - The currently set provider id to store.
+ * @param {array} selectedProviderIds - The currently set provider ids to store.
  * @param {boolean} filterStatus - The currently set filter status to store.
  */
-function storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, providerId, filterStatus) {
-	let version = 1.4;
+function storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, selectedProviderIds, filterStatus) {
+	let version = 1.5;
 
 	browser.storage.local.set({
 		version: version,
 		justwatch_country_code: justWatchCountryCode,
 		tmdb_country_code: tmdbCountryCode,
 		tmdb_country_code_2: tmdbCountryCode2,
-		provider_id: providerId,
+		selected_provider_ids: JSON.stringify(selectedProviderIds),
 		filter_status: filterStatus
 	});
 }
@@ -502,7 +502,7 @@ function createTMDbMediaInfoCallback(xhttp, justwatchRsp, tabId, toFind) {
 }
 
 /**
- * Checks if the streaming provider offers a flatrate for the given movie released in movieReleaseYear.
+ * Checks if the streaming provider(s) offer a flatrate for the given movie released in movieReleaseYear.
  *
  * @param {int} tabId - The tabId to operate in.
  * @param {object} rsp - The response from the ajax request.
@@ -522,7 +522,7 @@ function getOffersWithReleaseYear(tabId, rsp, letterboxdMovieId, title, movieRel
 					continue;
 
 				if (rsp.items[item].offers[offer].monetization_type === 'flatrate' || rsp.items[item].offers[offer].monetization_type === 'free') {
-					if (Number(rsp.items[item].offers[offer].provider_id) === providerId) {
+					if (selectedProviderIds.includes(Number(rsp.items[item].offers[offer].provider_id))) {
 						availableMovies[tabId].push(...letterboxdMovieId);
 						return true;
 					}
@@ -556,7 +556,7 @@ function getOffersWithoutExactReleaseYear(tabId, rsp, letterboxdMovieId, title, 
 					continue;
 
 				if (rsp.items[item].offers[offer].monetization_type === 'flatrate' || rsp.items[item].offers[offer].monetization_type === 'free') {
-					if (Number(rsp.items[item].offers[offer].provider_id) === providerId) {
+					if (selectedProviderIds.includes(Number(rsp.items[item].offers[offer].provider_id))) {
 						availableMovies[tabId].push(...letterboxdMovieId);
 						return;
 					}
@@ -717,12 +717,12 @@ browser.runtime.onMessage.addListener(handleMessage);
 browser.tabs.onUpdated.addListener(checkForLetterboxd);
 
 /**
- * Returns the currently set provider id.
+ * Returns the currently set provider ids.
  *
- * @returns {int} - The currently set provider id.
+ * @returns {array} - The currently set provider ids.
  */
-function getProviderId() {
-	return providerId;
+function getSelectedProviderIds() {
+	return selectedProviderIds;
 }
 
 /**
@@ -780,16 +780,17 @@ function getFilterStatus() {
 }
 
 /**
- * To change the provider ID out of the popup.
+ * To change the selected provider IDs out of the popup.
  *
- * @param {int} id - The new provider ID.
+ * @param {array} newIds - The new selected provider ID array.
  */
-function setProviderId(id) {
-	if (providerId === Number(id))
+function setSelectedProviderIds(newIds) {
+	// TODO maybe use a more idiomatic/safe array comparison
+	if (JSON.stringify(selectedProviderIds) == JSON.stringify(newIds))
 		return;
 
-	providerId = Number(id);
-	storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, providerId, filterStatus);
+	selectedProviderIds = newIds;
+	storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, selectedProviderIds, filterStatus);
 	reloadMovieFilter();
 }
 
@@ -803,7 +804,7 @@ function setFilterStatus(status) {
 		return;
 
 	filterStatus = status;
-	storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, providerId, filterStatus);
+	storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, selectedProviderIds, filterStatus);
 	reloadMovieFilter();
 }
 
@@ -817,7 +818,7 @@ function setJustWatchCountryCode(code) {
 		return;
 
 	justWatchCountryCode = code;
-	storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, providerId, filterStatus);
+	storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, selectedProviderIds, filterStatus);
 	reloadMovieFilter();
 }
 
@@ -831,7 +832,7 @@ function setTMDBCountryCode(code) {
 		return;
 
 	tmdbCountryCode = code;
-	storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, providerId, filterStatus);
+	storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, selectedProviderIds, filterStatus);
 }
 
 /**
@@ -844,7 +845,7 @@ function setTMDBCountryCode2(code) {
 		return;
 
 	tmdbCountryCode2 = code;
-	storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, providerId, filterStatus);
+	storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, selectedProviderIds, filterStatus);
 }
 
 /**

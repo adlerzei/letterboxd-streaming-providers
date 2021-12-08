@@ -28,6 +28,15 @@ html, body {
     margin-left: 20px;
 }
 
+.instruction-text {
+    margin-left: 24px;
+    margin-bottom: 8px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    font-weight: normal;
+    color: #666;
+}
+
 .select-box {
     width: 85%;
     padding: 5px;
@@ -37,18 +46,7 @@ html, body {
     font-size: 16px;
 }
 
-#content {
-    border-top: 1px solid;
-    border-color: #BDBDBD;
-    background-color: #F2F2F2;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 100%;
-    width: 100%;
-}
-
-select {
+.select-box>select {
     border: none;
     width: 100%;
     height: 40px;
@@ -63,6 +61,43 @@ select {
     border-radius: 3px;
     outline: none;
     cursor: pointer;
+}
+
+.multi-select-box {
+    width: 85%;
+    padding: 5px;
+    text-align: left;
+    font-weight: bold;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+}
+
+.multi-select-box>select {
+    border: none;
+    width: 100%;
+    height: 200px;
+    padding-left: 10px;
+    margin-bottom: 10px;
+    margin-left: 20px;
+    margin-top: 0px;
+    color: #666;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    box-shadow: 2px 2px 5px 1px rgba(0,0,0,0.3);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+#content {
+    border-top: 1px solid;
+    border-color: #BDBDBD;
+    background-color: #F2F2F2;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100%;
+    width: 100%;
 }
 
 select option {

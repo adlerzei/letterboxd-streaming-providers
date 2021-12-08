@@ -4,13 +4,13 @@
 This is a extension for common web browsers coded using the WebExtensions API.
 
 ## Main Features
-This extension adds a filter for some streaming providers (e.g. Netflix, Amazon Prime Video) to [Letterboxd](https://letterboxd.com/), to make it possible for you to see, which movies are included in your streaming flat rate.
+This extension adds a filter for some streaming providers (e.g. Netflix, Amazon Prime Video) to [Letterboxd](https://letterboxd.com/) to make it possible for you to see which movies are included in your streaming flat rate.
 
 ### How?
-The extension uses the TMDb API for assigning the original movie titles to the English ones. Furthermore, the JustWatch API is used to provide the streaming information.
+The extension uses the TMDb API for assigning the original movie titles to the English ones. It also uses the JustWatch API to provide the streaming service information.
 
 ### Which browser to use?
-The extension can be added into Chrome, Firefox and Opera.
+The extension can be added into Chrome, Firefox, and Opera.
 
 #### Chrome Web Store
 [Letterboxd Streaming Providers at the Chrome Web Store](https://chrome.google.com/webstore/detail/letterboxd-streaming-prov/egmanfnfgmljjmdncfoeghfmflhlmhpj)
@@ -19,7 +19,7 @@ The extension can be added into Chrome, Firefox and Opera.
 [Letterboxd Streaming Providers at AMO](https://addons.mozilla.org/en-US/firefox/addon/letterboxd-streaming-providers/)
 
 ### Which countries are supported?
-Actually streaming providers of the following countries are supported: Argentina, Australia, Austria, Brazil, Canada, France, Germany, Japan, Mexico, Spain, Switzerland, USA, United Kingdom. 
+Streaming providers in the following countries are supported: Argentina, Australia, Austria, Brazil, Canada, France, Germany, Japan, Mexico, Spain, Switzerland, United Kingdom, and USA. 
 
 Coming soon: India, Ireland, Italy, Russia, Netherlands, Norway, Sweden.
 
@@ -100,3 +100,6 @@ Made with [contributors-img](https://contributors-img.web.app).
 - Minor bug fixes
 - Added all streaming providers that are available on JustWatch and offer free/flatrate access
 - Added support for the following countries: Brazil, Argentina, Australia
+
+##### v1.5
+- Added support for selecting multiple streaming providers at once
