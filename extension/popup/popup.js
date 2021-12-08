@@ -124,7 +124,7 @@ function changeSelectedProviderIds() {
 			}
 		}
 	}
-	browser.storage.local.set({provider_id: selectedProviderIds[0]}); //TODO: multiple ids
+	browser.storage.local.set({selected_provider_ids: selectedProviderIds});
 }
 
 /**
@@ -148,7 +148,7 @@ function changeCountryCode() {
 
 function parseSettings(items) {
 	countryCode = items.hasOwnProperty('country_code') ? items.country_code : 'US';
-	selectedProviderIds = items.hasOwnProperty('provider_id') ? [items.provider_id] : [8]; //TODO: pass full list of selected providers
+	selectedProviderIds = items.hasOwnProperty('selected_provider_ids') ? items.selected_provider_ids : [8];
 	filterStatus = items.hasOwnProperty('filter_status') ? items.filter_status : false;
 }
 

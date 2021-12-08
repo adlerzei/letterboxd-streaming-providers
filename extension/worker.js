@@ -114,14 +114,14 @@ async function requestProviderList() {
  */
 async function parseSettings(items) {
 	const hasCountryCode = 'country_code' in items;
-	const hasProvider = 'provider_id' in items;
+	const hasProvider = 'selected_provider_ids' in items;
 	const hasStatus = 'filter_status' in items;
 
 	if (hasCountryCode) {
 		countryCode = items.country_code;
 	}
 	if (hasProvider) {
-		selectedProviderIds = [items.provider_id]; //TODO: pass full list of selected providers
+		selectedProviderIds = items.selected_provider_ids;
 	}
 	if (hasStatus) {
 		filterStatus = items.filter_status;
@@ -154,8 +154,8 @@ async function loadDefaultSettings(needCountryCode, needProvider, needStatus) {
 		toStore.country_code = countryCode;
 	}
 	if (needProvider && 'provider_id' in result.json) {
-		selectedProviderIds = [result.json.provider_id]; //TODO: pass full list of selected providers
-		toStore.provider_id = selectedProviderIds[0];
+		selectedProviderIds = [result.json.provider_id];
+		toStore.selected_provider_ids = selectedProviderIds;
 	}
 	if (needStatus && 'filter_status' in result.json) {
 		filterStatus = result.json.filter_status;
