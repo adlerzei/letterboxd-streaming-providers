@@ -22,7 +22,7 @@ var background = browser.extension.getBackgroundPage();
 
 var countries = background.getCountries();
 var providers = background.getProviders();
-var providerId = background.getProviderId();
+var selectedProviderIds = background.getSelectedProviderIds();
 var justWatchCountryCode = background.getJustWatchCountryCode();
 var tmdbCountryCode = background.getTMDBCountryCode();
 var tmdbCountryCode2 = background.getTMDBCountryCode2();
@@ -37,7 +37,7 @@ var filterSwitch = document.getElementById("filterSwitch");
 filterSwitch.checked = background.getFilterStatus();
 
 filterSwitch.addEventListener("change", changeFilterSwitch);
-providerList.addEventListener("change", changeProviderId);
+providerList.addEventListener("change", changeSelectedProviderIds);
 countryList.addEventListener("change", changeCountryCodes);
 
 
@@ -89,7 +89,7 @@ function appendOptionsToProviderList(defaultProviderName) {
 			opt.value = provider;
 			opt.label = providers[provider].name;
 			if (typeof defaultProviderName === 'undefined') {
-				if (providers[provider].provider_id === providerId) {
+				if (selectedProviderIds.includes(providers[provider].provider_id)) {
 					opt.selected = "selected";
 				}
 			} else {
@@ -116,12 +116,20 @@ function changeFilterSwitch() {
 /**
  * Called when the selected item in providerList is changed. Changes the provider_id in the background page.
  */
-function changeProviderId() {
-	let id = providerList.options[providerList.selectedIndex].value;
-	if (typeof providers !== 'undefined' && providers.hasOwnProperty(id) && providers[id].hasOwnProperty('provider_id')) {
-		providerId = providers[id].provider_id;
-		background.setProviderId(providerId);
+function changeSelectedProviderIds() {
+	selectedProviderIds = [];
+	if (typeof providers !== 'undefined') {
+		var opt;
+		var id;
+		for (var i = 0; i < providerList.options.length; i++) {
+			opt = providerList.options[i];
+			id = opt.value;
+			if (opt.selected && providers.hasOwnProperty(id) && providers[id].hasOwnProperty('provider_id')) {
+				selectedProviderIds.push(providers[id].provider_id);
+			}
+		}
 	}
+	background.setSelectedProviderIds(selectedProviderIds);
 }
 
 /**
@@ -141,9 +149,8 @@ function changeCountryCodes() {
 		background.setTMDBCountryCode(tmdbCountryCode);
 		background.setTMDBCountryCode2(tmdbCountryCode2);
 
-		let defaultProviderId = providerList.options[providerList.selectedIndex].label;
-		appendOptionsToProviderList(defaultProviderId);
-		changeProviderId();
+		appendOptionsToProviderList();
+		changeSelectedProviderIds();
 	}
 }
 
