@@ -22,7 +22,7 @@ const MAX_CRAWL_RETRIES = 3;
 
 // settings
 let countryCode = ''; // e.g. German: "DE", USA: "US"
-let providerId = 0; // e.g. Netflix: 8, Amazon Prime Video: 9
+let selectedProviderIds = []; // e.g. Netflix: 8, Amazon Prime Video: 9
 let filterStatus = false;
 
 // fetch options
@@ -121,7 +121,7 @@ async function parseSettings(items) {
 		countryCode = items.country_code;
 	}
 	if (hasProvider) {
-		providerId = items.provider_id;
+		selectedProviderIds = [items.provider_id]; //TODO: pass full list of selected providers
 	}
 	if (hasStatus) {
 		filterStatus = items.filter_status;
@@ -154,8 +154,8 @@ async function loadDefaultSettings(needCountryCode, needProvider, needStatus) {
 		toStore.country_code = countryCode;
 	}
 	if (needProvider && 'provider_id' in result.json) {
-		providerId = result.json.provider_id;
-		toStore.provider_id = providerId;
+		selectedProviderIds = [result.json.provider_id]; //TODO: pass full list of selected providers
+		toStore.provider_id = selectedProviderIds[0];
 	}
 	if (needStatus && 'filter_status' in result.json) {
 		filterStatus = result.json.filter_status;
@@ -473,7 +473,7 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
 	];
 
 	const hasProvider = offersToCheck.some(offer =>
-		offer.provider_id && offer.provider_id === providerId
+		offer.provider_id && selectedProviderIds.includes(offer.provider_id)
 	);
 
 	if (hasProvider) {

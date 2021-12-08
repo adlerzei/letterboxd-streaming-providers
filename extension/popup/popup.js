@@ -5,7 +5,7 @@ var browser = chrome;
 
 var countries = {};
 var providers = {};
-var providerId = 0;
+var selectedProviderIds = [];
 var countryCode = '';
 var filterStatus = false;
 
@@ -20,7 +20,7 @@ browser.storage.local.get((items) => {
 	// load cached variables from sessionStorage
 	browser.storage.session.get((items) => {
 		parseCache(items);
-
+		
 		appendOptionsToCountryList();
 		
 		appendOptionsToProviderList();
@@ -32,7 +32,7 @@ browser.storage.local.get((items) => {
 		providerList.disabled = !filterStatus;
 		
 		filterSwitch.addEventListener("change", changeFilterSwitch);
-		providerList.addEventListener("change", changeProviderId);
+		providerList.addEventListener("change", changeSelectedProviderIds);
 		countryList.addEventListener("change", changeCountryCode);
 	});
 });
@@ -83,7 +83,7 @@ function appendOptionsToProviderList(defaultProviderName) {
 			opt.value = provider;
 			opt.label = providers[provider].name;
 			if (typeof defaultProviderName === 'undefined') {
-				if (providers[provider].provider_id === providerId) {
+				if (selectedProviderIds.includes(providers[provider].provider_id)) {
 					opt.selected = "selected";
 				}
 			} else {
@@ -111,21 +111,29 @@ function changeFilterSwitch() {
 /**
  * Called when the selected item in providerList is changed. Changes the provider_id in the background page.
  */
-function changeProviderId() {
-	let id = providerList.options[providerList.selectedIndex].value;
-	if (typeof providers !== 'undefined' && providers.hasOwnProperty(id) && providers[id].hasOwnProperty('provider_id')) {
-		providerId = providers[id].provider_id;
-		browser.storage.local.set({provider_id: providerId});
+function changeSelectedProviderIds() {
+	selectedProviderIds = [];
+	if (typeof providers !== 'undefined') {
+		var opt;
+		var id;
+		for (var i = 0; i < providerList.options.length; i++) {
+			opt = providerList.options[i];
+			id = opt.value;
+			if (opt.selected && providers.hasOwnProperty(id) && providers[id].hasOwnProperty('provider_id')) {
+				selectedProviderIds.push(providers[id].provider_id);
+			}
+		}
 	}
+	browser.storage.local.set({provider_id: selectedProviderIds[0]}); //TODO: multiple ids
 }
 
 /**
- * Called when the selected item in countryList is changed. 
+ * Called when the selected item in countryList is changed.
  * Changes the country code in the background page and forces the options in providerList to reload.
  */
 function changeCountryCode() {
 	let code = countryList.options[countryList.selectedIndex].value;
-	if (typeof countries !== 'undefined' && countries.hasOwnProperty(code) 
+	if (typeof countries !== 'undefined' && countries.hasOwnProperty(code)
 		&& countries[code].hasOwnProperty('code')) {
 		countryCode = countries[code].code;
 
@@ -133,15 +141,14 @@ function changeCountryCode() {
 			country_code: countryCode
 		});
 
-		let defaultProviderId = providerList.options[providerList.selectedIndex].label;
-		appendOptionsToProviderList(defaultProviderId);
-		changeProviderId();
+		appendOptionsToProviderList();
+		changeSelectedProviderIds();
 	}
 }
 
 function parseSettings(items) {
 	countryCode = items.hasOwnProperty('country_code') ? items.country_code : 'US';
-	providerId = items.hasOwnProperty('provider_id') ? items.provider_id : 8;
+	selectedProviderIds = items.hasOwnProperty('provider_id') ? [items.provider_id] : [8]; //TODO: pass full list of selected providers
 	filterStatus = items.hasOwnProperty('filter_status') ? items.filter_status : false;
 }
 
