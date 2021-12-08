@@ -126,9 +126,9 @@ const onStartUp = async () => {
 		if (item.hasOwnProperty('tmdb_country_code_2')) {
 			setTMDBCountryCode2(item.tmdb_country_code_2);
 		}
-		if (item.hasOwnProperty('provider_id')) {
+		if (item.hasOwnProperty('selected_provider_ids')) {
 			providerSet = true;
-			setSelectedProviderIds([item.provider_id]); //TODO: pass full list of selected providers
+			setSelectedProviderIds(JSON.parse(item.selected_provider_ids));
 		}
 		if (item.hasOwnProperty('filter_status')) {
 			statusSet = true;
@@ -203,7 +203,7 @@ const onStartUp = async () => {
 				setTMDBCountryCode(response.tmdb_country_code);
 			}
 			if (!providerSet && response.hasOwnProperty('provider_id')) {
-				setSelectedProviderIds([response.provider_id]); //TODO: pass multiple ids
+				setSelectedProviderIds([response.provider_id]);
 			}
 			if (!statusSet && response.hasOwnProperty('filter_status')) {
 				setFilterStatus(response.filter_status);
@@ -248,7 +248,7 @@ function storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, 
 		justwatch_country_code: justWatchCountryCode,
 		tmdb_country_code: tmdbCountryCode,
 		tmdb_country_code_2: tmdbCountryCode2,
-		provider_id: selectedProviderIds[0], //TODO: multiple ids
+		selected_provider_ids: JSON.stringify(selectedProviderIds),
 		filter_status: filterStatus
 	});
 }
@@ -785,9 +785,9 @@ function getFilterStatus() {
  * @param {array} newIds - The new selected provider ID array.
  */
 function setSelectedProviderIds(newIds) {
-	//TODO: array comparison
-	// if (providerId === Number(id))
-	// 	return;
+	// TODO maybe use a more idiomatic/safe array comparison
+	if (JSON.stringify(selectedProviderIds) == JSON.stringify(newIds))
+		return;
 
 	selectedProviderIds = newIds;
 	storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, selectedProviderIds, filterStatus);
