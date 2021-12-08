@@ -251,7 +251,7 @@ browser.alarms.onAlarm.addListener(alarm => {
 /////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Called to force the filters to reload with the new provider ID.
+ * Called to force the filters to reload with the new selected provider IDs.
  */
 async function reloadMovieFilter() {
 	const tabs = await browser.tabs.query({}) ?? [];
@@ -455,7 +455,7 @@ function extractMediaInfo(item, mediaType) {
 
 /**
  * Adds the given letterboxd ID to the availableMovies
- * if the selected provider includes the movie in its flatrate.
+ * if any of the selected providers includes the movie in its flatrate.
  *
  * @param {object} results - The results from the TMDB "Watch Providers" request.
  * @param {number} tabId - The tabId to operate in.
@@ -626,7 +626,7 @@ async function prepareLetterboxdForFading(tabId) {
 }
 
 /**
- * Fades out movies that are not available on the selected streaming provider.
+ * Fades out movies that are not available on any of the selected streaming providers.
  *
  * @param {number} tabId - The tabId to operate in.
  * @param {object} movies - The crawled movies.
