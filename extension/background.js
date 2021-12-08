@@ -241,7 +241,7 @@ const loadJSON = (path, callback) => {
  * @param {boolean} filterStatus - The currently set filter status to store.
  */
 function storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, selectedProviderIds, filterStatus) {
-	let version = 1.4;
+	let version = 1.5;
 
 	browser.storage.local.set({
 		version: version,
