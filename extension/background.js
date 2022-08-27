@@ -704,9 +704,12 @@ function getFilmsFromLetterboxd(tabId) {
 	browser.tabs.get(tabId, (tab) => {
 		let fileName = "./scripts/getFilmsFromLetterboxd.js";
 
-		browser.tabs.executeScript(tabId, {
-			file: fileName,
-			allFrames: true
+		browser.scripting.executeScript({
+			target: {
+				tabId: tabId,
+				allFrames: true
+			},
+			files: [fileName]
 		});
 	});
 }
@@ -982,9 +985,14 @@ function prepareLetterboxdForFading(tabId) {
 		file: "./style/hideunstreamed.css"
 	});
 
-	browser.tabs.executeScript(tabId, {
-		code: "document.body.className += ' hide-films-unstreamed';",
-		allFrames: false
+	let fileName = "./scripts/prepareLetterboxdForFading.js";
+
+	browser.scripting.executeScript({
+		target: {
+			tabId: tabId,
+			allFrames: false
+		},
+		files: [fileName]
 	});
 }
 
@@ -997,13 +1005,21 @@ function prepareLetterboxdForFading(tabId) {
 function fadeUnstreamableMovies(tabId, movies) {
 	var className = 'poster-container';
 
+	function fadeOut(className, movieId) {
+		filmposters = document.body.getElementsByClassName(className);
+		filmposters[movieId].className += ' film-not-streamed';
+	}
+
 	for (let movie in movies) {
 		for (let movie_id in movies[movie].id) {
 			if (!availableMovies[tabId].includes(movies[movie].id[movie_id])) {
-				browser.tabs.executeScript(tabId, {
-					code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
-						"filmposters[" + movies[movie].id[movie_id] + "].className += ' film-not-streamed';",
-					allFrames: false
+				browser.scripting.executeScript({
+					target: {
+						tabId: tabId,
+						allFrames: false
+					},
+					func: fadeOut,
+					args: [className, movies[movie].id[movie_id]],
 				});
 			}
 		}
@@ -1045,12 +1061,20 @@ function unfadeAllMovies(tabId) {
 
 		var className = 'poster-container';
 
-		browser.tabs.executeScript(tabId, {
-			code: "filmposters = document.body.getElementsByClassName('" + className + "'); \n" +
-				"for(poster in filmposters) { \n" +
-				"  filmposters[poster].className = filmposters[poster].className.replace(' film-not-streamed', ''); \n" +
-				"}",
-			allFrames: false
+		function unfade(className) {
+			filmposters = document.body.getElementsByClassName(className);
+			for(poster in filmposters) {
+				filmposters[poster].className = filmposters[poster].className.replace(' film-not-streamed', '');
+			}
+		}
+
+		browser.scripting.executeScript({
+			target: {
+				tabId: tabId,
+				allFrames: false
+			},
+			func: unfade,
+			args: [className],
 		});
 	});
 }
