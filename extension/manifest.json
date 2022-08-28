@@ -10,11 +10,11 @@
     "48": "icons/logo_final_48.png",
     "128": "icons/logo_final_128.png"
   },
-
   "permissions": [
     "tabs",
     "storage",
-    "scripting"
+    "scripting",
+    "alarms"
   ],
   "host_permissions": [
     "*://api.themoviedb.org/*",
@@ -22,15 +22,12 @@
     "*://letterboxd.com/*",
     "*://www.letterboxd.com/*"
   ],
-
   "background": {
     "service_worker": "background.js"
   },
-
   "action": {
     "default_icon": "icons/logo_final_32.png",
     "default_title": "Letterboxd Streaming Providers",
     "default_popup": "popup/popup.html"
   }
-
 }

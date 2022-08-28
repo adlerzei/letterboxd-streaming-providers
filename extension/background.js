@@ -18,25 +18,23 @@
 // for compatibility reasons
 var browser = chrome;
 
-var providerId = 0; // e.g. Netflix: 8, Amazon Prime Video: 9
-
-var providers = {};
-
-var countries = {};
-
+// settings
 var justWatchCountryCode = ''; // e.g. German: "de_DE", USA: "en_US"
 var tmdbCountryCode = ''; // e.g. German: "de-DE", USA: "en-US"
 var tmdbCountryCode2 = ''; // e.g. Austria: "de"
+var providerId = 0; // e.g. Netflix: 8, Amazon Prime Video: 9
+var filterStatus = false;
+
+// cache
+var providers = {};
+var countries = {};
 
 var availableMovies = {};
 var crawledMovies = {};
 var unsolvedRequests = {};
-var unsolvedRequestsDelay = {};
 var tmdbKey = '';
 
 var checkCounter = {};
-
-var filterStatus = false;
 
 var reloadActive = {};
 
@@ -50,12 +48,18 @@ const onStartUp = async () => {
 	loadJSON("countries/countries.json", function (json) {
 		countries = json;
 
+		// persist for later service worker cycles
+		browser.storage.session.set({countries: countries});
+
 		requestProviderList();
 	});
 
 	// load TMDb key
 	loadJSON("settings/api.json", function (json) {
 		tmdbKey = json.tmdb;
+
+		// persist for later service worker cycles
+		browser.storage.session.set({tmdb_key: tmdbKey});
 	});
 
 	// load stored settings from localStorage
@@ -73,14 +77,14 @@ const onStartUp = async () => {
 		}
 	}
 
-	function createProviderDataCallback(response, country) {
+	async function createProviderDataCallback(response, country) {
 		if (response.status == 200) {
 			let rsp = await response.json();
 			for (let entry of rsp) {
 				if (!entry.hasOwnProperty('id') || !entry.hasOwnProperty('short_name') || !entry.hasOwnProperty('clear_name') || !entry.hasOwnProperty('monetization_types'))
 					continue;
 
-				if (!entry.monetization_types.includes('flatrate') && !entry.monetization_types.includes('free'))
+				if (entry.monetization_types == null || !entry.monetization_types.includes('flatrate') && !entry.monetization_types.includes('free'))
 					continue;
 
 				if (!providers.hasOwnProperty(entry.short_name)) {
@@ -95,113 +99,81 @@ const onStartUp = async () => {
 					providers[entry.short_name].countries.push(country);
 				}
 			}
-		}
-	}
 
-	function parseSettings(item) {
-		let version = 0;
-		let countrySet = false;
-		let languageSet = false;
-		let providerSet = false;
-		let statusSet = false;
-
-		if (item.hasOwnProperty('version')) {
-			version = item.version;
+			// persist for later service worker cycles
+			browser.storage.session.set({providers: providers});
 		}
-		if (item.hasOwnProperty('justwatch_country_code')) {
-			countrySet = true;
-			setJustWatchCountryCode(item.justwatch_country_code);
-		}
-		if (item.hasOwnProperty('tmdb_country_code')) {
-			languageSet = true;
-			setTMDBCountryCode(item.tmdb_country_code);
-		}
-		if (item.hasOwnProperty('tmdb_country_code_2')) {
-			setTMDBCountryCode2(item.tmdb_country_code_2);
-		}
-		if (item.hasOwnProperty('provider_id')) {
-			providerSet = true;
-			setProviderId(item.provider_id);
-		}
-		if (item.hasOwnProperty('filter_status')) {
-			statusSet = true;
-			setFilterStatus(item.filter_status);
-		}
-
-		if (version < 1.2) {
-			if (item.hasOwnProperty('country_code')) {
-				countrySet = true;
-				setJustWatchCountryCode(item.country_code);
-				browser.storage.local.remove('country_code');
-			}
-
-			if (item.hasOwnProperty('filterStatus')) {
-				statusSet = true;
-				setFilterStatus(item.filterStatus);
-				browser.storage.local.remove('filterStatus');
-			}
-
-			if (countrySet) {
-				estimateTMDBCountryCode(justWatchCountryCode);
-				languageSet = true;
-			}
-		}
-
-		if (version < 1.4) {
-			if (countrySet) {
-				estimateTMDBCountryCode2(justWatchCountryCode);
-			}
-		}
-
-		if ((!countrySet) || (!languageSet) || (!providerSet) || (!statusSet)) {
-			loadDefaultSettings(countrySet, languageSet, providerSet, statusSet);
-		}
-	}
-
-	function estimateTMDBCountryCode(code) {
-		for (let country in countries) {
-			if (!response[country].hasOwnProperty('justwatch_country_code') || !response[country].hasOwnProperty('tmdb_country_code'))
-				continue;
-
-			if (response[country].justwatch_country_code === code) {
-				setTMDBCountryCode(response[country].tmdb_country_code);
-				return;
-			}
-		}
-		loadDefaultSettings(true, false, true, true)
-	}
-
-	function estimateTMDBCountryCode2(code) {
-		for (let country in countries) {
-			if (!response[country].hasOwnProperty('justwatch_country_code') || !response[country].hasOwnProperty('tmdb_country_code_2'))
-				continue;
-
-			if (response[country].justwatch_country_code === code) {
-				setTMDBCountryCode2(response[country].tmdb_country_code_2);
-				return;
-			}
-		}
-	}
-
-	function loadDefaultSettings(countrySet, languageSet, providerSet, statusSet) {
-		// load default settings
-		loadJSON("settings/default.json", function (json) {
-			// set the intern settings
-			if (!countrySet && json.hasOwnProperty('justwatch_country_code')) {
-				setJustWatchCountryCode(json.justwatch_country_code);
-			}
-			if (!languageSet && json.hasOwnProperty('tmdb_country_code')) {
-				setTMDBCountryCode(json.tmdb_country_code);
-			}
-			if (!providerSet && json.hasOwnProperty('provider_id')) {
-				setProviderId(json.provider_id);
-			}
-			if (!statusSet && json.hasOwnProperty('filter_status')) {
-				setFilterStatus(json.filter_status);
-			}
-		});
 	}
 };
+
+function parseSettings(items) {;
+	let countrySet = false;
+	let tmdbCountryCodeSet = false;
+	let tmdbCountryCode2Set = false;
+	let languageSet = false;
+	let providerSet = false;
+	let statusSet = false;
+
+	if (items.hasOwnProperty('justwatch_country_code')) {
+		countrySet = true;
+		justWatchCountryCode = items.justwatch_country_code;
+	}
+	if (items.hasOwnProperty('tmdb_country_code')) {
+		tmdbCountryCodeSet = true;
+		tmdbCountryCode = items.tmdb_country_code;
+	}
+	if (items.hasOwnProperty('tmdb_country_code_2')) {
+		tmdbCountryCode2Set = true;
+		tmdbCountryCode2 = items.tmdb_country_code_2;
+	}
+	languageSet = tmdbCountryCodeSet && tmdbCountryCode2Set;
+	if (items.hasOwnProperty('provider_id')) {
+		providerSet = true;
+		providerId = items.provider_id;
+	}
+	if (items.hasOwnProperty('filter_status')) {
+		statusSet = true;
+		filterStatus = items.filter_status;
+	}
+
+	if ((!countrySet) || (!languageSet) || (!providerSet) || (!statusSet)) {
+		loadDefaultSettings(countrySet, languageSet, providerSet, statusSet);
+	}
+}
+
+function loadDefaultSettings(countrySet, languageSet, providerSet, statusSet) {
+	// load default settings
+	loadJSON("settings/default.json", function (json) {
+		// set the intern settings
+		if (!countrySet && json.hasOwnProperty('justwatch_country_code')) {
+			justWatchCountryCode = json.justwatch_country_code;
+		}
+		if (!languageSet && json.hasOwnProperty('tmdb_country_code') && json.hasOwnProperty('tmdb_country_code_2')) {
+			tmdbCountryCode = json.tmdb_country_code;
+			tmdbCountryCode = json.tmdb_country_code_2;
+		}
+		if (!providerSet && json.hasOwnProperty('provider_id')) {
+			providerId = json.provider_id;
+		}
+		if (!statusSet && json.hasOwnProperty('filter_status')) {
+			filterStatus = json.filter_status;
+		}
+	});
+}
+
+function parseCache(items) {
+	providers = items.hasOwnProperty('providers') ? items.providers : {};
+	countries = items.hasOwnProperty('countries') ? items.countries : {};
+
+	availableMovies = items.hasOwnProperty('available_movies') ? items.available_movies : {};
+	crawledMovies = items.hasOwnProperty('crawled_movies') ? items.crawled_movies : {};
+	unsolvedRequests = items.hasOwnProperty('unsolved_requests') ? items.unsolved_requests : {};
+	tmdbKey = items.hasOwnProperty('tmdb_key') ? items.tmdb_key : '';
+
+	checkCounter = items.hasOwnProperty('check_counter') ? items.check_counter : {};
+
+	reloadActive = items.hasOwnProperty('reload_active') ? items.reload_active : {};
+}
 
 /**
  * Called to load a JSON file.
@@ -209,7 +181,7 @@ const onStartUp = async () => {
  * @param {string} path - The path to the JSON file.
  * @param {function} callback - A callback function, which is called after loading the file successfully.
  */
-const loadJSON = (path, callback) => {
+const loadJSON = async (path, callback) => {
 	let response = await fetch(path);
 
 	if (response.status === 200) {
@@ -239,7 +211,6 @@ function storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, 
 	});
 }
 
-onStartUp();
 
 /**
  * Checks if a movie is available and adds it to availableMovies[tabId].
@@ -248,7 +219,7 @@ onStartUp();
  * @param {int} tabId - The tabId of the tab, in which Letterboxd should be filtered.
  * @returns {Promise<void>} - An empty Promise if the API calls worked correctly, else the Promise contains the respective errors.
  */
-async function isIncluded(tabId, toFind) {
+function isIncluded(tabId, toFind) {
 	let englishTitle = toFind.title;
 	let titleSanitized = encodeURIComponent(englishTitle);
 
@@ -269,7 +240,7 @@ async function isIncluded(tabId, toFind) {
  * @param {int} tabId - The tabId of the tab, in which Letterboxd should be filtered.
  * @param {object} toFind - An object, which contains the movie title, the release year and the Letterboxd-intern array id.
  */
-function createJustWatchCallback(response, tabId, toFind) {
+async function createJustWatchCallback(response, tabId, toFind) {
 	if (response.status === 200) {
 		let englishTitle = toFind.title;
 		let movieReleaseYear = toFind.year;
@@ -293,6 +264,9 @@ function createJustWatchCallback(response, tabId, toFind) {
 		if (matchFound) {
 			checkCounter[tabId]++;
 
+			// persist for later service worker cycles
+			browser.storage.session.set({check_counter: checkCounter});
+
 			if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
 				fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
 			}
@@ -302,6 +276,10 @@ function createJustWatchCallback(response, tabId, toFind) {
 		}
 	} else if (response.status !== 200) {
 		checkCounter[tabId]++;
+
+		// persist for later service worker cycles
+		browser.storage.session.set({check_counter: checkCounter});
+
 		if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
 			fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
 		}
@@ -316,7 +294,7 @@ function createJustWatchCallback(response, tabId, toFind) {
  * @param {int} tabId - The tabId of the tab, in which Letterboxd should be filtered.
  * @param {object} toFind - An object, which contains the movie title, the release year and the Letterboxd-intern array id.
  */
-function createTMDbSearchCallback(response, justwatchRsp, tabId, toFind) {
+async function createTMDbSearchCallback(response, justwatchRsp, tabId, toFind) {
 	if (response.status === 200) {
 		let englishTitle = toFind.title;
 		let movieReleaseYear = toFind.year;
@@ -354,22 +332,37 @@ function createTMDbSearchCallback(response, justwatchRsp, tabId, toFind) {
 			}
 		} else {
 			checkCounter[tabId]++;
+
+			// persist for later service worker cycles
+			browser.storage.session.set({check_counter: checkCounter});
+
 			if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
 				fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
 			}
 		}
 	} else if (response.status === 429) {
 		checkCounter[tabId]++;
+
+		// persist for later service worker cycles
+		browser.storage.session.set({check_counter: checkCounter});
+
 		unsolvedRequests[tabId][toFind.title] = {
 			year: toFind.year,
 			id: toFind.id
 		};
+		
+		// persist for later service worker cycles
+		browser.storage.session.set({unsolved_requests: unsolvedRequests});
 
 		if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
 			fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
 		}
 	} else {
 		checkCounter[tabId]++;
+
+		// persist for later service worker cycles
+		browser.storage.session.set({check_counter: checkCounter});
+
 		if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
 			fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
 		}
@@ -384,7 +377,7 @@ function createTMDbSearchCallback(response, justwatchRsp, tabId, toFind) {
  * @param {int} tabId - The tabId of the tab, in which Letterboxd should be filtered.
  * @param {object} toFind - An object, which contains the movie title, the release year, the media type, the TMDb id and the Letterboxd-intern array id.
  */
-function createTMDbMediaTranslationsCallback(response, justwatchRsp, tabId, toFind) {
+async function createTMDbMediaTranslationsCallback(response, justwatchRsp, tabId, toFind) {
 	if (response.status === 200) {
 		let tmdbId = toFind.tmdbId;
 		let mediaType = toFind.mediaType;
@@ -401,6 +394,10 @@ function createTMDbMediaTranslationsCallback(response, justwatchRsp, tabId, toFi
 			.then(response => createTMDbMediaInfoCallback(response, justwatchRsp, tabId, toFind));
 	} else {
 		checkCounter[tabId]++;
+
+		// persist for later service worker cycles
+		browser.storage.session.set({check_counter: checkCounter});
+
 		if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
 			fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
 		}
@@ -415,7 +412,7 @@ function createTMDbMediaTranslationsCallback(response, justwatchRsp, tabId, toFi
  * @param {int} tabId - The tabId of the tab, in which Letterboxd should be filtered.
  * @param {object} toFind - An object, which contains the movie title, the release year, the media type, the TMDb id and the Letterboxd-intern array id.
  */
-function createTMDbMediaInfoCallback(response, justwatchRsp, tabId, toFind) {
+async function createTMDbMediaInfoCallback(response, justwatchRsp, tabId, toFind) {
 	if (response.status === 200) {
 		let englishTitle = toFind.title;
 		let movieReleaseYear = toFind.year;
@@ -450,11 +447,18 @@ function createTMDbMediaInfoCallback(response, justwatchRsp, tabId, toFind) {
 
 		checkCounter[tabId]++;
 
+		// persist for later service worker cycles
+		browser.storage.session.set({check_counter: checkCounter});
+
 		if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
 			fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
 		}
 	} else {
 		checkCounter[tabId]++;
+
+		// persist for later service worker cycles
+		browser.storage.session.set({check_counter: checkCounter});
+
 		if (checkCounter[tabId] === Object.keys(crawledMovies[tabId]).length) {
 			fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
 		}
@@ -484,12 +488,17 @@ function getOffersWithReleaseYear(tabId, rsp, letterboxdMovieId, title, movieRel
 				if (rsp.items[item].offers[offer].monetization_type === 'flatrate' || rsp.items[item].offers[offer].monetization_type === 'free') {
 					if (Number(rsp.items[item].offers[offer].provider_id) === providerId) {
 						availableMovies[tabId].push(...letterboxdMovieId);
+
+						// persist for later service worker cycles
+						browser.storage.session.set({available_movies: availableMovies});
+
 						return true;
 					}
 				}
 			}
 		}
 	}
+
 	return false;
 }
 
@@ -517,6 +526,10 @@ function getOffersWithoutExactReleaseYear(tabId, rsp, letterboxdMovieId, title, 
 				if (rsp.items[item].offers[offer].monetization_type === 'flatrate' || rsp.items[item].offers[offer].monetization_type === 'free') {
 					if (Number(rsp.items[item].offers[offer].provider_id) === providerId) {
 						availableMovies[tabId].push(...letterboxdMovieId);
+
+						// persist for later service worker cycles
+						browser.storage.session.set({available_movies: availableMovies});
+						
 						return;
 					}
 				}
@@ -674,140 +687,68 @@ function getFilmsFromLetterboxd(tabId) {
 	});
 }
 
-browser.runtime.onMessage.addListener(handleMessage);
+browser.runtime.onInstalled.addListener(() => onStartUp());
+browser.runtime.onStartup.addListener(() => onStartUp());
 
-browser.tabs.onUpdated.addListener(checkLetterboxdForPageReload);
+browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
+	// load stored settings from localStorage
+	browser.storage.local.get((items) => {
+		parseSettings(items);
+		// load cached variables from sessionStorage
+		browser.storage.session.get((items) => {
+			parseCache(items);
+			handleMessage(request, sender, sendResponse);
+		});
+	});
+});
 
-/**
- * Returns the currently set provider id.
- *
- * @returns {int} - The currently set provider id.
- */
-function getProviderId() {
-	return providerId;
-}
+browser.tabs.onUpdated.addListener((tabId, changeInfo, tabInfo) => {
+	// load stored settings from localStorage
+	browser.storage.local.get((items) => {
+		parseSettings(items);
+		// load cached variables from sessionStorage
+		browser.storage.session.get((items) => {
+			parseCache(items);
 
-/**
- * Returns the currently set country code
- *
- * @returns {string} - The currently set country code
- */
-function getJustWatchCountryCode() {
-	return justWatchCountryCode;
-}
+			checkLetterboxdForPageReload(tabId, changeInfo, tabInfo);
+		});
+	});
+});
 
-/**
- * Returns the currently set TMDb country code
- *
- * @returns {string} - The currently set TMDb country code
- */
-function getTMDBCountryCode() {
-	return tmdbCountryCode;
-}
+browser.storage.local.onChanged.addListener(_ => {
+		// load stored settings from localStorage
+		browser.storage.local.get((items) => {
+			parseSettings(items);
+			// load cached variables from sessionStorage
+			browser.storage.session.get((items) => {
+				parseCache(items);
 
-/**
- * Returns the currently set TMDb country code 2
- *
- * @returns {string} - The currently set TMDb country code 2
- */
-function getTMDBCountryCode2() {
-	return tmdbCountryCode2;
-}
+				reloadMovieFilter();
+		});
+	});
+});
 
-/**
- * Returns all supported providers.
- *
- * @returns {object} - The providers requested from JustWatch.
- */
-function getProviders() {
-	return providers;
-}
-
-/**
- * Returns all supported countries.
- *
- * @returns {object} - The countries loaded from countries.json.
- */
-function getCountries() {
-	return countries;
-}
-
-/**
- * Returns the status of the filter.
- *
- * @returns {boolean} - True if the filter is enabled and false else.
- */
-function getFilterStatus() {
-	return filterStatus;
-}
-
-/**
- * To change the provider ID out of the popup.
- *
- * @param {int} id - The new provider ID.
- */
-function setProviderId(id) {
-	if (providerId === Number(id))
+browser.alarms.onAlarm.addListener(alarm => {
+	if (alarm.name != "handleUnsolvedRequests")
 		return;
 
-	providerId = Number(id);
-	storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, providerId, filterStatus);
-	reloadMovieFilter();
-}
+	// load stored settings from localStorage
+	browser.storage.local.get((items) => {
+		parseSettings(items);
+		// load cached variables from sessionStorage
+		browser.storage.session.get((items) => {
+			parseCache(items);
 
-/**
- * Sets the status of the filter.
- *
- * @param {boolean} status - True if the filter should be enabled and false else.
- */
-function setFilterStatus(status) {
-	if (status === filterStatus)
-		return;
+			var movies = JSON.parse(JSON.stringify(unsolvedRequests[tabId]));
+			unsolvedRequests[tabId] = {};
 
-	filterStatus = status;
-	storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, providerId, filterStatus);
-	reloadMovieFilter();
-}
+			// persist for later service worker cycles
+			browser.storage.session.set({unsolved_requests: unsolvedRequests});
 
-/**
- * To change the JustWatch country code out of the settings.
- *
- * @param {string} code - The new JustWatch country code.
- */
-function setJustWatchCountryCode(code) {
-	if (code === justWatchCountryCode)
-		return;
-
-	justWatchCountryCode = code;
-	storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, providerId, filterStatus);
-	reloadMovieFilter();
-}
-
-/**
- * To change the TMDB country code out of the settings.
- *
- * @param {string} code - The new TMDB country code.
- */
-function setTMDBCountryCode(code) {
-	if (code === tmdbCountryCode)
-		return;
-
-	tmdbCountryCode = code;
-	storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, providerId, filterStatus);
-}
-
-/**
- * To change the TMDB country code 2 out of the settings.
- *
- * @param {string} code - The new TMDB country code 2.
- */
-function setTMDBCountryCode2(code) {
-	if (code === tmdbCountryCode2)
-		return;
-
-	tmdbCountryCode2 = code;
-	storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, providerId, filterStatus);
-}
+			checkMovieAvailability(tabId, movies);
+		});
+	});
+});
 
 /**
  * Called to force the filters to reload with the new provider ID.
@@ -821,8 +762,11 @@ function reloadMovieFilter() {
 
 			if (reloadActive[tabId])
 				continue;
-			else
-				reloadActive[tabId] = true;
+			
+			reloadActive[tabId] = true;
+
+			// persist for later service worker cycles
+			browser.storage.session.set({reload_active: reloadActive});
 
 			let changeInfo = {
 				status: 'complete'
@@ -856,9 +800,11 @@ function getAPIKey() {
  */
 function checkLetterboxdForPageReload(tabId, changeInfo, tabInfo) {
 	// short timeout, wait for the page to load all release years (and other movie info)
-	setTimeout(function () {
+	//setTimeout(function () {
 		checkForLetterboxd(tabId, changeInfo, tabInfo);
-	}, 500);
+	//}, 500);
+
+	browser.alarms.create("checkForLetterboxd", {delayInMinutes: 1})
 }
 
 /**
@@ -878,14 +824,25 @@ function checkForLetterboxd(tabId, changeInfo, tabInfo) {
 					availableMovies[tabId] = [];
 					crawledMovies[tabId] = {};
 					unsolvedRequests[tabId] = {};
-					unsolvedRequestsDelay[tabId] = 10000;
+
+					// persist for later service worker cycles
+					browser.storage.session.set({
+						check_counter: checkCounter,
+						available_movies: availableMovies,
+						crawled_movies: crawledMovies,
+						unsolved_requests: unsolvedRequests,
+					});
+
 					getFilmsFromLetterboxd(tabId);
 				}
 			}
 		}
 	} else {
 		reloadActive[tabId] = false;
-	}
+
+		// persist for later service worker cycles
+		browser.storage.session.set({reload_active: reloadActive});
+	}			
 }
 
 /**
@@ -905,6 +862,10 @@ function handleMessage(request, sender, sendResponse) {
 	if (request.hasOwnProperty('messageType') && request.hasOwnProperty('messageContent')) {
 		if (request.messageType === 'movie-titles') {
 			crawledMovies[tabId] = request.messageContent;
+
+			// persist for later service worker cycles
+			browser.storage.session.set({crawled_movies: crawledMovies});
+
 			if (Object.keys(crawledMovies[tabId]).length === 0) {
 				getFilmsFromLetterboxd(tabId);
 			} else {
@@ -924,7 +885,7 @@ function checkMovieAvailability(tabId, movies) {
 	if (filterStatus) {
 		prepareLetterboxdForFading(tabId);
 		for (let movie in movies) {
-			var inc = isIncluded(tabId, {
+			isIncluded(tabId, {
 				title: movie,
 				year: movies[movie].year,
 				id: movies[movie].id
@@ -932,6 +893,9 @@ function checkMovieAvailability(tabId, movies) {
 		}
 	} else {
 		reloadActive[tabId] = false;
+
+		// persist for later service worker cycles
+		browser.storage.session.set({reload_active: reloadActive});
 	}
 }
 
@@ -941,18 +905,23 @@ function checkMovieAvailability(tabId, movies) {
  * @param tabId - The tabId to operate in.
  */
 function prepareLetterboxdForFading(tabId) {
-	browser.tabs.insertCSS(tabId, {
-		file: "./style/hideunstreamed.css"
-	});
-
-	let fileName = "./scripts/prepareLetterboxdForFading.js";
-
-	browser.scripting.executeScript({
+	browser.scripting.insertCSS({
+		files: ["./style/hideunstreamed.css"],
 		target: {
 			tabId: tabId,
 			allFrames: false
 		},
-		files: [fileName]
+	}, 
+	() => {
+		let fileName = "./scripts/prepareLetterboxdForFading.js";
+
+		browser.scripting.executeScript({
+			target: {
+				tabId: tabId,
+				allFrames: false
+			},
+			files: [fileName]
+		});
 	});
 }
 
@@ -985,28 +954,18 @@ function fadeUnstreamableMovies(tabId, movies) {
 		}
 	}
 
-	// // short delay for the overview page, needs to reload intern javascript
-	// if (tab.url.includes('letterboxd.com/films/')) {
-	// 	setTimeout(function () {
-	// 		fadeUnstreamableMovies(tabId, movies);
-	// 	}, 500);
-	// }
-
 	// if there are unsolved requests left: solve them
 	if (Object.keys(unsolvedRequests[tabId]).length !== 0) {
-		if (isNaN(unsolvedRequestsDelay[tabId])) {
-			unsolvedRequestsDelay[tabId] = 10000;
-		}
-
 		// but first wait for a delay to limit the traffic
-		setTimeout(function () {
-			var movies = JSON.parse(JSON.stringify(unsolvedRequests[tabId]));
-			unsolvedRequests[tabId] = {};
-			checkMovieAvailability(tabId, movies);
-		}, unsolvedRequestsDelay[tabId]);
+		browser.alarms.create("handleUnsolvedRequests", {
+			delayInMinutes: 1 
+		});
 	}
 
 	reloadActive[tabId] = false;
+
+	// persist for later service worker cycles
+	browser.storage.session.set({reload_active: reloadActive});
 }
 
 /**
