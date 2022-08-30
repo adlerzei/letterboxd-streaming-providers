@@ -21,7 +21,7 @@ The extension can be added into Chrome, Firefox and Opera.
 ### Which countries are supported?
 Actually streaming providers of the following countries are supported: Argentina, Australia, Austria, Brazil, Canada, France, Germany, Japan, Mexico, Spain, Switzerland, USA, United Kingdom. 
 
-Coming soon: India, Ireland, Italy, Russia, Netherlands, Norway, Sweden.
+Coming soon: India, Ireland, Russia, Netherlands, Norway, Sweden.
 
 ### Important Notice
 This is a third party extension and is not related to the Letterboxd developer team in any way. This product uses the TMDb API but is not endorsed or certified by TMDb. The extension also uses the JustWatch API but is not endorsed or certified by JustWatch.
