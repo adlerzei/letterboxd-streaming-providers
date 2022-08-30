@@ -73,11 +73,11 @@ const onStartUp = async () => {
 			let country_code = countries[country].justwatch_country_code; // TODO escape
 
 			fetch('https://apis.justwatch.com/content/providers/locale/' + country_code)
-				.then(response => createProviderDataCallback(response, country));
+				.then(response => providerDataCallback(response, country));
 		}
 	}
 
-	async function createProviderDataCallback(response, country) {
+	async function providerDataCallback(response, country) {
 		if (response.status == 200) {
 			let rsp = await response.json();
 			for (let entry of rsp) {
@@ -207,17 +207,17 @@ function isIncluded(tabId, toFind) {
 	};
 
 	fetch("https://apis.justwatch.com/content/titles/" + justWatchCountryCode + "/popular?body=" + JSON.stringify(justwatchRequest))
-		.then(response => createJustWatchCallback(response, tabId, toFind));
+		.then(response => justWatchCallback(response, tabId, toFind));
 }
 
 /**
- * Returns a callback function that processes the JustWatch request response.
+ * Processes the JustWatch request response
  *
  * @param {Response} response - The Response interface of the Fetch API.
  * @param {int} tabId - The tabId of the tab, in which Letterboxd should be filtered.
  * @param {object} toFind - An object, which contains the movie title, the release year and the Letterboxd-intern array id.
  */
-async function createJustWatchCallback(response, tabId, toFind) {
+async function justWatchCallback(response, tabId, toFind) {
 	if (response.status === 200) {
 		let englishTitle = toFind.title;
 		let movieReleaseYear = toFind.year;
@@ -249,7 +249,7 @@ async function createJustWatchCallback(response, tabId, toFind) {
 			}
 		} else {
 			fetch("https://api.themoviedb.org/3/search/multi?api_key=" + getAPIKey() + "&query=" + titleSanitized)
-				.then(response => createTMDbSearchCallback(response, justwatchRsp, tabId, toFind));
+				.then(response => tmdbSearchCallback(response, justwatchRsp, tabId, toFind));
 		}
 	} else if (response.status !== 200) {
 		checkCounter[tabId]++;
@@ -264,14 +264,14 @@ async function createJustWatchCallback(response, tabId, toFind) {
 }
 
 /**
- * Returns a callback function that processes the TMDb search request response.
+ * Processes the TMDb search request response.
  *
  * @param {Response} response - The Response interface of the Fetch API.
  * @param {object} justwatchRsp - The response from the preceding JustWatch request.
  * @param {int} tabId - The tabId of the tab, in which Letterboxd should be filtered.
  * @param {object} toFind - An object, which contains the movie title, the release year and the Letterboxd-intern array id.
  */
-async function createTMDbSearchCallback(response, justwatchRsp, tabId, toFind) {
+async function tmdbSearchCallback(response, justwatchRsp, tabId, toFind) {
 	if (response.status === 200) {
 		let englishTitle = toFind.title;
 		let movieReleaseYear = toFind.year;
@@ -302,10 +302,10 @@ async function createTMDbSearchCallback(response, justwatchRsp, tabId, toFind) {
 			if (tmdbCountryCode2 !== '')
 			{
 				fetch(tmdbUrl + "/translations?api_key=" + getAPIKey())
-					.then(response => createTMDbMediaTranslationsCallback(response, justwatchRsp, tabId, toFind));
+					.then(response => tmdbMediaTranslationsCallback(response, justwatchRsp, tabId, toFind));
 			} else {
 				fetch(tmdbUrl + "?api_key=" + getAPIKey() + "&language=" + tmdbCountryCode) // TODO escape
-					.then(response => createTMDbMediaInfoCallback(response, justwatchRsp, tabId, toFind));
+					.then(response => tmdbMediaInfoCallback(response, justwatchRsp, tabId, toFind));
 			}
 		} else {
 			checkCounter[tabId]++;
@@ -347,14 +347,14 @@ async function createTMDbSearchCallback(response, justwatchRsp, tabId, toFind) {
 }
 
 /**
- * Returns a callback function that processes the TMDb translation request response.
+ * Processes the TMDb translation request response.
  *
  * @param {Response} response - The Response interface of the Fetch API.
  * @param {object} justwatchRsp - The response from the preceding JustWatch request.
  * @param {int} tabId - The tabId of the tab, in which Letterboxd should be filtered.
  * @param {object} toFind - An object, which contains the movie title, the release year, the media type, the TMDb id and the Letterboxd-intern array id.
  */
-async function createTMDbMediaTranslationsCallback(response, justwatchRsp, tabId, toFind) {
+async function tmdbMediaTranslationsCallback(response, justwatchRsp, tabId, toFind) {
 	if (response.status === 200) {
 		let tmdbId = toFind.tmdbId;
 		let mediaType = toFind.mediaType;
@@ -368,7 +368,7 @@ async function createTMDbMediaTranslationsCallback(response, justwatchRsp, tabId
 		}
 
 		fetch(tmdbUrl + "?api_key=" + getAPIKey() + "&language=" + countryCode) // TODO escape
-			.then(response => createTMDbMediaInfoCallback(response, justwatchRsp, tabId, toFind));
+			.then(response => tmdbMediaInfoCallback(response, justwatchRsp, tabId, toFind));
 	} else {
 		checkCounter[tabId]++;
 
@@ -382,14 +382,14 @@ async function createTMDbMediaTranslationsCallback(response, justwatchRsp, tabId
 }
 
 /**
- * Returns a callback function that processes the TMDb media info request response.
+ * Processes the TMDb media info request response.
  *
  * @param {Response} response - The Response interface of the Fetch API.
  * @param {object} justwatchRsp - The response from the preceding JustWatch request.
  * @param {int} tabId - The tabId of the tab, in which Letterboxd should be filtered.
  * @param {object} toFind - An object, which contains the movie title, the release year, the media type, the TMDb id and the Letterboxd-intern array id.
  */
-async function createTMDbMediaInfoCallback(response, justwatchRsp, tabId, toFind) {
+async function tmdbMediaInfoCallback(response, justwatchRsp, tabId, toFind) {
 	if (response.status === 200) {
 		let englishTitle = toFind.title;
 		let movieReleaseYear = toFind.year;
@@ -777,6 +777,10 @@ function getAPIKey() {
  */
 function checkLetterboxdForPageReload(tabId, changeInfo, tabInfo) {
 	// short timeout, wait for the page to load all release years (and other movie info)
+	// using timeouts is not recommended in combination with service workers acc. to Google, 
+	// bc. the service workers may stop terminate during the timeout
+	// (see https://developer.chrome.com/docs/extensions/mv3/migrating_to_service_workers/#alarms).
+	// However, alarm API does not allow such short timeouts and it does not work without it
 	setTimeout(function () {
 		checkForLetterboxd(tabId, changeInfo, tabInfo);
 	}, 500);
