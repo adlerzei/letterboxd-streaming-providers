@@ -150,7 +150,7 @@ function loadDefaultSettings(countrySet, languageSet, providerSet, statusSet) {
 		}
 		if (!languageSet && json.hasOwnProperty('tmdb_country_code') && json.hasOwnProperty('tmdb_country_code_2')) {
 			tmdbCountryCode = json.tmdb_country_code;
-			tmdbCountryCode = json.tmdb_country_code_2;
+			tmdbCountryCode2 = json.tmdb_country_code_2;
 		}
 		if (!providerSet && json.hasOwnProperty('provider_id')) {
 			providerId = json.provider_id;
@@ -188,29 +188,6 @@ const loadJSON = async (path, callback) => {
 		callback(await response.json());
 	}
 };
-
-/**
- * Stores the settings in localStorage.
- *
- * @param {string} justWatchCountryCode - The currently set country code to store.
- * @param {string} tmdbCountryCode - The currently set TMDb country code to store.
- * @param {string} tmdbCountryCode2 - The currently set TMDb country code 2 to store.
- * @param {int} providerId - The currently set provider id to store.
- * @param {boolean} filterStatus - The currently set filter status to store.
- */
-function storeSettings(justWatchCountryCode, tmdbCountryCode, tmdbCountryCode2, providerId, filterStatus) {
-	let version = 1.4;
-
-	browser.storage.local.set({
-		version: version,
-		justwatch_country_code: justWatchCountryCode,
-		tmdb_country_code: tmdbCountryCode,
-		tmdb_country_code_2: tmdbCountryCode2,
-		provider_id: providerId,
-		filter_status: filterStatus
-	});
-}
-
 
 /**
  * Checks if a movie is available and adds it to availableMovies[tabId].
@@ -800,11 +777,9 @@ function getAPIKey() {
  */
 function checkLetterboxdForPageReload(tabId, changeInfo, tabInfo) {
 	// short timeout, wait for the page to load all release years (and other movie info)
-	//setTimeout(function () {
+	setTimeout(function () {
 		checkForLetterboxd(tabId, changeInfo, tabInfo);
-	//}, 500);
-
-	browser.alarms.create("checkForLetterboxd", {delayInMinutes: 1})
+	}, 500);
 }
 
 /**
