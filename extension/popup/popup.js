@@ -18,28 +18,37 @@
 //for compatibility reasons
 var browser = chrome;
 
-var background = browser.extension.getBackgroundPage();
-
-var countries = background.getCountries();
-var providers = background.getProviders();
-var providerId = background.getProviderId();
-var justWatchCountryCode = background.getJustWatchCountryCode();
-var tmdbCountryCode = background.getTMDBCountryCode();
-var tmdbCountryCode2 = background.getTMDBCountryCode2();
+var countries = {};
+var providers = {};
+var providerId = 0;
+var justWatchCountryCode = '';
+var tmdbCountryCode = '';
+var tmdbCountryCode2 = '';
+var filterStatus = false;
 
 var countryList = document.getElementById('CountryList');
-appendOptionsToCountryList();
-
 var providerList = document.getElementById('ProviderList');
-appendOptionsToProviderList();
-
 var filterSwitch = document.getElementById("filterSwitch");
-filterSwitch.checked = background.getFilterStatus();
 
-filterSwitch.addEventListener("change", changeFilterSwitch);
-providerList.addEventListener("change", changeProviderId);
-countryList.addEventListener("change", changeCountryCodes);
+// load stored settings from localStorage
+browser.storage.local.get((items) => {
+	parseSettings(items);
 
+	// load cached variables from sessionStorage
+	browser.storage.session.get((items) => {
+		parseCache(items);
+
+		appendOptionsToCountryList();
+		
+		appendOptionsToProviderList();
+		
+		filterSwitch.checked = filterStatus;
+		
+		filterSwitch.addEventListener("change", changeFilterSwitch);
+		providerList.addEventListener("change", changeProviderId);
+		countryList.addEventListener("change", changeCountryCodes);
+	});
+});
 
 /**
  * Appends all countries as option to the countryList select tag.
@@ -108,7 +117,8 @@ function appendOptionsToProviderList(defaultProviderName) {
  */
 function changeFilterSwitch() {
 	// enable or disable filtering
-	background.setFilterStatus(filterSwitch.checked);
+	filterStatus = filterSwitch.checked;
+	browser.storage.local.set({filter_status: filterSwitch.checked});
 	providerList.disabled = (!filterSwitch.checked);
 	countryList.disabled = (!filterSwitch.checked);
 }
@@ -120,7 +130,7 @@ function changeProviderId() {
 	let id = providerList.options[providerList.selectedIndex].value;
 	if (typeof providers !== 'undefined' && providers.hasOwnProperty(id) && providers[id].hasOwnProperty('provider_id')) {
 		providerId = providers[id].provider_id;
-		background.setProviderId(providerId);
+		browser.storage.local.set({provider_id: providerId});
 	}
 }
 
@@ -137,14 +147,29 @@ function changeCountryCodes() {
 		else
 			tmdbCountryCode2 = '';
 
-		background.setJustWatchCountryCode(justWatchCountryCode);
-		background.setTMDBCountryCode(tmdbCountryCode);
-		background.setTMDBCountryCode2(tmdbCountryCode2);
+		browser.storage.local.set({
+			justwatch_country_code: justWatchCountryCode,
+			tmdb_country_code: tmdbCountryCode,
+			tmdb_country_code_2: tmdbCountryCode2,
+		});
 
 		let defaultProviderId = providerList.options[providerList.selectedIndex].label;
 		appendOptionsToProviderList(defaultProviderId);
 		changeProviderId();
 	}
+}
+
+function parseSettings(items) {
+	justWatchCountryCode = items.hasOwnProperty('justwatch_country_code') ? items.justwatch_country_code : 'en_US';
+	tmdbCountryCode = items.hasOwnProperty('tmdb_country_code') ? items.tmdb_country_code : 'en-US';
+	tmdbCountryCode2 = items.hasOwnProperty('tmdb_country_code_2') ? items.tmdb_country_code_2 : 'en';
+	providerId = items.hasOwnProperty('provider_id') ? items.provider_id : 8;
+	filterStatus = items.hasOwnProperty('filter_status') ? items.filter_status : false;
+}
+
+function parseCache(items) {
+	providers = items.hasOwnProperty('providers') ? items.providers : {};
+	countries = items.hasOwnProperty('countries') ? items.countries : {};
 }
 
 /**
