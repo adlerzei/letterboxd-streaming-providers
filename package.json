@@ -5,9 +5,8 @@
   "main": "background.js",
   "dependencies": {
     "@types/chrome": "0.0.127",
-    "npm": "^7.3.0"
+    "npm": "^8.18.0"
   },
-  "devDependencies": {},
   "scripts": {
     "build": "./tools/build.sh"
   },
