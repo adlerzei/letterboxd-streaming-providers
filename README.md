@@ -100,3 +100,7 @@ Made with [contributors-img](https://contributors-img.web.app).
 - Minor bug fixes
 - Added all streaming providers that are available on JustWatch and offer free/flatrate access
 - Added support for the following countries: Brazil, Argentina, Australia
+
+##### v1.5
+- Upgraded to Manifest v3
+- Added support for Italy
