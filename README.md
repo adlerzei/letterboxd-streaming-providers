@@ -29,8 +29,10 @@ This is a third party extension and is not related to the Letterboxd developer t
 ## Contributing
 
 ### Developing
+
 - `npm install` - Installs all dependencies.
-- `npm run build` - Builds the Firefox (.xpi) and the Chrome/Opera (.zip) builds.
+- `npm run build` - Builds the Firefox (.xpi) and the Chrome/Opera (.zip) builds. (Linux)
+- `npm run build:win` - Idem (Windows)
 
 For the extension to work, you need to edit `./settings/api.json` and insert your TMDB API key. If you don't have one, you can request one [here](https://www.themoviedb.org/documentation/api).
 

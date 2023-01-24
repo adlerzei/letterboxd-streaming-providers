@@ -8,7 +8,11 @@
     "npm": "^8.18.0"
   },
   "scripts": {
-    "build": "./tools/build.sh"
+    "build": "./tools/build.sh",
+    "build:win": "npm run docker:build && npm run docker:up && npm run docker:extension",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up",
+    "docker:extension": "docker cp letterboxd-streaming-providers-extension-1:/app/builds ."
   },
   "repository": {
     "type": "git",

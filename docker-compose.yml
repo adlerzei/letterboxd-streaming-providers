@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  extension:
+    image: node:14
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /builds:/app/builds
+    command: bash -c "apt-get update && apt-get install -y zip && chmod +x tools/build.sh && npm install && npm run build"
