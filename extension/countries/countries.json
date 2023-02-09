@@ -69,9 +69,15 @@
     "tmdb_country_code": "en-AU",
     "name": "Australia"
   },
-    "it": {
+  "it": {
     "justwatch_country_code": "it_IT",
     "tmdb_country_code": "it-IT",
     "name": "Italy"
+  },
+  "uy": {
+    "justwatch_country_code": "es_UY",
+    "tmdb_country_code": "es-UY",
+    "tmdb_country_code_2": "es",
+    "name": "Uruguay"
   }
 }
