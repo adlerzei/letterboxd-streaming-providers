@@ -19,7 +19,7 @@ The extension can be added into Chrome, Firefox and Opera.
 [Letterboxd Streaming Providers at AMO](https://addons.mozilla.org/en-US/firefox/addon/letterboxd-streaming-providers/)
 
 ### Which countries are supported?
-Actually streaming providers of the following countries are supported: Argentina, Australia, Austria, Brazil, Canada, France, Germany, Japan, Mexico, Spain, Switzerland, USA, United Kingdom. 
+Actually streaming providers of the following countries are supported: Argentina, Australia, Austria, Brazil, Canada, France, Germany, Japan, Mexico, Spain, Switzerland, Uruguay, USA, United Kingdom. 
 
 Coming soon: India, Ireland, Russia, Netherlands, Norway, Sweden.
 
