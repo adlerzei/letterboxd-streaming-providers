@@ -104,3 +104,6 @@ Made with [contributors-img](https://contributors-img.web.app).
 ##### v1.5
 - Upgraded to Manifest v3
 - Added support for Italy
+
+##### 1.6
+- Added support for Uruguay
