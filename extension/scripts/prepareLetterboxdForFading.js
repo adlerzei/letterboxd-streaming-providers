@@ -1,6 +1,6 @@
 /*!
  *
- *     Copyright (c) 2022 Christian Zei
+ *     Copyright (c) 2023 Christian Zei
  *
  *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  *     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,

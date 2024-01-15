@@ -18,7 +18,6 @@
   ],
   "host_permissions": [
     "*://api.themoviedb.org/*",
-    "*://apis.justwatch.com/*",
     "*://letterboxd.com/*",
     "*://www.letterboxd.com/*"
   ],

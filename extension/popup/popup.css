@@ -82,6 +82,16 @@ select option {
     text-align: center;
     color: #666;
 }
+
+.justwatch-logo {
+    text-align: center;
+}
+
+.justwatch-logo img {
+    width:100px;
+    height:15px;
+}
+
 /* The switch - the box around the slider */
 .switch {
     position: relative;

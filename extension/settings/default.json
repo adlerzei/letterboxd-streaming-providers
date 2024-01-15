@@ -1,7 +1,5 @@
 {
-  "justwatch_country_code": "en_US",
-  "tmdb_country_code": "en-US",
-  "tmdb_country_code_2": "en",
+  "country_code": "US",
   "provider_id": 8,
   "filter_status": false
 }

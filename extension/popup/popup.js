@@ -1,6 +1,6 @@
 /*!
  *
- *     Copyright (c) 2021 Christian Zei
+ *     Copyright (c) 2023 Christian Zei
  *
  *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  *     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -21,9 +21,7 @@ var browser = chrome;
 var countries = {};
 var providers = {};
 var providerId = 0;
-var justWatchCountryCode = '';
-var tmdbCountryCode = '';
-var tmdbCountryCode2 = '';
+var countryCode = '';
 var filterStatus = false;
 
 var countryList = document.getElementById('CountryList');
@@ -46,7 +44,7 @@ browser.storage.local.get((items) => {
 		
 		filterSwitch.addEventListener("change", changeFilterSwitch);
 		providerList.addEventListener("change", changeProviderId);
-		countryList.addEventListener("change", changeCountryCodes);
+		countryList.addEventListener("change", changeCountryCode);
 	});
 });
 
@@ -58,16 +56,15 @@ function appendOptionsToCountryList() {
 	var keys = Object.keys(countries).sort(function (a, b) {
 		return ('' + countries[a].name).localeCompare(countries[b].name);
 	});
-	for (let country in keys) {
-		country = keys[country];
-		if (!countries[country].hasOwnProperty('name') || !countries[country].hasOwnProperty('justwatch_country_code'))
+	for (const country of keys) {
+		if (!countries[country].hasOwnProperty('name') || !countries[country].hasOwnProperty('code'))
 			continue;
 
 		let opt = document.createElement('option');
 		opt.insertAdjacentHTML('beforeend', countries[country].name);
 		opt.value = country;
 		opt.label = countries[country].name;
-		if (countries[country].justwatch_country_code === justWatchCountryCode) {
+		if (countries[country].code === countryCode) {
 			opt.selected = "selected";
 		}
 		fragment.appendChild(opt);
@@ -86,8 +83,7 @@ function appendOptionsToProviderList(defaultProviderName) {
 	let keys = Object.keys(providers).sort(function (a, b) {
 		return ('' + providers[a].name).localeCompare(providers[b].name);
 	});
-	for (let provider in keys) {
-		provider = keys[provider];
+	for (const provider of keys) {
 		if (!providers[provider].hasOwnProperty('name') || !providers[provider].hasOwnProperty('provider_id'))
 			continue;
 
@@ -135,22 +131,17 @@ function changeProviderId() {
 }
 
 /**
- * Called when the selected item in countryList is changed. Changes the country codes in the background page and forces the options in providerList to reload.
+ * Called when the selected item in countryList is changed. 
+ * Changes the country code in the background page and forces the options in providerList to reload.
  */
-function changeCountryCodes() {
+function changeCountryCode() {
 	let code = countryList.options[countryList.selectedIndex].value;
-	if (typeof countries !== 'undefined' && countries.hasOwnProperty(code) && countries[code].hasOwnProperty('justwatch_country_code') && countries[code].hasOwnProperty('tmdb_country_code')) {
-		justWatchCountryCode = countries[code].justwatch_country_code;
-		tmdbCountryCode = countries[code].tmdb_country_code;
-		if (countries[code].hasOwnProperty('tmdb_country_code_2'))
-			tmdbCountryCode2 = countries[code].tmdb_country_code_2;
-		else
-			tmdbCountryCode2 = '';
+	if (typeof countries !== 'undefined' && countries.hasOwnProperty(code) 
+		&& countries[code].hasOwnProperty('code')) {
+		countryCode = countries[code].code;
 
 		browser.storage.local.set({
-			justwatch_country_code: justWatchCountryCode,
-			tmdb_country_code: tmdbCountryCode,
-			tmdb_country_code_2: tmdbCountryCode2,
+			country_code: countryCode
 		});
 
 		let defaultProviderId = providerList.options[providerList.selectedIndex].label;
@@ -160,9 +151,7 @@ function changeCountryCodes() {
 }
 
 function parseSettings(items) {
-	justWatchCountryCode = items.hasOwnProperty('justwatch_country_code') ? items.justwatch_country_code : 'en_US';
-	tmdbCountryCode = items.hasOwnProperty('tmdb_country_code') ? items.tmdb_country_code : 'en-US';
-	tmdbCountryCode2 = items.hasOwnProperty('tmdb_country_code_2') ? items.tmdb_country_code_2 : 'en';
+	countryCode = items.hasOwnProperty('country_code') ? items.country_code : 'US';
 	providerId = items.hasOwnProperty('provider_id') ? items.provider_id : 8;
 	filterStatus = items.hasOwnProperty('filter_status') ? items.filter_status : false;
 }
