@@ -19,7 +19,9 @@ The extension can be added into Chrome, Firefox and Opera.
 [Letterboxd Streaming Providers at AMO](https://addons.mozilla.org/en-US/firefox/addon/letterboxd-streaming-providers/)
 
 ### Which countries are supported?
-All countries supported by JustWatch are also supported by this extension. At the time of writing, these are:
+All countries supported by JustWatch are also supported by this extension. 
+
+At the time of writing, these are:<br>
 Andorra, United Arab Emirates, Antigua and Barbuda, Albania, Angola, Argentina, Austria, Australia, Azerbaijan, Bosnia and Herzegovina, Barbados, Belgium, Burkina Faso, Bulgaria, Bahrain, Bermuda, Bolivia, Brazil, Bahamas, Belarus, Belize, Canada, Congo, Switzerland, Cote D'Ivoire, Chile, Cameroon, Colombia, Costa Rica, Cuba, Cape Verde, Cyprus, Czech Republic, Germany, Denmark, Dominican Republic, Algeria, Ecuador, Estonia, Egypt, Spain, Finland, Fiji, France, United Kingdom, French Guiana, Ghana, Gibraltar, Guadaloupe, Equatorial Guinea, Greece, Guatemala, Guyana, Hong Kong, Honduras, Croatia, Hungary, Indonesia, Ireland, Israel, India, Iraq, Iceland, Italy, Jamaica, Jordan, Japan, Kenya, South Korea, Kuwait, Lebanon, St. Lucia, Liechtenstein, Lithuania, Luxembourg, Latvia, Libyan Arab Jamahiriya, Morocco, Monaco, Moldova, Montenegro, Madagascar, Macedonia, Mali, Malta, Mauritius, Malawi, Mexico, Malaysia, Mozambique, Niger, Nigeria, Nicaragua, Netherlands, Norway, New Zealand, Oman, Panama, Peru, French Polynesia, Papua New Guinea, Philippines, Pakistan, Poland, Palestinian Territory, Portugal, Paraguay, Qatar, Romania, Serbia, Russia, Saudi Arabia, Seychelles, Sweden, Singapore, Slovenia, Slovakia, San Marino, Senegal, El Salvador, Turks and Caicos Islands, Chad, Thailand, Tunisia, Turkey, Trinidad and Tobago, Taiwan, Tanzania, Ukraine, Uganda, United States of America, Uruguay, Holy See, Venezuela, Kosovo, Yemen, South Africa, Zambia, Zimbabwe
 
 ### Important Notice
