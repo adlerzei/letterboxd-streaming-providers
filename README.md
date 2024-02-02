@@ -1,5 +1,10 @@
 # Letterboxd Streaming Providers ![Logo](./extension/icons/logo_final_48.png) 
 
+[![Project status: active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+[![Project releases](https://img.shields.io/github/release/adlerzei/letterboxd-streaming-providers)](https://github.com/adlerzei/letterboxd-streaming-providers/releases)
+[![Project contributors](https://img.shields.io/github/contributors/adlerzei/letterboxd-streaming-providers)](https://github.com/adlerzei/letterboxd-streaming-providers/graphs/contributors)
+[![Project license](https://img.shields.io/github/license/adlerzei/letterboxd-streaming-providers)](https://github.com/adlerzei/letterboxd-streaming-providers/blob/main/LICENSE)
+
 ## What?
 This is a extension for common web browsers coded using the WebExtensions API.
 
