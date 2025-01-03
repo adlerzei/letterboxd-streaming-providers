@@ -21,6 +21,8 @@ The extension can be added into Chrome, Firefox and Opera.
 [Letterboxd Streaming Providers at the Chrome Web Store](https://chrome.google.com/webstore/detail/letterboxd-streaming-prov/egmanfnfgmljjmdncfoeghfmflhlmhpj)
 
 #### Firefox Add-ons (AMO)
+**NOTE:** The Firefox version is currently broken. The Chrome version is running fine but it is based on Manifest v3. Maybe someone can port the Chrome version back to Manifest v2. If you are interested in doing this, contact me.
+
 [Letterboxd Streaming Providers at AMO](https://addons.mozilla.org/en-US/firefox/addon/letterboxd-streaming-providers/)
 
 ### Which countries are supported?
@@ -72,46 +74,3 @@ Thanks to everyone using, supporting and contributing to the extension. Philipp 
 </a>
 
 Made with [contributors-img](https://contributors-img.web.app).
-
-## What's new?
-
-##### v1.0
-- Filter `/watchlist`, `/films` and `/likes` of Letterboxd for your favorite streaming providers
-- Choose between streaming providers from Austria, Canada, France, Germany, Japan, Mexico, Spain, Switzerland, USA and United Kingdom
-
-##### v1.1
-- TMDb API key renewed
-- Fixed bug, that caused the JustWatch request failing on special characters
-- Fixed bug, now all existing providers can be used
-- Minor bugfixes
-- Minor backend changes
-
-##### v1.2
-- Fixed bug, that some movies weren't resolved correctly due to changes in the JustWatch API
-- Added support for TV shows that are present on Letterboxd (e.g. "The Queen's Gambit")
-- Added hot reload when settings are changed in the popup
-- Add filtering of Letterboxd lists, that can be found under `/list`
-
-##### v1.3
-- Fixed broken filtering for United Kingdom
-- Fix buggy hot reloading
-- Added temporary fix for broken movie title localization for Austria and Switzerland
-- Minor bugfixes
-
-##### v1.4
-- Added clean fix for broken movie title localization for Austria and Switzerland
-- Small backend changes
-- Minor bug fixes
-- Added all streaming providers that are available on JustWatch and offer free/flatrate access
-- Added support for the following countries: Brazil, Argentina, Australia
-
-##### v1.5
-- Upgraded to Manifest v3
-- Added support for Italy
-
-##### v1.6
-- Added support for all countries available on JustWatch
-- Fix bug that prevented correct resolving of currently unresolved requests due to status code 429
-- Removed usage of the JustWatch API
-- Use TMDb API to request the streaming information provided by JustWatch
-- Add JustWatch logo to the popup window for attribution
