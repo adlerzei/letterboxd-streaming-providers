@@ -45,12 +45,31 @@ for (let poster = 0; poster < filmposters['length']; poster++) {
 		// if poster does not have attribute "data-film-name" it is lazy loaded
 		// we need to find the poster on a different way then
 		let filmName = outerDiv.children[0].alt;
+		let filmYear = -1;
+
+		// determine the release year from the data-film-slug attribute
+		let transformedName = filmName.toLowerCase().replace(/\s+/g, '-');
+		if (outerDiv.attributes.hasOwnProperty('data-film-slug')) {
+			let dataFilmSlug = outerDiv.attributes['data-film-slug'].value;
+			if (dataFilmSlug.startsWith(transformedName)) {
+				let remainingSlug = dataFilmSlug.slice(transformedName.length);
+				let numberPattern = /^-(\d+)$/;
+				let match = remainingSlug.match(numberPattern);
+				if (match) {
+					filmYear = match[1];
+				}
+			}
+		}
 
 		if (movies.hasOwnProperty(filmName)) {
+			if (movies[filmName].year === -1) {
+				movies[filmName].year = filmYear;
+			}
+
 			movies[filmName].id.push(poster);
 		} else {
 			movies[filmName] = {
-				year: -1,
+				year: filmYear,
 				id: [poster]
 			};
 		}
