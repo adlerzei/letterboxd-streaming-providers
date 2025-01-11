@@ -1,29 +1,29 @@
 html, body {
     width: 300px;
-    background: #FAFAFA;
+    background: #2C2C2C;
+    color: #FAFAFA;
     margin: 0;
-}
-
-.title{
-    margin: 5px;
-}
-
-.title-text{
-    padding: 2% 0;
-    text-align: center;
-    border: 3px dashed #FAFAFA;
-    font-size: 16px;
-    color: #000;
-    font-weight: bold;
     font-family: Arial, Helvetica, sans-serif;
 }
 
-.title-img  {
+.title {
+    margin: 5px;
+}
+
+.title-text {
+    padding: 2% 0;
+    text-align: center;
+    border: 3px dashed #2C2C2C;
+    font-size: 16px;
+    color: #FAFAFA;
+    font-weight: bold;
+}
+
+.title-img {
     float: left;
 }
 
 .content-text {
-    font-family: Arial, Helvetica, sans-serif;
     padding: 3px;
     margin-left: 20px;
 }
@@ -33,14 +33,12 @@ html, body {
     padding: 5px;
     text-align: left;
     font-weight: bold;
-    font-family: Arial, Helvetica, sans-serif;
     font-size: 16px;
 }
 
 #content {
-    border-top: 1px solid;
-    border-color: #BDBDBD;
-    background-color: #F2F2F2;
+    border-top: 1px solid #444;
+    background-color: #3C3C3C;
     left: 0;
     right: 0;
     bottom: 0;
@@ -56,8 +54,8 @@ select {
     margin-bottom: 10px;
     margin-left: 20px;
     margin-top: 0px;
-    color: #666;
-    font-family: Arial, Helvetica, sans-serif;
+    color: #FAFAFA;
+    background-color: #444;
     font-size: 16px;
     box-shadow: 2px 2px 5px 1px rgba(0,0,0,0.3);
     border-radius: 3px;
@@ -66,21 +64,20 @@ select {
 }
 
 select option {
-    color: #666;
+    color: #FAFAFA;
+    background-color: #444;
 }
 
 #footer {
-    border-top: 1px solid;
-    border-color: #BDBDBD;
+    border-top: 1px solid #444;
 }
 
 .footer-text {
     margin-top: 3px;
     margin-bottom: 3px;
-    font-family: Arial, Helvetica, sans-serif;
     font-size: 12px;
     text-align: center;
-    color: #666;
+    color: #FAFAFA;
 }
 
 .justwatch-logo {
@@ -88,8 +85,8 @@ select option {
 }
 
 .justwatch-logo img {
-    width:100px;
-    height:15px;
+    width: 100px;
+    height: 15px;
 }
 
 /* The switch - the box around the slider */
@@ -116,7 +113,7 @@ select option {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #ccc;
+    background-color: #666;
     -webkit-transition: .4s;
     transition: .4s;
     margin-left: 195px;
@@ -158,7 +155,6 @@ input:checked + .slider:before {
 }
 
 .slider-text {
-    font-family: Arial, Helvetica, sans-serif;
     padding: 3px;
     margin-left: 25px;
     font-size: 16px;
@@ -166,3 +162,7 @@ input:checked + .slider:before {
     font-weight: bold;
     margin-top: 5px;
 }
+
+a:link { color: lightskyblue; }
+a:visited { color: #6d4b8d; }
+a:hover { color: #ffffff; }
