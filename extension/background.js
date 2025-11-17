@@ -590,7 +590,7 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
  * @param movies - The crawled movies.
  */
  function fadeUnstreamableMovies(tabId, movies) {
-	var className = 'poster-container';
+	var className = 'griditem';
 
 	function fadeOut(className, movieId) {
 		filmposters = document.body.getElementsByClassName(className);
@@ -636,7 +636,7 @@ function unfadeAllMovies(tabId) {
 		if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/'))
 			return;
 
-		var className = 'poster-container';
+		var className = 'griditem';
 
 		function unfade(className) {
 			filmposters = document.body.getElementsByClassName(className);
