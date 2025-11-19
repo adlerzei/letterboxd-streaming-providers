@@ -5,7 +5,7 @@
   "main": "background.js",
   "dependencies": {
     "@types/chrome": "0.0.127",
-    "npm": "^10.5.2"
+    "npm": "^11.6.2"
   },
   "scripts": {
     "build": "./tools/build.sh"
