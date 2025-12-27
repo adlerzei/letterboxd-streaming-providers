@@ -639,7 +639,7 @@ function unfadeAllMovies(tabId) {
 		var className = 'griditem';
 
 		function unfade(className) {
-			filmposters = document.body.getElementsByClassName(className);
+			const filmposters = document.body.getElementsByClassName(className);
 			for(const poster in filmposters) {
 				filmposters[poster].className = filmposters[poster].className.replace(' film-not-streamed', '');
 			}
