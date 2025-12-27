@@ -640,8 +640,8 @@ function unfadeAllMovies(tabId) {
 
 		function unfade(className) {
 			const filmposters = document.body.getElementsByClassName(className);
-			for(const poster in filmposters) {
-				filmposters[poster].className = filmposters[poster].className.replace(' film-not-streamed', '');
+			for(let i = 0; i < filmposters.length; i++) {
+				filmposters[i].className = filmposters[i].className.replace(' film-not-streamed', '');
 			}
 		}
 
