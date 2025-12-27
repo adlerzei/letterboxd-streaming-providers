@@ -35,7 +35,7 @@ for (let index = 0; index < gridItems.length; index++) {
     }
   }
 
-  if (movies.hasOwnProperty(filmName)) {
+  if (Object.prototype.hasOwnProperty.call(movies, filmName)) {
     if (movies[filmName].year === -1) {
       movies[filmName].year = filmYear;
     }
@@ -47,8 +47,6 @@ for (let index = 0; index < gridItems.length; index++) {
     };
   }
 }
-
-console.log("[LSP] Crawled movies:", movies);
 
 browser.runtime.sendMessage({
   messageType: "movie-titles",

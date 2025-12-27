@@ -593,7 +593,7 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
 	var className = 'griditem';
 
 	function fadeOut(className, movieId) {
-		filmposters = document.body.getElementsByClassName(className);
+		const filmposters = document.body.getElementsByClassName(className);
 		filmposters[movieId].className += ' film-not-streamed';
 	}
 
