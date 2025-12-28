@@ -65,8 +65,6 @@ const onStartUp = async () => {
 				};
 				str += entry.english_name + ", "
 			}
-
-		console.log(str);
 		}
 
 		// persist for later service worker cycles
@@ -458,11 +456,16 @@ function getIdWithReleaseYear(results, titleEnglish, releaseYear) {
  * @param {int} letterboxdId - The intern ID from the array in letterboxd.com.
   */
 function addMovieIfFlatrate(results, tabId, letterboxdId) {
-	if (!(countryCode in results) || !results[countryCode].hasOwnProperty('flatrate')) {
+	if (!(countryCode in results) || (!results[countryCode].hasOwnProperty('flatrate') && !results[countryCode].hasOwnProperty('free'))) {
 		return;
 	} 
 
-	for (const offer of results[countryCode].flatrate) {
+	const offersToCheck = [
+		...(results[countryCode].flatrate || []),
+		...(results[countryCode].free || [])
+	];
+
+	for (const offer of offersToCheck) {
 		if (!offer.hasOwnProperty('provider_id')) {
 			continue;
 		}
