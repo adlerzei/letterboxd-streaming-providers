@@ -25,7 +25,9 @@ for (let index = 0; index < gridItems.length; index++) {
   let filmName = rawName.trim();
   let filmYear = -1;
 
-  // we need to extract the film title and the release year item name
+  // we need to extract the film title and the release year item name.  
+  // if this method somedays will not work anymore, the react-component contains
+  // data-details-endpoint attribute which can be used to fetch more details about the film
   const match = rawName.match(/\((\d{4})\)\s*$/);
   if (match) {
     filmYear = parseInt(match[1], 10); // the year is in the first capture group
