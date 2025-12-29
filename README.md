@@ -31,9 +31,6 @@ All countries supported by JustWatch are also supported by this extension.
 At the time of writing, these are:<br>
 Andorra, United Arab Emirates, Antigua and Barbuda, Albania, Angola, Argentina, Austria, Australia, Azerbaijan, Bosnia and Herzegovina, Barbados, Belgium, Burkina Faso, Bulgaria, Bahrain, Bermuda, Bolivia, Brazil, Bahamas, Belarus, Belize, Canada, Congo, Switzerland, Cote D'Ivoire, Chile, Cameroon, Colombia, Costa Rica, Cuba, Cape Verde, Cyprus, Czech Republic, Germany, Denmark, Dominican Republic, Algeria, Ecuador, Estonia, Egypt, Spain, Finland, Fiji, France, United Kingdom, French Guiana, Ghana, Gibraltar, Guadaloupe, Equatorial Guinea, Greece, Guatemala, Guyana, Hong Kong, Honduras, Croatia, Hungary, Indonesia, Ireland, Israel, India, Iraq, Iceland, Italy, Jamaica, Jordan, Japan, Kenya, South Korea, Kuwait, Lebanon, St. Lucia, Liechtenstein, Lithuania, Luxembourg, Latvia, Libyan Arab Jamahiriya, Morocco, Monaco, Moldova, Montenegro, Madagascar, Macedonia, Mali, Malta, Mauritius, Malawi, Mexico, Malaysia, Mozambique, Niger, Nigeria, Nicaragua, Netherlands, Norway, New Zealand, Oman, Panama, Peru, French Polynesia, Papua New Guinea, Philippines, Pakistan, Poland, Palestinian Territory, Portugal, Paraguay, Qatar, Romania, Serbia, Russia, Saudi Arabia, Seychelles, Sweden, Singapore, Slovenia, Slovakia, San Marino, Senegal, El Salvador, Turks and Caicos Islands, Chad, Thailand, Tunisia, Turkey, Trinidad and Tobago, Taiwan, Tanzania, Ukraine, Uganda, United States of America, Uruguay, Holy See, Venezuela, Kosovo, Yemen, South Africa, Zambia, Zimbabwe
 
-### Important Notice
-This is a third party extension and is not related to the Letterboxd developer team in any way. This product uses the TMDb API but is not endorsed or certified by TMDb. The extension also uses information provided by JustWatch but is not endorsed or certified by JustWatch.
-
 ## Contributing
 
 ### Developing
@@ -65,8 +62,16 @@ In Firefox:
 ### Donations
 If you like my work, you can support me via [PayPal](https://www.paypal.me/ChristianZei/5). Thank you!
 
-## Acknowledgements
+## Credits
 Thanks to everyone using, supporting and contributing to the extension. Philipp Emmer is especially mentioned for the idea behind this extension.
+
+<p align="center">
+  <a href="https://www.themoviedb.org/"><img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_square_1-5bdc75aaebeb75dc7ae79426ddd9be3b2be1e342510f8202baf6bffa71d7f5c4.svg" alt="TMDB Logo" height="50"></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://www.justwatch.com/"><img src="https://www.justwatch.com/appassets/img/logo/JustWatch-logo-large.webp" alt="JustWatch Logo" height="50"></a>
+</p>
+
+This is a third party extension and is not related to the Letterboxd developer team in any way. This product uses the TMDb API but is not endorsed or certified by TMDb. The extension also uses information provided by JustWatch but is not endorsed or certified by JustWatch.
 
 ## Contributors
 <a href="https://github.com/adlerzei/letterboxd-streaming-providers/graphs/contributors">
