@@ -599,7 +599,7 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
 	function fadeOut(className, fallbackClassName, movieId) {
 		let filmposters = document.body.getElementsByClassName(className);
 		
-		// If no griditem found, try poster-item
+		// If no griditem found, try posteritem
 		if (filmposters.length === 0) {
 			filmposters = document.body.getElementsByClassName(fallbackClassName);
 		}
@@ -652,7 +652,8 @@ function unfadeAllMovies(tabId) {
 
 		function unfade(className, fallbackClassName) {
 			let filmposters = document.body.getElementsByClassName(className);
-			// If no griditem found, try poster-item
+			
+			// If no griditem found, try posteritem
 			if (filmposters.length === 0) {
 				filmposters = document.body.getElementsByClassName(fallbackClassName);
 			}
