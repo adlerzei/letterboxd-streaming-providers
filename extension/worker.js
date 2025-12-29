@@ -544,6 +544,10 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
  */
  function getFilmsFromLetterboxd(tabId) {
 	browser.tabs.get(tabId, (tab) => {
+		if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/')) {
+			return;
+		}
+
 		let fileName = "./scripts/getFilmsFromLetterboxd.js";
 
 		browser.scripting.executeScript({
@@ -644,15 +648,16 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
  */
 function unfadeAllMovies(tabId) {
 	browser.tabs.get(tabId, (tab) => {
-		if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/'))
+		if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/')) {
 			return;
+		}
 
 		var className = 'griditem';
 		var fallbackClassName = 'posteritem';
 
 		function unfade(className, fallbackClassName) {
 			let filmposters = document.body.getElementsByClassName(className);
-			
+
 			// If no griditem found, try posteritem
 			if (filmposters.length === 0) {
 				filmposters = document.body.getElementsByClassName(fallbackClassName);
