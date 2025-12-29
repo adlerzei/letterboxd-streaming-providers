@@ -41,60 +41,59 @@ var cacheLoaded = false;
  */
 const onStartUp = async () => {
 	// load TMDb token and set fetch options
-	await loadJson("settings/api.json", function (json) {
-		setFetchOptions(json.tmdb);
-
+	const apiConfig = await loadJson("settings/api.json");
+	if (apiConfig) {
+		setFetchOptions(apiConfig.tmdb);
 		// persist for later service worker cycles
-		browser.storage.session.set({ tmdb_token: json.tmdb });
-	});
+		browser.storage.session.set({ tmdb_token: apiConfig.tmdb });
+	}
 
 	// load stored settings from localStorage
-	browser.storage.local.get(parseSettings);
+	const localItems = await browser.storage.local.get();
+	await parseSettings(localItems);
 
-	await requestRegions();
-
-	await requestProviderList();
-
-	async function requestRegions() {
-		let url = "https://api.themoviedb.org/3/watch/providers/regions";
-		let response = await fetch(url, fetchOptions);
-		if (response.status == 200) {
-			let rsp = await response.json();
-			let str = ""
-			for (const entry of rsp.results) {
-				countries[entry.iso_3166_1] = {
-					'code': entry.iso_3166_1,
-					'name': entry.english_name
-				};
-				str += entry.english_name + ", "
-			}
-		}
-
-		// persist for later service worker cycles
-		browser.storage.session.set({ countries: countries });
-	}
-
-	async function requestProviderList() {
-		let url = "https://api.themoviedb.org/3/watch/providers/movie?language=en-US";
-		let response = await fetch(url, fetchOptions);
-		if (response.status == 200) {
-			let rsp = await response.json();
-			for (const entry of rsp.results) {
-				providers[entry.provider_id] = {
-					'provider_id': entry.provider_id,
-					'name': entry.provider_name.trim(),
-					'display_priority': entry.display_priority,
-					'countries': Object.keys(entry.display_priorities)
-				};
-			}
-		}
-
-		// persist for later service worker cycles
-		browser.storage.session.set({ providers: providers });
-	}
+	await Promise.all([requestRegions(), requestProviderList()]);
 };
 
-function parseSettings(items) {
+async function requestRegions() {
+	let url = "https://api.themoviedb.org/3/watch/providers/regions";
+	let response = await fetch(url, fetchOptions);
+	if (response.status == 200) {
+		let rsp = await response.json();
+		let str = ""
+		for (const entry of rsp.results) {
+			countries[entry.iso_3166_1] = {
+				'code': entry.iso_3166_1,
+				'name': entry.english_name
+			};
+			str += entry.english_name + ", "
+		}
+	}
+
+	// persist for later service worker cycles
+	browser.storage.session.set({ countries: countries });
+}
+
+async function requestProviderList() {
+	let url = "https://api.themoviedb.org/3/watch/providers/movie?language=en-US";
+	let response = await fetch(url, fetchOptions);
+	if (response.status == 200) {
+		let rsp = await response.json();
+		for (const entry of rsp.results) {
+			providers[entry.provider_id] = {
+				'provider_id': entry.provider_id,
+				'name': entry.provider_name.trim(),
+				'display_priority': entry.display_priority,
+				'countries': Object.keys(entry.display_priorities)
+			};
+		}
+	}
+
+	// persist for later service worker cycles
+	browser.storage.session.set({ providers: providers });
+}
+
+async function parseSettings(items) {
 	let countryCodeSet = false;
 	let providerSet = false;
 	let statusSet = false;
@@ -113,15 +112,16 @@ function parseSettings(items) {
 	}
 
 	if ((!countryCodeSet) || (!providerSet) || (!statusSet)) {
-		loadDefaultSettings(countryCodeSet, providerSet, statusSet);
+		await loadDefaultSettings(countryCodeSet, providerSet, statusSet);
 	}
 
 	settingsLoaded = true;
 }
 
-function loadDefaultSettings(countryCodeSet, providerSet, statusSet) {
+async function loadDefaultSettings(countryCodeSet, providerSet, statusSet) {
 	// load default settings
-	loadJson("settings/default.json", function (json) {
+	const json = await loadJson("settings/default.json");
+	if (json) {
 		// set the intern settings
 		if (!countryCodeSet && json.hasOwnProperty('country_code')) {
 			countryCode = json.country_code;
@@ -132,12 +132,24 @@ function loadDefaultSettings(countryCodeSet, providerSet, statusSet) {
 		if (!statusSet && json.hasOwnProperty('filter_status')) {
 			filterStatus = json.filter_status;
 		}
-	});
+	}
 }
 
-function parseCache(items) {
+async function parseCache(items) {
 	providers = items.hasOwnProperty('providers') ? items.providers : {};
 	countries = items.hasOwnProperty('countries') ? items.countries : {};
+
+	// If session storage was cleared, refetch from API
+	const apiCalls = [];
+	if (Object.keys(providers).length === 0) {
+		apiCalls.push(requestProviderList());
+	}
+	if (Object.keys(countries).length === 0) {
+		apiCalls.push(requestRegions());
+	}
+	if (apiCalls.length > 0) {
+		await Promise.all(apiCalls);
+	}
 
 	availableMovies = items.hasOwnProperty('available_movies') ? items.available_movies : {};
 	crawledMovies = items.hasOwnProperty('crawled_movies') ? items.crawled_movies : {};
@@ -157,18 +169,15 @@ function parseCache(items) {
  *
  * @param {function} callback - The function to execute after settings and cache are loaded.
  */
-function loadSettingsAndExecute(callback) {
+async function loadSettingsAndExecute(callback) {
 	if (!settingsLoaded || !cacheLoaded) {
-		browser.storage.local.get((items) => {
-			parseSettings(items);
-			browser.storage.session.get((items) => {
-				parseCache(items);
-				callback();
-			});
-		});
-	} else {
-		callback();
+		const localItems = await browser.storage.local.get();
+		await parseSettings(localItems);
+
+		const sessionItems = await browser.storage.session.get();
+		await parseCache(sessionItems);
 	}
+	callback();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -526,21 +535,20 @@ function checkForLetterboxd(tabId, changeInfo, tabInfo) {
  *
  * @param tabId - The tabId to operate in.
  */
-function getFilmsFromLetterboxd(tabId) {
-	browser.tabs.get(tabId, (tab) => {
-		if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/')) {
-			return;
-		}
+async function getFilmsFromLetterboxd(tabId) {
+	const tab = await browser.tabs.get(tabId);
+	if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/')) {
+		return;
+	}
 
-		let fileName = "./scripts/getFilmsFromLetterboxd.js";
+	let fileName = "./scripts/getFilmsFromLetterboxd.js";
 
-		browser.scripting.executeScript({
-			target: {
-				tabId: tabId,
-				allFrames: true
-			},
-			files: [fileName]
-		});
+	browser.scripting.executeScript({
+		target: {
+			tabId: tabId,
+			allFrames: true
+		},
+		files: [fileName]
 	});
 }
 
@@ -553,25 +561,24 @@ function getFilmsFromLetterboxd(tabId) {
  *
  * @param tabId - The tabId to operate in.
  */
-function prepareLetterboxdForFading(tabId) {
-	browser.scripting.insertCSS({
+async function prepareLetterboxdForFading(tabId) {
+	await browser.scripting.insertCSS({
 		files: ["./style/hideunstreamed.css"],
 		target: {
 			tabId: tabId,
 			allFrames: false
 		},
-	},
-		() => {
-			let fileName = "./scripts/prepareLetterboxdForFading.js";
+	});
 
-			browser.scripting.executeScript({
-				target: {
-					tabId: tabId,
-					allFrames: false
-				},
-				files: [fileName]
-			});
-		});
+	let fileName = "./scripts/prepareLetterboxdForFading.js";
+
+	browser.scripting.executeScript({
+		target: {
+			tabId: tabId,
+			allFrames: false
+		},
+		files: [fileName]
+	});
 }
 
 /**
@@ -630,35 +637,34 @@ function fadeUnstreamableMovies(tabId, movies) {
  *
  * @param tabId - The tabId to operate in.
  */
-function unfadeAllMovies(tabId) {
-	browser.tabs.get(tabId, (tab) => {
-		if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/')) {
-			return;
+async function unfadeAllMovies(tabId) {
+	const tab = await browser.tabs.get(tabId);
+	if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/')) {
+		return;
+	}
+
+	var className = 'griditem';
+	var fallbackClassName = 'posteritem';
+
+	function unfade(className, fallbackClassName) {
+		let filmposters = document.body.getElementsByClassName(className);
+
+		// If no griditem found, try posteritem
+		if (filmposters.length === 0) {
+			filmposters = document.body.getElementsByClassName(fallbackClassName);
 		}
-
-		var className = 'griditem';
-		var fallbackClassName = 'posteritem';
-
-		function unfade(className, fallbackClassName) {
-			let filmposters = document.body.getElementsByClassName(className);
-
-			// If no griditem found, try posteritem
-			if (filmposters.length === 0) {
-				filmposters = document.body.getElementsByClassName(fallbackClassName);
-			}
-			for (let i = 0; i < filmposters.length; i++) {
-				filmposters[i].className = filmposters[i].className.replace(' film-not-streamed', '');
-			}
+		for (let i = 0; i < filmposters.length; i++) {
+			filmposters[i].className = filmposters[i].className.replace(' film-not-streamed', '');
 		}
+	}
 
-		browser.scripting.executeScript({
-			target: {
-				tabId: tabId,
-				allFrames: false
-			},
-			func: unfade,
-			args: [className, fallbackClassName],
-		});
+	browser.scripting.executeScript({
+		target: {
+			tabId: tabId,
+			allFrames: false
+		},
+		func: unfade,
+		args: [className, fallbackClassName],
 	});
 }
 
@@ -679,15 +685,15 @@ function getApiToken() {
  * Called to load a JSON file.
  *
  * @param {string} path - The path to the JSON file.
- * @param {function} callback - A callback function, which is called after loading the file successfully.
+ * @returns {Promise<object|null>} - The parsed JSON object, or null if loading failed.
  */
-const loadJson = async (path, callback) => {
+async function loadJson(path) {
 	let response = await fetch(path);
-
 	if (response.status == 200) {
-		callback(await response.json());
+		return await response.json();
 	}
-};
+	return null;
+}
 
 function increaseCheckCounter(tabId) {
 	checkCounter[tabId]++;
