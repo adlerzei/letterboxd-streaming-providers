@@ -152,6 +152,25 @@ function parseCache(items) {
 	cacheLoaded = true;
 }
 
+/**
+ * Loads settings and cache if not already loaded, then executes the callback function.
+ *
+ * @param {function} callback - The function to execute after settings and cache are loaded.
+ */
+function loadSettingsAndExecute(callback) {
+	if (!settingsLoaded || !cacheLoaded) {
+		browser.storage.local.get((items) => {
+			parseSettings(items);
+			browser.storage.session.get((items) => {
+				parseCache(items);
+				callback();
+			});
+		});
+	} else {
+		callback();
+	}
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// EVENT LISTENER //////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////
@@ -160,50 +179,16 @@ browser.runtime.onInstalled.addListener(() => onStartUp());
 browser.runtime.onStartup.addListener(() => onStartUp());
 
 browser.runtime.onMessage.addListener((request, sender, _) => {
-	if (!settingsLoaded || !cacheLoaded) {
-		// load stored settings from localStorage
-		browser.storage.local.get((items) => {
-			parseSettings(items);
-			// load cached variables from sessionStorage
-			browser.storage.session.get((items) => {
-				parseCache(items);
-
-				handleMessage(request, sender);
-			});
-		});
-	} else {
-		handleMessage(request, sender);
-	}
+	loadSettingsAndExecute(() => handleMessage(request, sender));
 });
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tabInfo) => {
-	if (!settingsLoaded || !cacheLoaded) {
-		// load stored settings from localStorage
-		browser.storage.local.get((items) => {
-			parseSettings(items);
-			// load cached variables from sessionStorage
-			browser.storage.session.get((items) => {
-				parseCache(items);
-
-				checkForLetterboxd(tabId, changeInfo, tabInfo);
-			});
-		});
-	} else {
-		checkForLetterboxd(tabId, changeInfo, tabInfo);
-	}
+	loadSettingsAndExecute(() => checkForLetterboxd(tabId, changeInfo, tabInfo));
 });
 
 browser.storage.local.onChanged.addListener(_ => {
-	// load stored settings from localStorage
-	browser.storage.local.get((items) => {
-		parseSettings(items);
-		// load cached variables from sessionStorage
-		browser.storage.session.get((items) => {
-			parseCache(items);
-
-			reloadMovieFilter();
-		});
-	});
+	settingsLoaded = false;
+	loadSettingsAndExecute(() => reloadMovieFilter());
 });
 
 browser.alarms.onAlarm.addListener(alarm => {
@@ -211,20 +196,7 @@ browser.alarms.onAlarm.addListener(alarm => {
 		return;
 	}
 
-	if (!settingsLoaded || !cacheLoaded) {
-		// load stored settings from localStorage
-		browser.storage.local.get((items) => {
-			parseSettings(items);
-			// load cached variables from sessionStorage
-			browser.storage.session.get((items) => {
-				parseCache(items);
-
-				handleUnsolvedRequests()
-			});
-		});
-	} else {
-		handleUnsolvedRequests();
-	}
+	loadSettingsAndExecute(() => handleUnsolvedRequests());
 });
 
 /////////////////////////////////////////////////////////////////////////////////////
