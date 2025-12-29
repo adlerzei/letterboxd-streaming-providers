@@ -594,10 +594,18 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
  */
  function fadeUnstreamableMovies(tabId, movies) {
 	var className = 'griditem';
+	var fallbackClassName = 'posteritem';
 
-	function fadeOut(className, movieId) {
-		const filmposters = document.body.getElementsByClassName(className);
-		filmposters[movieId].className += ' film-not-streamed';
+	function fadeOut(className, fallbackClassName, movieId) {
+		let filmposters = document.body.getElementsByClassName(className);
+		
+		// If no griditem found, try poster-item
+		if (filmposters.length === 0) {
+			filmposters = document.body.getElementsByClassName(fallbackClassName);
+		}
+		if (filmposters[movieId]) {
+			filmposters[movieId].className += ' film-not-streamed';
+		}
 	}
 
 	for (const movie in movies) {
@@ -609,7 +617,7 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
 						allFrames: false
 					},
 					func: fadeOut,
-					args: [className, movie_id],
+					args: [className, fallbackClassName, movie_id],
 				});
 			}
 		}
@@ -640,9 +648,14 @@ function unfadeAllMovies(tabId) {
 			return;
 
 		var className = 'griditem';
+		var fallbackClassName = 'posteritem';
 
-		function unfade(className) {
-			const filmposters = document.body.getElementsByClassName(className);
+		function unfade(className, fallbackClassName) {
+			let filmposters = document.body.getElementsByClassName(className);
+			// If no griditem found, try poster-item
+			if (filmposters.length === 0) {
+				filmposters = document.body.getElementsByClassName(fallbackClassName);
+			}
 			for(let i = 0; i < filmposters.length; i++) {
 				filmposters[i].className = filmposters[i].className.replace(' film-not-streamed', '');
 			}
@@ -654,7 +667,7 @@ function unfadeAllMovies(tabId) {
 				allFrames: false
 			},
 			func: unfade,
-			args: [className],
+			args: [className, fallbackClassName],
 		});
 	});
 }

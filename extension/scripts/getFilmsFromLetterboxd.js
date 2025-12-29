@@ -2,11 +2,16 @@ if (typeof browser === "undefined") {
   var browser = chrome;
 }
 
-var gridItems = document.querySelectorAll("li.griditem");
+var items = document.querySelectorAll("li.griditem");
+
+// If no items found, try getting li.posteritem
+if (items.length === 0) {
+  items = document.querySelectorAll("li.posteritem");
+}
 
 var movies = {};
-for (let index = 0; index < gridItems.length; index++) {
-  const li = gridItems[index];
+for (let index = 0; index < items.length; index++) {
+  const li = items[index];
 
   const outerDiv = li.querySelector(".react-component[data-film-id]");
   if (!outerDiv) {
