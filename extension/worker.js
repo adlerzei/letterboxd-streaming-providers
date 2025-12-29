@@ -62,7 +62,7 @@ const onStartUp = async () => {
 	}
 
 	// load stored settings from localStorage
-	const localItems = browser.storage.local.get();
+	const localItems = await browser.storage.local.get();
 	await parseSettings(localItems);
 
 	await Promise.all([requestRegions(), requestProviderList()]);
@@ -260,7 +260,7 @@ browser.alarms.onAlarm.addListener(alarm => {
  * Called to force the filters to reload with the new provider ID.
  */
 async function reloadMovieFilter() {
-	const tabs = browser.tabs.query({});
+	const tabs = await browser.tabs.query({});
 
 	for (const tab of tabs) {
 		const tabId = tab.id;
@@ -595,7 +595,7 @@ function initializeTabState(tabId) {
  * @param {number} tabId - The tabId to operate in.
  */
 async function getFilmsFromLetterboxd(tabId) {
-	const tab = browser.tabs.get(tabId);
+	const tab = await browser.tabs.get(tabId);
 	if (!isLetterboxdUrl(tab.url)) {
 		return;
 	}
@@ -692,7 +692,7 @@ function fadeOutMovies(className, fallbackClassName, fadeClass, movieIds) {
  * @param {number} tabId - The tabId to operate in.
  */
 async function unfadeAllMovies(tabId) {
-	const tab = browser.tabs.get(tabId);
+	const tab = await browser.tabs.get(tabId);
 	if (!isLetterboxdUrl(tab.url)) {
 		return;
 	}
