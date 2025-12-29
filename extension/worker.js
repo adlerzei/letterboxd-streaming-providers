@@ -24,6 +24,9 @@ var checkCounter = {};
 
 var reloadActive = {};
 
+var settingsLoaded = false;
+var cacheLoaded = false;
+
 
 /////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////// STARTUP AND SETTINGS //////////////////////////////////////
@@ -42,7 +45,7 @@ const onStartUp = async () => {
 		setFetchOptions(json.tmdb);
 
 		// persist for later service worker cycles
-		browser.storage.session.set({tmdb_token: json.tmdb});
+		browser.storage.session.set({ tmdb_token: json.tmdb });
 	});
 
 	// load stored settings from localStorage
@@ -55,10 +58,10 @@ const onStartUp = async () => {
 	async function requestRegions() {
 		let url = "https://api.themoviedb.org/3/watch/providers/regions";
 		let response = await fetch(url, fetchOptions);
-		if (response.status == 200)	{
-			let rsp =  await response.json();
+		if (response.status == 200) {
+			let rsp = await response.json();
 			let str = ""
-			for(const entry of rsp.results) {
+			for (const entry of rsp.results) {
 				countries[entry.iso_3166_1] = {
 					'code': entry.iso_3166_1,
 					'name': entry.english_name
@@ -68,15 +71,15 @@ const onStartUp = async () => {
 		}
 
 		// persist for later service worker cycles
-		browser.storage.session.set({countries: countries});
+		browser.storage.session.set({ countries: countries });
 	}
 
 	async function requestProviderList() {
 		let url = "https://api.themoviedb.org/3/watch/providers/movie?language=en-US";
 		let response = await fetch(url, fetchOptions);
 		if (response.status == 200) {
-			let rsp =  await response.json();
-			for(const entry of rsp.results) {
+			let rsp = await response.json();
+			for (const entry of rsp.results) {
 				providers[entry.provider_id] = {
 					'provider_id': entry.provider_id,
 					'name': entry.provider_name.trim(),
@@ -87,7 +90,7 @@ const onStartUp = async () => {
 		}
 
 		// persist for later service worker cycles
-		browser.storage.session.set({providers: providers});
+		browser.storage.session.set({ providers: providers });
 	}
 };
 
@@ -112,6 +115,8 @@ function parseSettings(items) {
 	if ((!countryCodeSet) || (!providerSet) || (!statusSet)) {
 		loadDefaultSettings(countryCodeSet, providerSet, statusSet);
 	}
+
+	settingsLoaded = true;
 }
 
 function loadDefaultSettings(countryCodeSet, providerSet, statusSet) {
@@ -143,6 +148,8 @@ function parseCache(items) {
 	checkCounter = items.hasOwnProperty('check_counter') ? items.check_counter : {};
 
 	reloadActive = items.hasOwnProperty('reload_active') ? items.reload_active : {};
+
+	cacheLoaded = true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -152,29 +159,38 @@ function parseCache(items) {
 browser.runtime.onInstalled.addListener(() => onStartUp());
 browser.runtime.onStartup.addListener(() => onStartUp());
 
-browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
-	// load stored settings from localStorage
-	browser.storage.local.get((items) => {
-		parseSettings(items);
-		// load cached variables from sessionStorage
-		browser.storage.session.get((items) => {
-			parseCache(items);
-			handleMessage(request, sender);
+browser.runtime.onMessage.addListener((request, sender, _) => {
+	if (!settingsLoaded || !cacheLoaded) {
+		// load stored settings from localStorage
+		browser.storage.local.get((items) => {
+			parseSettings(items);
+			// load cached variables from sessionStorage
+			browser.storage.session.get((items) => {
+				parseCache(items);
+
+				handleMessage(request, sender);
+			});
 		});
-	});
+	} else {
+		handleMessage(request, sender);
+	}
 });
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tabInfo) => {
-	// load stored settings from localStorage
-	browser.storage.local.get((items) => {
-		parseSettings(items);
-		// load cached variables from sessionStorage
-		browser.storage.session.get((items) => {
-			parseCache(items);
+	if (!settingsLoaded || !cacheLoaded) {
+		// load stored settings from localStorage
+		browser.storage.local.get((items) => {
+			parseSettings(items);
+			// load cached variables from sessionStorage
+			browser.storage.session.get((items) => {
+				parseCache(items);
 
-			checkLetterboxdForPageReload(tabId, changeInfo, tabInfo);
+				checkForLetterboxd(tabId, changeInfo, tabInfo);
+			});
 		});
-	});
+	} else {
+		checkForLetterboxd(tabId, changeInfo, tabInfo);
+	}
 });
 
 browser.storage.local.onChanged.addListener(_ => {
@@ -191,31 +207,24 @@ browser.storage.local.onChanged.addListener(_ => {
 });
 
 browser.alarms.onAlarm.addListener(alarm => {
-	if (alarm.name != "handleUnsolvedRequests")
+	if (alarm.name != "handleUnsolvedRequests") {
 		return;
+	}
 
-	// load stored settings from localStorage
-	browser.storage.local.get((items) => {
-		parseSettings(items);
-		// load cached variables from sessionStorage
-		browser.storage.session.get((items) => {
-			parseCache(items);
+	if (!settingsLoaded || !cacheLoaded) {
+		// load stored settings from localStorage
+		browser.storage.local.get((items) => {
+			parseSettings(items);
+			// load cached variables from sessionStorage
+			browser.storage.session.get((items) => {
+				parseCache(items);
 
-			var movies = JSON.parse(JSON.stringify(unsolvedRequests[tabId]));
-			// decrease the counter by the number of unsolved requests
-			// we will try to solve them now
-			checkCounter[tabId] = checkCounter[tabId] - Object.keys(unsolvedRequests[tabId]).length;
-			unsolvedRequests[tabId] = {};
-
-			// persist for later service worker cycles
-			browser.storage.session.set({
-				check_counter: checkCounter,
-				unsolved_requests: unsolvedRequests
+				handleUnsolvedRequests()
 			});
-
-			checkMovieAvailability(tabId, movies);
 		});
-	});
+	} else {
+		handleUnsolvedRequests();
+	}
 });
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -225,7 +234,7 @@ browser.alarms.onAlarm.addListener(alarm => {
 /**
  * Called to force the filters to reload with the new provider ID.
  */
- function reloadMovieFilter() {
+function reloadMovieFilter() {
 	browser.tabs.query({}, reloadFilterInTab);
 
 	function reloadFilterInTab(tabs) {
@@ -234,11 +243,11 @@ browser.alarms.onAlarm.addListener(alarm => {
 
 			if (reloadActive[tabId])
 				continue;
-			
+
 			reloadActive[tabId] = true;
 
 			// persist for later service worker cycles
-			browser.storage.session.set({reload_active: reloadActive});
+			browser.storage.session.set({ reload_active: reloadActive });
 
 			let changeInfo = {
 				status: 'complete'
@@ -265,7 +274,7 @@ browser.alarms.onAlarm.addListener(alarm => {
  * @param {{messageType: string, messageContent: object}} request - The message from the content script.
  * @param {object} sender - The sender from the runtime.onMessage event.
  */
- function handleMessage(request, sender) {
+function handleMessage(request, sender) {
 	var tabId;
 	if (sender.hasOwnProperty('tab') && sender.tab.hasOwnProperty('id')) {
 		tabId = sender.tab.id;
@@ -277,7 +286,7 @@ browser.alarms.onAlarm.addListener(alarm => {
 			crawledMovies[tabId] = request.messageContent;
 
 			// persist for later service worker cycles
-			browser.storage.session.set({crawled_movies: crawledMovies});
+			browser.storage.session.set({ crawled_movies: crawledMovies });
 
 			if (Object.keys(crawledMovies[tabId]).length === 0) {
 				// we don't got any movies yet, let's try again
@@ -295,7 +304,7 @@ browser.alarms.onAlarm.addListener(alarm => {
  * @param {int} tabId - The tabId to operate in.
  * @param {object} movies - The crawled movies from Letterboxed.
  */
- function checkMovieAvailability(tabId, movies) {
+function checkMovieAvailability(tabId, movies) {
 	if (filterStatus) {
 		prepareLetterboxdForFading(tabId);
 		for (const movie in movies) {
@@ -309,7 +318,7 @@ browser.alarms.onAlarm.addListener(alarm => {
 		reloadActive[tabId] = false;
 
 		// persist for later service worker cycles
-		browser.storage.session.set({reload_active: reloadActive});
+		browser.storage.session.set({ reload_active: reloadActive });
 	}
 }
 
@@ -320,7 +329,7 @@ browser.alarms.onAlarm.addListener(alarm => {
  * @param {int} tabId - The tabId of the tab, in which Letterboxd should be filtered.
  * @returns {Promise<void>} - An empty Promise if the API calls worked correctly, else the Promise contains the respective errors.
  */
- async function isIncluded(tabId, toFind) {
+async function isIncluded(tabId, toFind) {
 	let englishTitle = toFind.title;
 	let releaseYear = toFind.year;
 	let letterboxdId = toFind.id;
@@ -338,16 +347,16 @@ browser.alarms.onAlarm.addListener(alarm => {
 				year: releaseYear,
 				id: letterboxdId
 			};
-			
+
 			// persist for later service worker cycles
-			browser.storage.session.set({unsolved_requests: unsolvedRequests});
+			browser.storage.session.set({ unsolved_requests: unsolvedRequests });
 		}
 
 		increaseCheckCounter(tabId);
 		return;
 	}
 
-	let rsp =  await response.json();
+	let rsp = await response.json();
 	let tmdbInfo = getIdWithReleaseYear(rsp.results, englishTitle, releaseYear);
 
 	if (!tmdbInfo.matchFound) {
@@ -369,31 +378,31 @@ browser.alarms.onAlarm.addListener(alarm => {
 				year: releaseYear,
 				id: letterboxdId
 			};
-			
+
 			// persist for later service worker cycles
-			browser.storage.session.set({unsolved_requests: unsolvedRequests});
+			browser.storage.session.set({ unsolved_requests: unsolvedRequests });
 		}
 
 		increaseCheckCounter(tabId);
 		return;
 	}
-	
-	rsp =  await response.json();
+
+	rsp = await response.json();
 	addMovieIfFlatrate(rsp.results, tabId, letterboxdId);
 	increaseCheckCounter(tabId);
 }
 
- /**
- * Returns the TMDb ID for a given English media title and a corresponding release year.
- * If no exact match is found (i.e., title and release year do not match exactly),
- * this function tries to find a match with best effort: 
- * maybe the release year differs by 1 or is missing completely.
- *
- * @param {object} results - The results from the TMDB "Multi" request.
- * @param {string} titleEnglish - The English movie title.
- * @param {int} releaseYear - The media's release year.
- * @returns {{tmdbId: int, mediaType: string, matchFound: boolean}} - An object containing the TMDB movie ID, the media type and if this was a perfect match (titleEnglish and movie_release_year match up).
- */
+/**
+* Returns the TMDb ID for a given English media title and a corresponding release year.
+* If no exact match is found (i.e., title and release year do not match exactly),
+* this function tries to find a match with best effort: 
+* maybe the release year differs by 1 or is missing completely.
+*
+* @param {object} results - The results from the TMDB "Multi" request.
+* @param {string} titleEnglish - The English movie title.
+* @param {int} releaseYear - The media's release year.
+* @returns {{tmdbId: int, mediaType: string, matchFound: boolean}} - An object containing the TMDB movie ID, the media type and if this was a perfect match (titleEnglish and movie_release_year match up).
+*/
 function getIdWithReleaseYear(results, titleEnglish, releaseYear) {
 	let candidate = {
 		tmdbId: -1,
@@ -432,9 +441,9 @@ function getIdWithReleaseYear(results, titleEnglish, releaseYear) {
 					mediaType: results[item].media_type,
 					matchFound: true
 				};
-			} else if (releaseYear == -1 || 
-					   itemReleaseYear == releaseYear - 1 || 
-					   itemReleaseYear == releaseYear + 1) {
+			} else if (releaseYear == -1 ||
+				itemReleaseYear == releaseYear - 1 ||
+				itemReleaseYear == releaseYear + 1) {
 				candidate = {
 					tmdbId: results[item].id,
 					mediaType: results[item].media_type,
@@ -447,18 +456,18 @@ function getIdWithReleaseYear(results, titleEnglish, releaseYear) {
 	return candidate;
 }
 
- /**
- * Adds the given letterboxd ID to the availableMovies 
- * if the selected provider includes the movie in its flatrate
- * 
- * @param {object} results - The results from the TMDB "Watch Providers" request.
- * @param {string} tabId - The tabId to operate in.
- * @param {int} letterboxdId - The intern ID from the array in letterboxd.com.
-  */
+/**
+* Adds the given letterboxd ID to the availableMovies 
+* if the selected provider includes the movie in its flatrate
+* 
+* @param {object} results - The results from the TMDB "Watch Providers" request.
+* @param {string} tabId - The tabId to operate in.
+* @param {int} letterboxdId - The intern ID from the array in letterboxd.com.
+ */
 function addMovieIfFlatrate(results, tabId, letterboxdId) {
 	if (!(countryCode in results) || (!results[countryCode].hasOwnProperty('flatrate') && !results[countryCode].hasOwnProperty('free'))) {
 		return;
-	} 
+	}
 
 	const offersToCheck = [
 		...(results[countryCode].flatrate || []),
@@ -477,27 +486,30 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
 	}
 }
 
+
+/**
+ * Handles unsolved requests by re-attempting to check their availability.
+ * Decreases the check counter accordingly.
+ */
+function handleUnsolvedRequests() {
+	var movies = JSON.parse(JSON.stringify(unsolvedRequests[tabId]));
+	// decrease the counter by the number of unsolved requests
+	// we will try to solve them now
+	checkCounter[tabId] = checkCounter[tabId] - Object.keys(unsolvedRequests[tabId]).length;
+	unsolvedRequests[tabId] = {};
+
+	// persist for later service worker cycles
+	browser.storage.session.set({
+		check_counter: checkCounter,
+		unsolved_requests: unsolvedRequests
+	});
+
+	checkMovieAvailability(tabId, movies);
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
 //////////////////////// GET MOVIES FROM LETTERBOXD /////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * Waits for a short delay and then calls checkForLetterboxd.
- *
- * @param {int} tabId - The tabId to operate in.
- * @param {object} changeInfo - The changeInfo from the tabs.onUpdated event.
- * @param {object} tabInfo - The tabInfo from the tabs.onUpdated event.
- */
- function checkLetterboxdForPageReload(tabId, changeInfo, tabInfo) {
-	// short timeout, wait for the page to load all release years (and other movie info)
-	// using timeouts is not recommended in combination with service workers acc. to Google, 
-	// bc. the service workers may stop terminate during the timeout
-	// (see https://developer.chrome.com/docs/extensions/mv3/migrating_to_service_workers/#alarms).
-	// However, alarm API does not allow such short timeouts and it does not work without it
-	setTimeout(function () {
-		checkForLetterboxd(tabId, changeInfo, tabInfo);
-	}, 500);
-}
 
 /**
  * Checks if the current URL of the tab matches the given pattern.
@@ -506,7 +518,7 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
  * @param {object} changeInfo - The changeInfo from the tabs.onUpdated event.
  * @param {object} tabInfo - The tabInfo from the tabs.onUpdated event.
  */
- function checkForLetterboxd(tabId, changeInfo, tabInfo) {
+function checkForLetterboxd(tabId, changeInfo, tabInfo) {
 	if (filterStatus) {
 		if (changeInfo.hasOwnProperty('status') && changeInfo.status === 'complete') {
 			let url = tabInfo.url;
@@ -533,8 +545,8 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
 		reloadActive[tabId] = false;
 
 		// persist for later service worker cycles
-		browser.storage.session.set({reload_active: reloadActive});
-	}			
+		browser.storage.session.set({ reload_active: reloadActive });
+	}
 }
 
 /**
@@ -542,7 +554,7 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
  *
  * @param tabId - The tabId to operate in.
  */
- function getFilmsFromLetterboxd(tabId) {
+function getFilmsFromLetterboxd(tabId) {
 	browser.tabs.get(tabId, (tab) => {
 		if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/')) {
 			return;
@@ -569,25 +581,25 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
  *
  * @param tabId - The tabId to operate in.
  */
- function prepareLetterboxdForFading(tabId) {
+function prepareLetterboxdForFading(tabId) {
 	browser.scripting.insertCSS({
 		files: ["./style/hideunstreamed.css"],
 		target: {
 			tabId: tabId,
 			allFrames: false
 		},
-	}, 
-	() => {
-		let fileName = "./scripts/prepareLetterboxdForFading.js";
+	},
+		() => {
+			let fileName = "./scripts/prepareLetterboxdForFading.js";
 
-		browser.scripting.executeScript({
-			target: {
-				tabId: tabId,
-				allFrames: false
-			},
-			files: [fileName]
+			browser.scripting.executeScript({
+				target: {
+					tabId: tabId,
+					allFrames: false
+				},
+				files: [fileName]
+			});
 		});
-	});
 }
 
 /**
@@ -596,13 +608,13 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
  * @param tabId - The tabId to operate in.
  * @param movies - The crawled movies.
  */
- function fadeUnstreamableMovies(tabId, movies) {
+function fadeUnstreamableMovies(tabId, movies) {
 	var className = 'griditem';
 	var fallbackClassName = 'posteritem';
 
 	function fadeOut(className, fallbackClassName, movieId) {
 		let filmposters = document.body.getElementsByClassName(className);
-		
+
 		// If no griditem found, try posteritem
 		if (filmposters.length === 0) {
 			filmposters = document.body.getElementsByClassName(fallbackClassName);
@@ -631,14 +643,14 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
 	if (Object.keys(unsolvedRequests[tabId]).length != 0) {
 		// but first wait for a delay to limit the traffic
 		browser.alarms.create("handleUnsolvedRequests", {
-			delayInMinutes: 1 
+			delayInMinutes: 1
 		});
 	}
 
 	reloadActive[tabId] = false;
 
 	// persist for later service worker cycles
-	browser.storage.session.set({reload_active: reloadActive});
+	browser.storage.session.set({ reload_active: reloadActive });
 }
 
 /**
@@ -662,7 +674,7 @@ function unfadeAllMovies(tabId) {
 			if (filmposters.length === 0) {
 				filmposters = document.body.getElementsByClassName(fallbackClassName);
 			}
-			for(let i = 0; i < filmposters.length; i++) {
+			for (let i = 0; i < filmposters.length; i++) {
 				filmposters[i].className = filmposters[i].className.replace(' film-not-streamed', '');
 			}
 		}
@@ -697,7 +709,7 @@ function getApiToken() {
  * @param {string} path - The path to the JSON file.
  * @param {function} callback - A callback function, which is called after loading the file successfully.
  */
- const loadJson = async (path, callback) => {
+const loadJson = async (path, callback) => {
 	let response = await fetch(path);
 
 	if (response.status == 200) {
@@ -709,7 +721,7 @@ function increaseCheckCounter(tabId) {
 	checkCounter[tabId]++;
 
 	// persist for later service worker cycles
-	browser.storage.session.set({check_counter: checkCounter});
+	browser.storage.session.set({ check_counter: checkCounter });
 
 	if (checkCounter[tabId] == Object.keys(crawledMovies[tabId]).length) {
 		fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
