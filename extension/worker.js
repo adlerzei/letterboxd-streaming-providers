@@ -1,32 +1,45 @@
 "use strict";
 
 // for compatibility reasons
-var browser = chrome;
+const browser = chrome;
+
+/////////////////////////////////////////////////////////////////////////////////////
+///////////////////////// CONSTANTS /////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
+
+const LETTERBOXD_PATTERNS = ['://letterboxd.com/', '://www.letterboxd.com/'];
+const SUPPORTED_PAGES = ['/watchlist/', '/films/', '/likes/', '/list/'];
+const CSS_CLASSES = {
+	GRID_ITEM: 'griditem',
+	POSTER_ITEM: 'posteritem',
+	NOT_STREAMED: 'film-not-streamed'
+};
+
+/////////////////////////////////////////////////////////////////////////////////////
+///////////////////////// STATE MANAGEMENT //////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
 
 // settings
-var countryCode = ''; // e.g. German: "DE", USA: "US"
-var providerId = 0; // e.g. Netflix: 8, Amazon Prime Video: 9
-var filterStatus = false;
+let countryCode = ''; // e.g. German: "DE", USA: "US"
+let providerId = 0; // e.g. Netflix: 8, Amazon Prime Video: 9
+let filterStatus = false;
 
 // fetch options
-var fetchOptions = {};
+let fetchOptions = {};
 
 // cache
-var providers = {};
-var countries = {};
-
-var availableMovies = {};
-var crawledMovies = {};
-var unsolvedRequests = {};
+let providers = {};
+let countries = {};
+let availableMovies = {};
+let crawledMovies = {};
+let unsolvedRequests = {};
 
 // contains the number of already checked movies per tab
-var checkCounter = {};
+let checkCounter = {};
+let reloadActive = {};
 
-var reloadActive = {};
-
-var settingsLoaded = false;
-var cacheLoaded = false;
-
+let settingsLoaded = false;
+let cacheLoaded = false;
 
 /////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////// STARTUP AND SETTINGS //////////////////////////////////////
@@ -42,7 +55,7 @@ var cacheLoaded = false;
 const onStartUp = async () => {
 	// load TMDb token and set fetch options
 	const apiConfig = await loadJson("settings/api.json");
-	if (apiConfig) {
+	if (apiConfig?.tmdb) {
 		setFetchOptions(apiConfig.tmdb);
 		// persist for later service worker cycles
 		browser.storage.session.set({ tmdb_token: apiConfig.tmdb });
@@ -55,89 +68,121 @@ const onStartUp = async () => {
 	await Promise.all([requestRegions(), requestProviderList()]);
 };
 
+/**
+ * Fetches available regions from TMDB API.
+ */
 async function requestRegions() {
-	let url = "https://api.themoviedb.org/3/watch/providers/regions";
-	let response = await fetch(url, fetchOptions);
-	if (response.status == 200) {
-		let rsp = await response.json();
-		let str = ""
+	const url = "https://api.themoviedb.org/3/watch/providers/regions";
+
+	try {
+		const response = await fetch(url, fetchOptions);
+		if (response.status !== 200) {
+			return;
+		}
+
+		const rsp = await response.json();
 		for (const entry of rsp.results) {
 			countries[entry.iso_3166_1] = {
-				'code': entry.iso_3166_1,
-				'name': entry.english_name
+				code: entry.iso_3166_1,
+				name: entry.english_name
 			};
-			str += entry.english_name + ", "
 		}
-	}
 
-	// persist for later service worker cycles
-	browser.storage.session.set({ countries: countries });
+		// persist for later service worker cycles
+		browser.storage.session.set({ countries });
+	} catch (error) {
+		console.error("Failed to fetch regions:", error);
+	}
 }
 
+/**
+ * Fetches available streaming providers from TMDB API.
+ */
 async function requestProviderList() {
-	let url = "https://api.themoviedb.org/3/watch/providers/movie?language=en-US";
-	let response = await fetch(url, fetchOptions);
-	if (response.status == 200) {
-		let rsp = await response.json();
+	const url = "https://api.themoviedb.org/3/watch/providers/movie?language=en-US";
+
+	try {
+		const response = await fetch(url, fetchOptions);
+		if (response.status !== 200) {
+			return;
+		}
+
+		const rsp = await response.json();
 		for (const entry of rsp.results) {
 			providers[entry.provider_id] = {
-				'provider_id': entry.provider_id,
-				'name': entry.provider_name.trim(),
-				'display_priority': entry.display_priority,
-				'countries': Object.keys(entry.display_priorities)
+				provider_id: entry.provider_id,
+				name: entry.provider_name.trim(),
+				display_priority: entry.display_priority,
+				countries: Object.keys(entry.display_priorities)
 			};
 		}
-	}
 
-	// persist for later service worker cycles
-	browser.storage.session.set({ providers: providers });
+		// persist for later service worker cycles
+		browser.storage.session.set({ providers });
+	} catch (error) {
+		console.error("Failed to fetch provider list:", error);
+	}
 }
 
+/**
+ * Parses settings from storage items.
+ *
+ * @param {object} items - Storage items containing settings.
+ */
 async function parseSettings(items) {
-	let countryCodeSet = false;
-	let providerSet = false;
-	let statusSet = false;
+	const hasCountryCode = 'country_code' in items;
+	const hasProvider = 'provider_id' in items;
+	const hasStatus = 'filter_status' in items;
 
-	if (items.hasOwnProperty('country_code')) {
-		countryCodeSet = true;
+	if (hasCountryCode) {
 		countryCode = items.country_code;
 	}
-	if (items.hasOwnProperty('provider_id')) {
-		providerSet = true;
+	if (hasProvider) {
 		providerId = items.provider_id;
 	}
-	if (items.hasOwnProperty('filter_status')) {
-		statusSet = true;
+	if (hasStatus) {
 		filterStatus = items.filter_status;
 	}
 
-	if ((!countryCodeSet) || (!providerSet) || (!statusSet)) {
-		await loadDefaultSettings(countryCodeSet, providerSet, statusSet);
+	if (!hasCountryCode || !hasProvider || !hasStatus) {
+		await loadDefaultSettings(!hasCountryCode, !hasProvider, !hasStatus);
 	}
 
 	settingsLoaded = true;
 }
 
-async function loadDefaultSettings(countryCodeSet, providerSet, statusSet) {
-	// load default settings
+/**
+ * Loads default settings from JSON file.
+ *
+ * @param {boolean} needCountryCode - Whether to load default country code.
+ * @param {boolean} needProvider - Whether to load default provider.
+ * @param {boolean} needStatus - Whether to load default filter status.
+ */
+async function loadDefaultSettings(needCountryCode, needProvider, needStatus) {
 	const json = await loadJson("settings/default.json");
-	if (json) {
-		// set the intern settings
-		if (!countryCodeSet && json.hasOwnProperty('country_code')) {
-			countryCode = json.country_code;
-		}
-		if (!providerSet && json.hasOwnProperty('provider_id')) {
-			providerId = json.provider_id;
-		}
-		if (!statusSet && json.hasOwnProperty('filter_status')) {
-			filterStatus = json.filter_status;
-		}
+	if (!json) {
+		return;
+	}
+
+	if (needCountryCode && 'country_code' in json) {
+		countryCode = json.country_code;
+	}
+	if (needProvider && 'provider_id' in json) {
+		providerId = json.provider_id;
+	}
+	if (needStatus && 'filter_status' in json) {
+		filterStatus = json.filter_status;
 	}
 }
 
+/**
+ * Parses cached data from session storage.
+ *
+ * @param {object} items - Session storage items.
+ */
 async function parseCache(items) {
-	providers = items.hasOwnProperty('providers') ? items.providers : {};
-	countries = items.hasOwnProperty('countries') ? items.countries : {};
+	providers = items.providers ?? {};
+	countries = items.countries ?? {};
 
 	// If session storage was cleared, refetch from API
 	const apiCalls = [];
@@ -151,15 +196,14 @@ async function parseCache(items) {
 		await Promise.all(apiCalls);
 	}
 
-	availableMovies = items.hasOwnProperty('available_movies') ? items.available_movies : {};
-	crawledMovies = items.hasOwnProperty('crawled_movies') ? items.crawled_movies : {};
-	unsolvedRequests = items.hasOwnProperty('unsolved_requests') ? items.unsolved_requests : {};
-	let tmdbToken = items.hasOwnProperty('tmdb_token') ? items.tmdb_token : '';
+	availableMovies = items.available_movies ?? {};
+	crawledMovies = items.crawled_movies ?? {};
+	unsolvedRequests = items.unsolved_requests ?? {};
+	checkCounter = items.check_counter ?? {};
+	reloadActive = items.reload_active ?? {};
+
+	const tmdbToken = items.tmdb_token ?? '';
 	setFetchOptions(tmdbToken);
-
-	checkCounter = items.hasOwnProperty('check_counter') ? items.check_counter : {};
-
-	reloadActive = items.hasOwnProperty('reload_active') ? items.reload_active : {};
 
 	cacheLoaded = true;
 }
@@ -171,10 +215,11 @@ async function parseCache(items) {
  */
 async function loadSettingsAndExecute(callback) {
 	if (!settingsLoaded || !cacheLoaded) {
-		const localItems = await browser.storage.local.get();
+		const [localItems, sessionItems] = await Promise.all([
+			browser.storage.local.get(),
+			browser.storage.session.get()
+		]);
 		await parseSettings(localItems);
-
-		const sessionItems = await browser.storage.session.get();
 		await parseCache(sessionItems);
 	}
 	callback();
@@ -201,10 +246,9 @@ browser.storage.local.onChanged.addListener(_ => {
 });
 
 browser.alarms.onAlarm.addListener(alarm => {
-	if (alarm.name != "handleUnsolvedRequests") {
+	if (alarm.name !== "handleUnsolvedRequests") {
 		return;
 	}
-
 	loadSettingsAndExecute(() => handleUnsolvedRequests());
 });
 
@@ -215,32 +259,21 @@ browser.alarms.onAlarm.addListener(alarm => {
 /**
  * Called to force the filters to reload with the new provider ID.
  */
-function reloadMovieFilter() {
-	browser.tabs.query({}, reloadFilterInTab);
+async function reloadMovieFilter() {
+	const tabs = await browser.tabs.query({});
 
-	function reloadFilterInTab(tabs) {
-		for (const tab of tabs) {
-			let tabId = tab.id;
+	for (const tab of tabs) {
+		const tabId = tab.id;
 
-			if (reloadActive[tabId])
-				continue;
-
-			reloadActive[tabId] = true;
-
-			// persist for later service worker cycles
-			browser.storage.session.set({ reload_active: reloadActive });
-
-			let changeInfo = {
-				status: 'complete'
-			};
-			let tabInfo = {
-				url: tab.url
-			};
-
-			// unfadeUnstreamedMovies(tabId, crawledMovies[tabId]);
-			unfadeAllMovies(tabId);
-			checkForLetterboxd(tabId, changeInfo, tabInfo);
+		if (reloadActive[tabId]) {
+			continue;
 		}
+
+		reloadActive[tabId] = true;
+		browser.storage.session.set({ reload_active: reloadActive });
+
+		unfadeAllMovies(tabId);
+		checkForLetterboxd(tabId, { status: 'complete' }, { url: tab.url });
 	}
 }
 
@@ -256,89 +289,74 @@ function reloadMovieFilter() {
  * @param {object} sender - The sender from the runtime.onMessage event.
  */
 function handleMessage(request, sender) {
-	var tabId;
-	if (sender.hasOwnProperty('tab') && sender.tab.hasOwnProperty('id')) {
-		tabId = sender.tab.id;
-	} else {
-		console.log("Error: missing tab ID");
+	const tabId = sender?.tab?.id;
+	if (!tabId) {
+		console.error("Error: missing tab ID");
+		return;
 	}
-	if (request.hasOwnProperty('messageType') && request.hasOwnProperty('messageContent')) {
-		if (request.messageType === 'movie-titles') {
-			crawledMovies[tabId] = request.messageContent;
 
-			// persist for later service worker cycles
-			browser.storage.session.set({ crawled_movies: crawledMovies });
+	if (request?.messageType !== 'movie-titles' || !request?.messageContent) {
+		return;
+	}
 
-			if (Object.keys(crawledMovies[tabId]).length === 0) {
-				// we don't got any movies yet, let's try again
-				getFilmsFromLetterboxd(tabId);
-			} else {
-				checkMovieAvailability(tabId, crawledMovies[tabId]);
-			}
-		}
+	crawledMovies[tabId] = request.messageContent;
+	browser.storage.session.set({ crawled_movies: crawledMovies });
+
+	if (Object.keys(crawledMovies[tabId]).length === 0) {
+		// we don't got any movies yet, let's try again
+		getFilmsFromLetterboxd(tabId);
+	} else {
+		checkMovieAvailability(tabId, crawledMovies[tabId]);
 	}
 }
 
 /**
  * Calls the method for checking the movie availability for each movie in movies.
  *
- * @param {int} tabId - The tabId to operate in.
+ * @param {number} tabId - The tabId to operate in.
  * @param {object} movies - The crawled movies from Letterboxed.
  */
 function checkMovieAvailability(tabId, movies) {
-	if (filterStatus) {
-		prepareLetterboxdForFading(tabId);
-		for (const movie in movies) {
-			isIncluded(tabId, {
-				title: movie,
-				year: movies[movie].year,
-				id: movies[movie].id
-			});
-		}
-	} else {
+	if (!filterStatus) {
 		reloadActive[tabId] = false;
-
-		// persist for later service worker cycles
 		browser.storage.session.set({ reload_active: reloadActive });
+		return;
+	}
+
+	prepareLetterboxdForFading(tabId);
+
+	for (const movie in movies) {
+		isIncluded(tabId, {
+			title: movie,
+			year: movies[movie].year,
+			id: movies[movie].id
+		});
 	}
 }
 
 /**
  * Checks if a movie is available and adds it to availableMovies[tabId].
  *
- * @param {object} toFind - An object, which contains the movie title, the release year and the Letterboxd-intern array id.
- * @param {int} tabId - The tabId of the tab, in which Letterboxd should be filtered.
- * @returns {Promise<void>} - An empty Promise if the API calls worked correctly, else the Promise contains the respective errors.
+ * @param {number} tabId - The tabId of the tab, in which Letterboxd should be filtered.
+ * @param {object} toFind - An object containing the movie title, release year and Letterboxd-intern array id.
+ * @returns {Promise<void>} - An empty Promise if the API calls worked correctly.
  */
 async function isIncluded(tabId, toFind) {
-	let englishTitle = toFind.title;
-	let releaseYear = toFind.year;
-	let letterboxdId = toFind.id;
-	let titleSanitized = encodeURIComponent(englishTitle);
+	const { title: englishTitle, year: releaseYear, id: letterboxdId } = toFind;
+	const titleSanitized = encodeURIComponent(englishTitle);
 
-	let url = `https://api.themoviedb.org/3/search/multi?query=${titleSanitized}`;
-	let response = await fetch(url, fetchOptions);
+	// Search for the movie
+	const searchUrl = `https://api.themoviedb.org/3/search/multi?query=${titleSanitized}`;
+	const searchResponse = await fetch(searchUrl, fetchOptions);
 
-	if (response.status != 200) {
-		// something went wrong during the request
-
-		// if there are too many requests: try again later
-		if (response.status == 429) {
-			unsolvedRequests[tabId][englishTitle] = {
-				year: releaseYear,
-				id: letterboxdId
-			};
-
-			// persist for later service worker cycles
-			browser.storage.session.set({ unsolved_requests: unsolvedRequests });
-		}
-
+	if (searchResponse.status !== 200) {
+		handleRateLimitError(searchResponse.status, tabId, englishTitle, releaseYear, letterboxdId);
 		increaseCheckCounter(tabId);
 		return;
 	}
 
-	let rsp = await response.json();
-	let tmdbInfo = getIdWithReleaseYear(rsp.results, englishTitle, releaseYear);
+	const searchData = await searchResponse.json();
+	const tmdbInfo = getIdWithReleaseYear(searchData.results, englishTitle, releaseYear);
 
 	if (!tmdbInfo.matchFound) {
 		// this time we are unlucky and don't find any match
@@ -346,91 +364,79 @@ async function isIncluded(tabId, toFind) {
 		return;
 	}
 
-	// we have found what we are looking for
-	// now check the provider availability
-	url = `https://api.themoviedb.org/3/${tmdbInfo.mediaType}/${tmdbInfo.tmdbId}/watch/providers`;
-	response = await fetch(url, fetchOptions);
-	if (response.status != 200) {
-		// something went wrong during the request
+	// Check provider availability
+	const providerUrl = `https://api.themoviedb.org/3/${tmdbInfo.mediaType}/${tmdbInfo.tmdbId}/watch/providers`;
+	const providerResponse = await fetch(providerUrl, fetchOptions);
 
-		// if there are too many requests: try again later
-		if (response.status == 429) {
-			unsolvedRequests[tabId][englishTitle] = {
-				year: releaseYear,
-				id: letterboxdId
-			};
-
-			// persist for later service worker cycles
-			browser.storage.session.set({ unsolved_requests: unsolvedRequests });
-		}
-
+	if (providerResponse.status !== 200) {
+		handleRateLimitError(providerResponse.status, tabId, englishTitle, releaseYear, letterboxdId);
 		increaseCheckCounter(tabId);
 		return;
 	}
 
-	rsp = await response.json();
-	addMovieIfFlatrate(rsp.results, tabId, letterboxdId);
+	const providerData = await providerResponse.json();
+	addMovieIfFlatrate(providerData.results, tabId, letterboxdId);
 	increaseCheckCounter(tabId);
 }
 
 /**
-* Returns the TMDb ID for a given English media title and a corresponding release year.
-* If no exact match is found (i.e., title and release year do not match exactly),
-* this function tries to find a match with best effort: 
-* maybe the release year differs by 1 or is missing completely.
-*
-* @param {object} results - The results from the TMDB "Multi" request.
-* @param {string} titleEnglish - The English movie title.
-* @param {int} releaseYear - The media's release year.
-* @returns {{tmdbId: int, mediaType: string, matchFound: boolean}} - An object containing the TMDB movie ID, the media type and if this was a perfect match (titleEnglish and movie_release_year match up).
-*/
+ * Handles rate limit errors by storing the request for later retry.
+ *
+ * @param {number} status - HTTP status code.
+ * @param {number} tabId - The tab ID.
+ * @param {string} title - Movie title.
+ * @param {number} year - Release year.
+ * @param {Array} id - Letterboxd IDs.
+ */
+function handleRateLimitError(status, tabId, title, year, id) {
+	if (status !== 429) {
+		return;
+	}
+
+	unsolvedRequests[tabId][title] = { year, id };
+	browser.storage.session.set({ unsolved_requests: unsolvedRequests });
+}
+
+/**
+ * Returns the TMDb ID for a given English media title and a corresponding release year.
+ * If no exact match is found (i.e., title and release year do not match exactly),
+ * this function tries to find a match with best effort:
+ * maybe the release year differs by 1 or is missing completely.
+ *
+ * @param {object[]} results - The results from the TMDB "Multi" request.
+ * @param {string} titleEnglish - The English movie title.
+ * @param {number} releaseYear - The media's release year.
+ * @returns {{tmdbId: number, mediaType: string, matchFound: boolean}} - TMDb info object.
+ */
 function getIdWithReleaseYear(results, titleEnglish, releaseYear) {
-	let candidate = {
-		tmdbId: -1,
-		mediaType: '',
-		matchFound: false
-	};
+	let candidate = { tmdbId: -1, mediaType: '', matchFound: false };
+	const titleLower = titleEnglish.toLowerCase();
 
-	for (let item in results) {
-		if (!results[item].hasOwnProperty('media_type'))
-			continue;
-
-		let itemTitle = '';
-		let itemReleaseDate = '';
-		if (results[item].media_type == 'movie') {
-			if (!results[item].hasOwnProperty('release_date') || !results[item].hasOwnProperty('title'))
-				continue;
-
-			itemTitle = results[item].title;
-			itemReleaseDate = results[item].release_date;
-		} else if (results[item].media_type == 'tv') {
-			if (!results[item].hasOwnProperty('first_air_date') || !results[item].hasOwnProperty('name'))
-				continue;
-
-			itemTitle = results[item].name;
-			itemReleaseDate = results[item].first_air_date;
-		} else {
+	for (const item of results) {
+		const mediaType = item.media_type;
+		if (!mediaType) {
 			continue;
 		}
 
-		let itemReleaseYear = new Date(itemReleaseDate).getFullYear();
+		const { itemTitle, itemReleaseDate } = extractMediaInfo(item, mediaType);
+		if (!itemTitle || !itemReleaseDate) {
+			continue;
+		}
 
-		if (itemTitle.toLowerCase() == titleEnglish.toLowerCase()) {
-			if (itemReleaseYear == releaseYear) {
-				return {
-					tmdbId: results[item].id,
-					mediaType: results[item].media_type,
-					matchFound: true
-				};
-			} else if (releaseYear == -1 ||
-				itemReleaseYear == releaseYear - 1 ||
-				itemReleaseYear == releaseYear + 1) {
-				candidate = {
-					tmdbId: results[item].id,
-					mediaType: results[item].media_type,
-					matchFound: true
-				};
-			}
+		const itemReleaseYear = new Date(itemReleaseDate).getFullYear();
+
+		if (itemTitle.toLowerCase() !== titleLower) {
+			continue;
+		}
+
+		// Exact match - return immediately
+		if (itemReleaseYear === releaseYear) {
+			return { tmdbId: item.id, mediaType, matchFound: true };
+		}
+
+		// Fuzzy match - store as candidate
+		if (releaseYear === -1 || Math.abs(itemReleaseYear - releaseYear) === 1) {
+			candidate = { tmdbId: item.id, mediaType, matchFound: true };
 		}
 	}
 
@@ -438,54 +444,76 @@ function getIdWithReleaseYear(results, titleEnglish, releaseYear) {
 }
 
 /**
-* Adds the given letterboxd ID to the availableMovies 
-* if the selected provider includes the movie in its flatrate
-* 
-* @param {object} results - The results from the TMDB "Watch Providers" request.
-* @param {string} tabId - The tabId to operate in.
-* @param {int} letterboxdId - The intern ID from the array in letterboxd.com.
+ * Extracts title and release date from a TMDB result item.
+ *
+ * @param {object} item - TMDB result item.
+ * @param {string} mediaType - Type of media ('movie' or 'tv').
+ * @returns {{itemTitle: string|null, itemReleaseDate: string|null}} - Extracted info.
+ */
+function extractMediaInfo(item, mediaType) {
+	if (mediaType === 'movie' && item.release_date && item.title) {
+		return { itemTitle: item.title, itemReleaseDate: item.release_date };
+	}
+	if (mediaType === 'tv' && item.first_air_date && item.name) {
+		return { itemTitle: item.name, itemReleaseDate: item.first_air_date };
+	}
+	return { itemTitle: null, itemReleaseDate: null };
+}
+
+/**
+ * Adds the given letterboxd ID to the availableMovies
+ * if the selected provider includes the movie in its flatrate.
+ *
+ * @param {object} results - The results from the TMDB "Watch Providers" request.
+ * @param {number} tabId - The tabId to operate in.
+ * @param {Array} letterboxdId - The intern ID from the array in letterboxd.com.
  */
 function addMovieIfFlatrate(results, tabId, letterboxdId) {
-	if (!(countryCode in results) || (!results[countryCode].hasOwnProperty('flatrate') && !results[countryCode].hasOwnProperty('free'))) {
+	const countryData = results[countryCode];
+	if (!countryData) {
 		return;
 	}
 
 	const offersToCheck = [
-		...(results[countryCode].flatrate || []),
-		...(results[countryCode].free || [])
+		...(countryData.flatrate ?? []),
+		...(countryData.free ?? [])
 	];
 
-	for (const offer of offersToCheck) {
-		if (!offer.hasOwnProperty('provider_id')) {
-			continue;
-		}
+	const hasProvider = offersToCheck.some(offer =>
+		offer.provider_id && offer.provider_id === providerId
+	);
 
-		if (offer.provider_id == providerId) {
-			availableMovies[tabId].push(...letterboxdId);
-			return;
-		}
+	if (hasProvider) {
+		availableMovies[tabId].push(...letterboxdId);
 	}
 }
 
-
 /**
  * Handles unsolved requests by re-attempting to check their availability.
- * Decreases the check counter accordingly.
  */
 function handleUnsolvedRequests() {
-	var movies = JSON.parse(JSON.stringify(unsolvedRequests[tabId]));
-	// decrease the counter by the number of unsolved requests
-	// we will try to solve them now
-	checkCounter[tabId] = checkCounter[tabId] - Object.keys(unsolvedRequests[tabId]).length;
-	unsolvedRequests[tabId] = {};
+	for (const tabId in unsolvedRequests) {
+		const tabRequests = unsolvedRequests[tabId];
+		if (!tabRequests || Object.keys(tabRequests).length === 0) {
+			continue;
+		}
 
-	// persist for later service worker cycles
-	browser.storage.session.set({
-		check_counter: checkCounter,
-		unsolved_requests: unsolvedRequests
-	});
+		const movies = { ...tabRequests };
+		const requestCount = Object.keys(tabRequests).length;
 
-	checkMovieAvailability(tabId, movies);
+		// Decrease the counter by the number of unsolved requests
+		// We will try to solve them now
+		checkCounter[tabId] = (checkCounter[tabId] || 0) - requestCount;
+		unsolvedRequests[tabId] = {};
+
+		// Persist for later service worker cycles
+		browser.storage.session.set({
+			check_counter: checkCounter,
+			unsolved_requests: unsolvedRequests
+		});
+
+		checkMovieAvailability(tabId, movies);
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -493,62 +521,88 @@ function handleUnsolvedRequests() {
 /////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Checks if a URL matches Letterboxd patterns.
+ *
+ * @param {string} url - URL to check.
+ * @returns {boolean} - True if URL is a Letterboxd URL.
+ */
+function isLetterboxdUrl(url) {
+	return LETTERBOXD_PATTERNS.some(pattern => url.includes(pattern));
+}
+
+/**
+ * Checks if a URL is a supported Letterboxd page type.
+ *
+ * @param {string} url - URL to check.
+ * @returns {boolean} - True if URL is a supported page.
+ */
+function isSupportedLetterboxdPage(url) {
+	return SUPPORTED_PAGES.some(page => url.includes(page));
+}
+
+/**
  * Checks if the current URL of the tab matches the given pattern.
  *
- * @param {int} tabId - The tabId to operate in.
+ * @param {number} tabId - The tabId to operate in.
  * @param {object} changeInfo - The changeInfo from the tabs.onUpdated event.
  * @param {object} tabInfo - The tabInfo from the tabs.onUpdated event.
  */
 function checkForLetterboxd(tabId, changeInfo, tabInfo) {
-	if (filterStatus) {
-		if (changeInfo.hasOwnProperty('status') && changeInfo.status === 'complete') {
-			let url = tabInfo.url;
-			if (url.includes("://letterboxd.com/") || url.includes("://www.letterboxd.com/")) {
-				if (url.includes('/watchlist/') || url.includes('/films/') || url.includes('/likes/') || url.includes('/list/')) { // || url === "https://letterboxd.com/" || url === 'https://www.letterboxd.com/'
-					checkCounter[tabId] = 0;
-					availableMovies[tabId] = [];
-					crawledMovies[tabId] = {};
-					unsolvedRequests[tabId] = {};
-
-					// persist for later service worker cycles
-					browser.storage.session.set({
-						check_counter: checkCounter,
-						available_movies: availableMovies,
-						crawled_movies: crawledMovies,
-						unsolved_requests: unsolvedRequests,
-					});
-
-					getFilmsFromLetterboxd(tabId);
-				}
-			}
-		}
-	} else {
+	if (!filterStatus) {
 		reloadActive[tabId] = false;
-
-		// persist for later service worker cycles
+		// Persist for later service worker cycles
 		browser.storage.session.set({ reload_active: reloadActive });
+		return;
 	}
+
+	if (changeInfo?.status !== 'complete') {
+		return;
+	}
+
+	const url = tabInfo.url;
+	if (!isLetterboxdUrl(url) || !isSupportedLetterboxdPage(url)) {
+		return;
+	}
+
+	// Initialize tab state
+	initializeTabState(tabId);
+	getFilmsFromLetterboxd(tabId);
+}
+
+/**
+ * Initializes state for a tab.
+ *
+ * @param {number} tabId - The tab ID.
+ */
+function initializeTabState(tabId) {
+	checkCounter[tabId] = 0;
+	availableMovies[tabId] = [];
+	crawledMovies[tabId] = {};
+	unsolvedRequests[tabId] = {};
+
+	// Persist for later service worker cycles
+	browser.storage.session.set({
+		check_counter: checkCounter,
+		available_movies: availableMovies,
+		crawled_movies: crawledMovies,
+		unsolved_requests: unsolvedRequests,
+	});
 }
 
 /**
  * Injects a content script into the Letterboxd web page to crawl the movie titles and release years.
  *
- * @param tabId - The tabId to operate in.
+ * @param {number} tabId - The tabId to operate in.
  */
 async function getFilmsFromLetterboxd(tabId) {
 	const tab = await browser.tabs.get(tabId);
-	if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/')) {
+	if (!isLetterboxdUrl(tab.url)) {
 		return;
 	}
 
-	let fileName = "./scripts/getFilmsFromLetterboxd.js";
-
 	browser.scripting.executeScript({
-		target: {
-			tabId: tabId,
-			allFrames: true
-		},
-		files: [fileName]
+		target: { tabId, allFrames: true },
+		files: ["./scripts/getFilmsFromLetterboxd.js"]
 	});
 }
 
@@ -559,113 +613,114 @@ async function getFilmsFromLetterboxd(tabId) {
 /**
  * Inserts CSS and a corresponding content script in Letterboxd to add a new class and its style sheets.
  *
- * @param tabId - The tabId to operate in.
+ * @param {number} tabId - The tabId to operate in.
  */
 async function prepareLetterboxdForFading(tabId) {
 	await browser.scripting.insertCSS({
 		files: ["./style/hideunstreamed.css"],
-		target: {
-			tabId: tabId,
-			allFrames: false
-		},
+		target: { tabId, allFrames: false },
 	});
 
-	let fileName = "./scripts/prepareLetterboxdForFading.js";
-
 	browser.scripting.executeScript({
-		target: {
-			tabId: tabId,
-			allFrames: false
-		},
-		files: [fileName]
+		target: { tabId, allFrames: false },
+		files: ["./scripts/prepareLetterboxdForFading.js"]
 	});
 }
 
 /**
- * Inserts a content script for unfading all unavailable movies,
+ * Fades out movies that are not available on the selected streaming provider.
  *
- * @param tabId - The tabId to operate in.
- * @param movies - The crawled movies.
+ * @param {number} tabId - The tabId to operate in.
+ * @param {object} movies - The crawled movies.
  */
 function fadeUnstreamableMovies(tabId, movies) {
-	var className = 'griditem';
-	var fallbackClassName = 'posteritem';
-
-	function fadeOut(className, fallbackClassName, movieId) {
-		let filmposters = document.body.getElementsByClassName(className);
-
-		// If no griditem found, try posteritem
-		if (filmposters.length === 0) {
-			filmposters = document.body.getElementsByClassName(fallbackClassName);
-		}
-		if (filmposters[movieId]) {
-			filmposters[movieId].className += ' film-not-streamed';
-		}
-	}
-
+	// Collect all movie IDs that need to be faded
+	const idsToFade = [];
 	for (const movie in movies) {
-		for (const movie_id of movies[movie].id) {
-			if (!availableMovies[tabId].includes(movie_id)) {
-				browser.scripting.executeScript({
-					target: {
-						tabId: tabId,
-						allFrames: false
-					},
-					func: fadeOut,
-					args: [className, fallbackClassName, movie_id],
-				});
+		for (const movieId of movies[movie].id) {
+			if (!availableMovies[tabId].includes(movieId)) {
+				idsToFade.push(movieId);
 			}
 		}
 	}
 
-	// if there are unsolved requests left: solve them
-	if (Object.keys(unsolvedRequests[tabId]).length != 0) {
-		// but first wait for a delay to limit the traffic
-		browser.alarms.create("handleUnsolvedRequests", {
-			delayInMinutes: 1
+	// Batch fade all movies in a single script injection
+	if (idsToFade.length > 0) {
+		browser.scripting.executeScript({
+			target: { tabId, allFrames: false },
+			func: fadeOutMovies,
+			args: [CSS_CLASSES.GRID_ITEM, CSS_CLASSES.POSTER_ITEM, CSS_CLASSES.NOT_STREAMED, idsToFade],
 		});
 	}
 
-	reloadActive[tabId] = false;
+	// Handle unsolved requests
+	if (Object.keys(unsolvedRequests[tabId] ?? {}).length > 0) {
+		browser.alarms.create("handleUnsolvedRequests", { delayInMinutes: 0.5 });
+	}
 
-	// persist for later service worker cycles
+	reloadActive[tabId] = false;
+	
+	// Persist for later service worker cycles
 	browser.storage.session.set({ reload_active: reloadActive });
 }
 
 /**
- * Inserts a content script to unfade all movies on Letterboxd.
+ * Content script function to fade out multiple movies.
+ * Injected into the page context.
  *
- * @param tabId - The tabId to operate in.
+ * @param {string} className - Primary class name to search.
+ * @param {string} fallbackClassName - Fallback class name.
+ * @param {string} fadeClass - Class to add for fading.
+ * @param {number[]} movieIds - Array of movie indices to fade.
+ */
+function fadeOutMovies(className, fallbackClassName, fadeClass, movieIds) {
+	let filmposters = document.body.getElementsByClassName(className);
+	if (filmposters.length === 0) {
+		filmposters = document.body.getElementsByClassName(fallbackClassName);
+	}
+
+	for (const movieId of movieIds) {
+		if (filmposters[movieId]) {
+			filmposters[movieId].classList.add(fadeClass);
+		}
+	}
+}
+
+/**
+ * Unfades all movies on Letterboxd.
+ *
+ * @param {number} tabId - The tabId to operate in.
  */
 async function unfadeAllMovies(tabId) {
 	const tab = await browser.tabs.get(tabId);
-	if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/')) {
+	if (!isLetterboxdUrl(tab.url)) {
 		return;
 	}
 
-	var className = 'griditem';
-	var fallbackClassName = 'posteritem';
+	browser.scripting.executeScript({
+		target: { tabId, allFrames: false },
+		func: unfadeMovies,
+		args: [CSS_CLASSES.GRID_ITEM, CSS_CLASSES.POSTER_ITEM, CSS_CLASSES.NOT_STREAMED],
+	});
+}
 
-	function unfade(className, fallbackClassName) {
-		let filmposters = document.body.getElementsByClassName(className);
-
-		// If no griditem found, try posteritem
-		if (filmposters.length === 0) {
-			filmposters = document.body.getElementsByClassName(fallbackClassName);
-		}
-		for (let i = 0; i < filmposters.length; i++) {
-			filmposters[i].className = filmposters[i].className.replace(' film-not-streamed', '');
-		}
+/**
+ * Content script function to unfade all movies.
+ * Injected into the page context.
+ *
+ * @param {string} className - Primary class name to search.
+ * @param {string} fallbackClassName - Fallback class name.
+ * @param {string} fadeClass - Class to remove.
+ */
+function unfadeMovies(className, fallbackClassName, fadeClass) {
+	let filmposters = document.body.getElementsByClassName(className);
+	if (filmposters.length === 0) {
+		filmposters = document.body.getElementsByClassName(fallbackClassName);
 	}
 
-	browser.scripting.executeScript({
-		target: {
-			tabId: tabId,
-			allFrames: false
-		},
-		func: unfade,
-		args: [className, fallbackClassName],
-	});
+	for (const poster of filmposters) {
+		poster.classList.remove(fadeClass);
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -673,45 +728,49 @@ async function unfadeAllMovies(tabId) {
 /////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Returns the API access token for TMDb.
- *
- * @returns {string} - The API access token.
- */
-function getApiToken() {
-	return tmdbToken;
-}
-
-/**
- * Called to load a JSON file.
+ * Loads a JSON file.
  *
  * @param {string} path - The path to the JSON file.
  * @returns {Promise<object|null>} - The parsed JSON object, or null if loading failed.
  */
 async function loadJson(path) {
-	let response = await fetch(path);
-	if (response.status == 200) {
-		return await response.json();
+	try {
+		const response = await fetch(path);
+		if (response.status === 200) {
+			return await response.json();
+		}
+	} catch (error) {
+		console.error(`Failed to load JSON from ${path}:`, error);
 	}
 	return null;
 }
 
+/**
+ * Increases the check counter for a tab and triggers fading when all movies are checked.
+ *
+ * @param {number} tabId - The tab ID.
+ */
 function increaseCheckCounter(tabId) {
 	checkCounter[tabId]++;
-
-	// persist for later service worker cycles
 	browser.storage.session.set({ check_counter: checkCounter });
 
-	if (checkCounter[tabId] == Object.keys(crawledMovies[tabId]).length) {
+	const totalMovies = Object.keys(crawledMovies[tabId] ?? {}).length;
+	if (checkCounter[tabId] === totalMovies) {
 		fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
 	}
 }
 
+/**
+ * Sets fetch options with the given API token.
+ *
+ * @param {string} token - The TMDB API token.
+ */
 function setFetchOptions(token) {
 	fetchOptions = {
 		method: 'GET',
 		headers: {
-			"Authorization": "Bearer " + token,
+			"Authorization": `Bearer ${token}`,
 			"Accept": "application/json"
 		}
-	}
+	};
 }
