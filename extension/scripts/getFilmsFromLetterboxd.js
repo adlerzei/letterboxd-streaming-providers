@@ -1,82 +1,53 @@
-if (typeof browser === 'undefined') {
-	var browser = chrome;
+if (typeof browser === "undefined") {
+  var browser = chrome;
 }
 
-var filmposters = document.body.getElementsByClassName('poster-container');
+var gridItems = document.querySelectorAll("li.griditem");
 
 var movies = {};
-for (let poster = 0; poster < filmposters['length']; poster++) {
-	let outerDiv = filmposters[poster].children[0];
-	if (outerDiv.attributes.hasOwnProperty('data-film-name')) {
-		let filmName = outerDiv.attributes['data-film-name'].value;
+for (let index = 0; index < gridItems.length; index++) {
+  const li = gridItems[index];
 
-		let filmYear = -1;
-		if (outerDiv.attributes.hasOwnProperty('data-film-release-year')) {
-			filmYear = outerDiv.attributes['data-film-release-year'].value;
-		}
-		else if (outerDiv.children[0].children[1].attributes.hasOwnProperty('data-original-title')) {
-			// sometimes, the release year is not specified as own attribute
-			// we need to find the release year on a different way then
+  const outerDiv = li.querySelector(".react-component[data-film-id]");
+  if (!outerDiv) {
+    continue;
+  }
 
-			let movieWithYear = outerDiv.children[0].children[1].attributes['data-original-title'].value; // contains "title (year)"
-			let yearRegex = /\((\d{4})\)/;
-			let match = movieWithYear.match(yearRegex);
-			if (match) {
-				filmYear = match[1];  // the year is in the first capture group
-			}
-		}
-		else {
-			// we are unlucky, no date specified
-		}
+  const rawName =
+    outerDiv.getAttribute("data-item-name") ||
+    outerDiv.getAttribute("data-item-full-display-name") ||
+    "";
 
-		if (movies.hasOwnProperty(filmName)) {
-			if (movies[filmName].year === -1) {
-				movies[filmName].year = filmYear;
-			}
+  if (!rawName) {
+    continue;
+  }
 
-			movies[filmName].id.push(poster);
-		} else {
-			movies[filmName] = {
-				year: filmYear,
-				id: [poster]
-			};
-		}
-	} else {
-		// if poster does not have attribute "data-film-name" it is lazy loaded
-		// we need to find the poster on a different way then
-		let filmName = outerDiv.children[0].alt;
-		let filmYear = -1;
+  let filmName = rawName.trim();
+  let filmYear = -1;
 
-		// determine the release year from the data-film-slug attribute
-		let transformedName = filmName.toLowerCase().replace(/\s+/g, '-');
-		if (outerDiv.attributes.hasOwnProperty('data-film-slug')) {
-			let dataFilmSlug = outerDiv.attributes['data-film-slug'].value;
-			if (dataFilmSlug.startsWith(transformedName)) {
-				let remainingSlug = dataFilmSlug.slice(transformedName.length);
-				let numberPattern = /^-(\d+)$/;
-				let match = remainingSlug.match(numberPattern);
-				if (match) {
-					filmYear = match[1];
-				}
-			}
-		}
+  // we need to extract the film title and the release year item name.  
+  // if this method somedays will not work anymore, the react-component contains
+  // data-details-endpoint attribute which can be used to fetch more details about the film
+  const match = rawName.match(/\((\d{4})\)\s*$/);
+  if (match) {
+    filmYear = parseInt(match[1], 10); // the year is in the first capture group
+    filmName = rawName.replace(/\s*\(\d{4}\)\s*$/, "").trim();
+  }
 
-		if (movies.hasOwnProperty(filmName)) {
-			if (movies[filmName].year === -1) {
-				movies[filmName].year = filmYear;
-			}
-
-			movies[filmName].id.push(poster);
-		} else {
-			movies[filmName] = {
-				year: filmYear,
-				id: [poster]
-			};
-		}
-	}
+  if (Object.prototype.hasOwnProperty.call(movies, filmName)) {
+    if (movies[filmName].year === -1) {
+      movies[filmName].year = filmYear;
+    }
+    movies[filmName].id.push(index);
+  } else {
+    movies[filmName] = {
+      year: filmYear,
+      id: [index],
+    };
+  }
 }
 
 browser.runtime.sendMessage({
-	messageType: 'movie-titles',
-	messageContent: movies
+  messageType: "movie-titles",
+  messageContent: movies,
 });

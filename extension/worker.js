@@ -65,8 +65,6 @@ const onStartUp = async () => {
 				};
 				str += entry.english_name + ", "
 			}
-
-		console.log(str);
 		}
 
 		// persist for later service worker cycles
@@ -458,11 +456,16 @@ function getIdWithReleaseYear(results, titleEnglish, releaseYear) {
  * @param {int} letterboxdId - The intern ID from the array in letterboxd.com.
   */
 function addMovieIfFlatrate(results, tabId, letterboxdId) {
-	if (!(countryCode in results) || !results[countryCode].hasOwnProperty('flatrate')) {
+	if (!(countryCode in results) || (!results[countryCode].hasOwnProperty('flatrate') && !results[countryCode].hasOwnProperty('free'))) {
 		return;
 	} 
 
-	for (const offer of results[countryCode].flatrate) {
+	const offersToCheck = [
+		...(results[countryCode].flatrate || []),
+		...(results[countryCode].free || [])
+	];
+
+	for (const offer of offersToCheck) {
 		if (!offer.hasOwnProperty('provider_id')) {
 			continue;
 		}
@@ -590,10 +593,10 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
  * @param movies - The crawled movies.
  */
  function fadeUnstreamableMovies(tabId, movies) {
-	var className = 'poster-container';
+	var className = 'griditem';
 
 	function fadeOut(className, movieId) {
-		filmposters = document.body.getElementsByClassName(className);
+		const filmposters = document.body.getElementsByClassName(className);
 		filmposters[movieId].className += ' film-not-streamed';
 	}
 
@@ -636,12 +639,12 @@ function unfadeAllMovies(tabId) {
 		if (!tab.url.includes('://letterboxd.com/') && !tab.url.includes('://www.letterboxd.com/'))
 			return;
 
-		var className = 'poster-container';
+		var className = 'griditem';
 
 		function unfade(className) {
-			filmposters = document.body.getElementsByClassName(className);
-			for(const poster in filmposters) {
-				filmposters[poster].className = filmposters[poster].className.replace(' film-not-streamed', '');
+			const filmposters = document.body.getElementsByClassName(className);
+			for(let i = 0; i < filmposters.length; i++) {
+				filmposters[i].className = filmposters[i].className.replace(' film-not-streamed', '');
 			}
 		}
 
