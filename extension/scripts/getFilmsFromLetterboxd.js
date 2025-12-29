@@ -1,27 +1,27 @@
-if (typeof browser === "undefined") {
+if (typeof browser === 'undefined') {
   var browser = chrome;
 }
 
-var items = document.querySelectorAll("li.griditem");
+var items = document.querySelectorAll('li.griditem');
 
 // If no items found, try getting li.posteritem
 if (items.length === 0) {
-  items = document.querySelectorAll("li.posteritem");
+  items = document.querySelectorAll('li.posteritem');
 }
 
 var movies = {};
 for (let index = 0; index < items.length; index++) {
   const li = items[index];
 
-  const outerDiv = li.querySelector(".react-component[data-film-id]");
+  const outerDiv = li.querySelector('.react-component[data-film-id]');
   if (!outerDiv) {
     continue;
   }
 
   const rawName =
-    outerDiv.getAttribute("data-item-name") ||
-    outerDiv.getAttribute("data-item-full-display-name") ||
-    "";
+    outerDiv.getAttribute('data-item-name') ||
+    outerDiv.getAttribute('data-item-full-display-name') ||
+    '';
 
   if (!rawName) {
     continue;
@@ -36,7 +36,7 @@ for (let index = 0; index < items.length; index++) {
   const match = rawName.match(/\((\d{4})\)\s*$/);
   if (match) {
     filmYear = parseInt(match[1], 10); // the year is in the first capture group
-    filmName = rawName.replace(/\s*\(\d{4}\)\s*$/, "").trim();
+    filmName = rawName.replace(/\s*\(\d{4}\)\s*$/, '').trim();
   }
 
   if (Object.prototype.hasOwnProperty.call(movies, filmName)) {
@@ -53,6 +53,6 @@ for (let index = 0; index < items.length; index++) {
 }
 
 browser.runtime.sendMessage({
-  messageType: "movie-titles",
+  messageType: 'movie-titles',
   messageContent: movies,
 });
