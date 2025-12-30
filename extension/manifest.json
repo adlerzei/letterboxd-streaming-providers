@@ -28,5 +28,13 @@
     "default_icon": "icons/logo_final_32.png",
     "default_title": "Letterboxd Streaming Providers",
     "default_popup": "popup/popup.html"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{e0dc2f35-de3c-4225-91ac-0b45a485da62}",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
   }
 }
