@@ -164,14 +164,23 @@ async function loadDefaultSettings(needCountryCode, needProvider, needStatus) {
 		return;
 	}
 
+	const toStore = {};
+
 	if (needCountryCode && 'country_code' in json) {
 		countryCode = json.country_code;
+		toStore.country_code = countryCode;
 	}
 	if (needProvider && 'provider_id' in json) {
 		providerId = json.provider_id;
+		toStore.provider_id = providerId;
 	}
 	if (needStatus && 'filter_status' in json) {
 		filterStatus = json.filter_status;
+		toStore.filter_status = filterStatus;
+	}
+
+	if (Object.keys(toStore).length > 0) {
+		browser.storage.local.set(toStore);
 	}
 }
 
