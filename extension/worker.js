@@ -14,6 +14,7 @@ const CSS_CLASSES = {
 	POSTER_ITEM: 'posteritem',
 	NOT_STREAMED: 'film-not-streamed'
 };
+const MAX_CRAWL_RETRIES = 3;
 
 /////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////// STATE MANAGEMENT //////////////////////////////////////////
@@ -33,6 +34,7 @@ let countries = {};
 let availableMovies = {};
 let crawledMovies = {};
 let unsolvedRequests = {};
+let crawlRetryCount = {};
 
 let settingsLoaded = false;
 let cacheLoaded = false;
@@ -307,9 +309,14 @@ function handleMessage(request, sender) {
 	browser.storage.session.set({ crawled_movies: crawledMovies });
 
 	if (Object.keys(crawledMovies[tabId]).length === 0) {
-		// we don't got any movies yet, let's try again
-		getFilmsFromLetterboxd(tabId);
+		// we don't got any movies yet, let's try again if we haven't exceeded max retries
+		crawlRetryCount[tabId] = (crawlRetryCount[tabId] ?? 0) + 1;
+		if (crawlRetryCount[tabId] < MAX_CRAWL_RETRIES) {
+			getFilmsFromLetterboxd(tabId);
+		}
 	} else {
+		// Reset retry count on success
+		crawlRetryCount[tabId] = 0;
 		checkMovieAvailability(tabId, crawledMovies[tabId]);
 	}
 }
@@ -585,6 +592,7 @@ async function initializeTabState(tabId) {
 	availableMovies[tabId] = [];
 	crawledMovies[tabId] = {};
 	unsolvedRequests[tabId] = {};
+	crawlRetryCount[tabId] = 0;
 
 	// Persist for later service worker cycles
 	await browser.storage.session.set({
