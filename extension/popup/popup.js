@@ -27,6 +27,10 @@ browser.storage.local.get((items) => {
 		
 		filterSwitch.checked = filterStatus;
 		
+		// Set initial disabled state for selects
+		countryList.disabled = !filterStatus;
+		providerList.disabled = !filterStatus;
+		
 		filterSwitch.addEventListener("change", changeFilterSwitch);
 		providerList.addEventListener("change", changeProviderId);
 		countryList.addEventListener("change", changeCountryCode);

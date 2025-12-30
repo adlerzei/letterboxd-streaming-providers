@@ -1,11 +1,11 @@
 {
-  "description": "Adds a filter for streaming providers to Letterboxd.",
+  "description": "Adds a filter for streaming services to Letterboxd.",
   "author": "Christian Zei",
   "manifest_version": 3,
   "name": "Letterboxd Streaming Providers",
   "short_name": "LSP",
   "homepage_url": "https://github.com/adlerzei/letterboxd-streaming-providers#readme",
-  "version": "1.7.1",
+  "version": "1.8.0",
   "icons": {
     "48": "icons/logo_final_48.png",
     "128": "icons/logo_final_128.png"
@@ -22,7 +22,7 @@
     "*://www.letterboxd.com/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "worker.js"
   },
   "action": {
     "default_icon": "icons/logo_final_32.png",

@@ -1,8 +1,8 @@
 {
   "name": "letterboxd-streaming-providers",
-  "version": "1.7.1",
-  "description": "Browser extension that adds a filter for some streaming providers to letterboxd.com",
-  "main": "background.js",
+  "version": "1.8.0",
+  "description": "Browser extension that adds a filter for some streaming services to letterboxd.com",
+  "main": "worker.js",
   "dependencies": {
     "@types/chrome": "0.0.127",
     "npm": "^11.7.0"

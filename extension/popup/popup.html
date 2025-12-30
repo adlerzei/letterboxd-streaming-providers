@@ -9,9 +9,7 @@
 <body>
 
 <div class="title">
-  <div class="title-img">
-    <img src="../icons/logo_final_32.png" alt="Letterboxd Streaming Providers" height="32" width="32">
-  </div>
+  <img src="../icons/logo_final_32.png" alt="Letterboxd Streaming Providers" height="32" width="32" class="title-img">
   <div class="title-text">
     Letterboxd Streaming Providers
   </div>
@@ -19,28 +17,28 @@
 
 <section id="content">
   <label class="switch">
-    <div class="slider-text">Filter Providers</div>
+    <span class="slider-text">Filter entries</span>
     <input type="checkbox" id="filterSwitch">
-    <span class="slider round"></span>
+    <span class="slider"></span>
   </label>
 
   <div class="select-box">
-    <div class="content-text">Country</div>
+    <label class="content-text" for="CountryList">Country</label>
     <select id="CountryList"></select>
-    <div class="content-text">Streaming Provider</div>
+    <label class="content-text" for="ProviderList">Streaming service</label>
     <select id="ProviderList"></select>
   </div>
 </section>
 
 <section id="footer">
-  <div class="footer-text">Streaming information is provided by </div>
+  <div class="footer-text">Streaming information provided by</div>
   <div class="justwatch-logo">
-    <a href="https://justwatch.com"><img src="../justwatch/logo.png" alt="JustWatch"></a>
+    <a href="https://justwatch.com" title="JustWatch"><img src="../justwatch/logo.png" alt="JustWatch"></a>
   </div>
 </section>
 
 <section id="footer">
-  <div class="footer-text">Further information? Contributing? Go <a href="https://github.com/adlerzei/letterboxd-streaming-providers#readme" title="Letterboxd Streaming Services on GitHub">here</a>!</div>
+  <div class="footer-text">Further information? Contributing? Go <a href="https://github.com/adlerzei/letterboxd-streaming-providers#readme" title="Letterboxd Streaming Providers on GitHub">here</a>!</div>
 </section>
 
 <script src="popup.js"></script>
