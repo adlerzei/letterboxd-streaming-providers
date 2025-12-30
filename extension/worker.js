@@ -36,7 +36,6 @@ let unsolvedRequests = {};
 
 // contains the number of already checked movies per tab
 let checkCounter = {};
-let reloadActive = {};
 
 let settingsLoaded = false;
 let cacheLoaded = false;
@@ -209,7 +208,6 @@ async function parseCache(items) {
 	crawledMovies = items.crawled_movies ?? {};
 	unsolvedRequests = items.unsolved_requests ?? {};
 	checkCounter = items.check_counter ?? {};
-	reloadActive = items.reload_active ?? {};
 
 	const tmdbToken = items.tmdb_token ?? '';
 	setFetchOptions(tmdbToken);
@@ -246,7 +244,12 @@ browser.runtime.onMessage.addListener((request, sender, _) => {
 });
 
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tabInfo) => {
-	loadSettingsAndExecute(() => checkForLetterboxd(tabId, changeInfo, tabInfo));
+	// Use status from changeInfo as tabInfo.status may not be updated yet when the event fires
+	if (!isProcessableLetterboxdTab({ ...tabInfo, status: changeInfo?.status })) {
+		return;
+	}
+
+	loadSettingsAndExecute(() => processLetterboxdTab(tabId));
 });
 
 browser.storage.local.onChanged.addListener(_ => {
@@ -269,20 +272,16 @@ browser.alarms.onAlarm.addListener(alarm => {
  * Called to force the filters to reload with the new provider ID.
  */
 async function reloadMovieFilter() {
-	const tabs = await browser.tabs.query({});
+	const tabs = await browser.tabs.query({}) ?? [];
 
 	for (const tab of tabs) {
-		const tabId = tab.id;
-
-		if (reloadActive[tabId]) {
+		if (!isProcessableLetterboxdTab(tab)) {
 			continue;
 		}
 
-		reloadActive[tabId] = true;
-		browser.storage.session.set({ reload_active: reloadActive });
-
-		unfadeAllMovies(tabId);
-		checkForLetterboxd(tabId, { status: 'complete' }, { url: tab.url });
+		const tabId = tab.id;
+		await unfadeAllMovies(tabId);
+		processLetterboxdTab(tabId);
 	}
 }
 
@@ -327,8 +326,6 @@ function handleMessage(request, sender) {
  */
 function checkMovieAvailability(tabId, movies) {
 	if (!filterStatus) {
-		reloadActive[tabId] = false;
-		browser.storage.session.set({ reload_active: reloadActive });
 		return;
 	}
 
@@ -500,10 +497,26 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
 /**
  * Handles unsolved requests by re-attempting to check their availability.
  */
-function handleUnsolvedRequests() {
+async function handleUnsolvedRequests() {
 	for (const tabId in unsolvedRequests) {
 		const tabRequests = unsolvedRequests[tabId];
 		if (!tabRequests || Object.keys(tabRequests).length === 0) {
+			continue;
+		}
+
+		// Check if tab is still valid and processable
+		let isValidTab = false;
+		try {
+			const tab = await browser.tabs.get(Number(tabId));
+			isValidTab = isProcessableLetterboxdTab(tab);
+		} catch (e) {
+			// Tab no longer exists
+		}
+
+		if (!isValidTab) {
+			// Tab is no longer valid, clean up its unsolved requests
+			delete unsolvedRequests[tabId];
+			browser.storage.session.set({ unsolved_requests: unsolvedRequests });
 			continue;
 		}
 
@@ -536,7 +549,7 @@ function handleUnsolvedRequests() {
  * @returns {boolean} - True if URL is a Letterboxd URL.
  */
 function isLetterboxdUrl(url) {
-	return LETTERBOXD_PATTERNS.some(pattern => url.includes(pattern));
+	return url && LETTERBOXD_PATTERNS.some(pattern => url.includes(pattern));
 }
 
 /**
@@ -546,35 +559,33 @@ function isLetterboxdUrl(url) {
  * @returns {boolean} - True if URL is a supported page.
  */
 function isSupportedLetterboxdPage(url) {
-	return SUPPORTED_PAGES.some(page => url.includes(page));
+	return url && SUPPORTED_PAGES.some(page => url.includes(page));
 }
 
 /**
- * Checks if the current URL of the tab matches the given pattern.
+ * Checks if a tab is ready to be processed (loaded, not discarded, and is a supported Letterboxd page).
+ *
+ * @param {object} tab - The tab object with url, status, and discarded properties.
+ * @returns {boolean} - True if the tab can be processed.
+ */
+function isProcessableLetterboxdTab(tab) {
+	if (tab.discarded || tab.status !== 'complete') {
+		return false;
+	}
+	return isLetterboxdUrl(tab.url) && isSupportedLetterboxdPage(tab.url);
+}
+
+/**
+ * Starts processing a Letterboxd tab by initializing state and crawling films.
  *
  * @param {number} tabId - The tabId to operate in.
- * @param {object} changeInfo - The changeInfo from the tabs.onUpdated event.
- * @param {object} tabInfo - The tabInfo from the tabs.onUpdated event.
  */
-function checkForLetterboxd(tabId, changeInfo, tabInfo) {
+async function processLetterboxdTab(tabId) {
 	if (!filterStatus) {
-		reloadActive[tabId] = false;
-		// Persist for later service worker cycles
-		browser.storage.session.set({ reload_active: reloadActive });
 		return;
 	}
 
-	if (changeInfo?.status !== 'complete') {
-		return;
-	}
-
-	const url = tabInfo.url;
-	if (!isLetterboxdUrl(url) || !isSupportedLetterboxdPage(url)) {
-		return;
-	}
-
-	// Initialize tab state
-	initializeTabState(tabId);
+	await initializeTabState(tabId);
 	getFilmsFromLetterboxd(tabId);
 }
 
@@ -583,14 +594,14 @@ function checkForLetterboxd(tabId, changeInfo, tabInfo) {
  *
  * @param {number} tabId - The tab ID.
  */
-function initializeTabState(tabId) {
+async function initializeTabState(tabId) {
 	checkCounter[tabId] = 0;
 	availableMovies[tabId] = [];
 	crawledMovies[tabId] = {};
 	unsolvedRequests[tabId] = {};
 
 	// Persist for later service worker cycles
-	browser.storage.session.set({
+	await browser.storage.session.set({
 		check_counter: checkCounter,
 		available_movies: availableMovies,
 		crawled_movies: crawledMovies,
@@ -604,12 +615,7 @@ function initializeTabState(tabId) {
  * @param {number} tabId - The tabId to operate in.
  */
 async function getFilmsFromLetterboxd(tabId) {
-	const tab = await browser.tabs.get(tabId);
-	if (!isLetterboxdUrl(tab.url)) {
-		return;
-	}
-
-	browser.scripting.executeScript({
+	await browser.scripting.executeScript({
 		target: { tabId, allFrames: true },
 		files: ["./scripts/getFilmsFromLetterboxd.js"]
 	});
@@ -666,11 +672,6 @@ function fadeUnstreamableMovies(tabId, movies) {
 	if (Object.keys(unsolvedRequests[tabId] ?? {}).length > 0) {
 		browser.alarms.create("handleUnsolvedRequests", { delayInMinutes: 0.5 });
 	}
-
-	reloadActive[tabId] = false;
-	
-	// Persist for later service worker cycles
-	browser.storage.session.set({ reload_active: reloadActive });
 }
 
 /**
@@ -701,12 +702,7 @@ function fadeOutMovies(className, fallbackClassName, fadeClass, movieIds) {
  * @param {number} tabId - The tabId to operate in.
  */
 async function unfadeAllMovies(tabId) {
-	const tab = await browser.tabs.get(tabId);
-	if (!isLetterboxdUrl(tab.url)) {
-		return;
-	}
-
-	browser.scripting.executeScript({
+	await browser.scripting.executeScript({
 		target: { tabId, allFrames: false },
 		func: unfadeMovies,
 		args: [CSS_CLASSES.GRID_ITEM, CSS_CLASSES.POSTER_ITEM, CSS_CLASSES.NOT_STREAMED],
