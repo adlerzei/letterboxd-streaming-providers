@@ -34,9 +34,6 @@ let availableMovies = {};
 let crawledMovies = {};
 let unsolvedRequests = {};
 
-// contains the number of already checked movies per tab
-let checkCounter = {};
-
 let settingsLoaded = false;
 let cacheLoaded = false;
 
@@ -207,7 +204,6 @@ async function parseCache(items) {
 	availableMovies = items.available_movies ?? {};
 	crawledMovies = items.crawled_movies ?? {};
 	unsolvedRequests = items.unsolved_requests ?? {};
-	checkCounter = items.check_counter ?? {};
 
 	const tmdbToken = items.tmdb_token ?? '';
 	setFetchOptions(tmdbToken);
@@ -324,49 +320,45 @@ function handleMessage(request, sender) {
  * @param {number} tabId - The tabId to operate in.
  * @param {object} movies - The crawled movies from Letterboxed.
  */
-function checkMovieAvailability(tabId, movies) {
+async function checkMovieAvailability(tabId, movies) {
 	if (!filterStatus) {
 		return;
 	}
 
 	prepareLetterboxdForFading(tabId);
 
-	for (const movie in movies) {
-		isIncluded(tabId, {
-			title: movie,
-			year: movies[movie].year,
-			id: movies[movie].id
-		});
-	}
+	const checkPromises = Object.entries(movies).map(([title, data]) =>
+		checkMovie(tabId, title, data.year, data.id)
+	);
+	await Promise.all(checkPromises);
+
+	fadeUnstreamableMovies(tabId, movies);
 }
 
 /**
  * Checks if a movie is available and adds it to availableMovies[tabId].
  *
  * @param {number} tabId - The tabId of the tab, in which Letterboxd should be filtered.
- * @param {object} toFind - An object containing the movie title, release year and Letterboxd-intern array id.
- * @returns {Promise<void>} - An empty Promise if the API calls worked correctly.
+ * @param {string} title - The movie title.
+ * @param {number} year - The release year.
+ * @param {Array} letterboxdId - The Letterboxd-intern array id.
  */
-async function isIncluded(tabId, toFind) {
-	const { title: englishTitle, year: releaseYear, id: letterboxdId } = toFind;
-	const titleSanitized = encodeURIComponent(englishTitle);
+async function checkMovie(tabId, title, year, letterboxdId) {
+	const titleSanitized = encodeURIComponent(title);
 
 	// Search for the movie
 	const searchUrl = `https://api.themoviedb.org/3/search/multi?query=${titleSanitized}`;
 	const searchResponse = await fetch(searchUrl, fetchOptions);
 
 	if (searchResponse.status !== 200) {
-		handleRateLimitError(searchResponse.status, tabId, englishTitle, releaseYear, letterboxdId);
-		increaseCheckCounter(tabId);
+		handleRateLimitError(searchResponse.status, tabId, title, year, letterboxdId);
 		return;
 	}
 
 	const searchData = await searchResponse.json();
-	const tmdbInfo = getIdWithReleaseYear(searchData.results, englishTitle, releaseYear);
+	const tmdbInfo = getIdWithReleaseYear(searchData.results, title, year);
 
 	if (!tmdbInfo.matchFound) {
-		// this time we are unlucky and don't find any match
-		increaseCheckCounter(tabId);
 		return;
 	}
 
@@ -375,14 +367,12 @@ async function isIncluded(tabId, toFind) {
 	const providerResponse = await fetch(providerUrl, fetchOptions);
 
 	if (providerResponse.status !== 200) {
-		handleRateLimitError(providerResponse.status, tabId, englishTitle, releaseYear, letterboxdId);
-		increaseCheckCounter(tabId);
+		handleRateLimitError(providerResponse.status, tabId, title, year, letterboxdId);
 		return;
 	}
 
 	const providerData = await providerResponse.json();
 	addMovieIfFlatrate(providerData.results, tabId, letterboxdId);
-	increaseCheckCounter(tabId);
 }
 
 /**
@@ -514,27 +504,24 @@ async function handleUnsolvedRequests() {
 		}
 
 		if (!isValidTab) {
-			// Tab is no longer valid, clean up its unsolved requests
 			delete unsolvedRequests[tabId];
 			browser.storage.session.set({ unsolved_requests: unsolvedRequests });
 			continue;
 		}
 
-		const movies = { ...tabRequests };
-		const requestCount = Object.keys(tabRequests).length;
-
-		// Decrease the counter by the number of unsolved requests
-		// We will try to solve them now
-		checkCounter[tabId] = (checkCounter[tabId] || 0) - requestCount;
+		// Clear unsolved requests for this tab before retrying
+		const moviesToRetry = { ...tabRequests };
 		unsolvedRequests[tabId] = {};
+		browser.storage.session.set({ unsolved_requests: unsolvedRequests });
 
-		// Persist for later service worker cycles
-		browser.storage.session.set({
-			check_counter: checkCounter,
-			unsolved_requests: unsolvedRequests
-		});
+		// Retry all failed movies and wait for completion
+		const retryPromises = Object.entries(moviesToRetry).map(([title, data]) =>
+			checkMovie(Number(tabId), title, data.year, data.id)
+		);
+		await Promise.all(retryPromises);
 
-		checkMovieAvailability(tabId, movies);
+		// Re-apply fading with updated availableMovies
+		fadeUnstreamableMovies(Number(tabId), crawledMovies[tabId]);
 	}
 }
 
@@ -595,14 +582,12 @@ async function processLetterboxdTab(tabId) {
  * @param {number} tabId - The tab ID.
  */
 async function initializeTabState(tabId) {
-	checkCounter[tabId] = 0;
 	availableMovies[tabId] = [];
 	crawledMovies[tabId] = {};
 	unsolvedRequests[tabId] = {};
 
 	// Persist for later service worker cycles
 	await browser.storage.session.set({
-		check_counter: checkCounter,
 		available_movies: availableMovies,
 		crawled_movies: crawledMovies,
 		unsolved_requests: unsolvedRequests,
@@ -748,21 +733,6 @@ async function loadJson(path) {
 		console.error(`Failed to load JSON from ${path}:`, error);
 	}
 	return null;
-}
-
-/**
- * Increases the check counter for a tab and triggers fading when all movies are checked.
- *
- * @param {number} tabId - The tab ID.
- */
-function increaseCheckCounter(tabId) {
-	checkCounter[tabId]++;
-	browser.storage.session.set({ check_counter: checkCounter });
-
-	const totalMovies = Object.keys(crawledMovies[tabId] ?? {}).length;
-	if (checkCounter[tabId] === totalMovies) {
-		fadeUnstreamableMovies(tabId, crawledMovies[tabId]);
-	}
 }
 
 /**
