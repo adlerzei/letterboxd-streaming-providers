@@ -21,8 +21,6 @@ The extension can be added into Chrome, Firefox and Opera.
 [Letterboxd Streaming Providers at the Chrome Web Store](https://chrome.google.com/webstore/detail/letterboxd-streaming-prov/egmanfnfgmljjmdncfoeghfmflhlmhpj)
 
 #### Firefox Add-ons (AMO)
-**NOTE:** The Firefox version is currently broken. The Chrome version is running fine but it is based on Manifest v3. Maybe someone can port the Chrome version back to Manifest v2. If you are interested in doing this, contact me.
-
 [Letterboxd Streaming Providers at AMO](https://addons.mozilla.org/en-US/firefox/addon/letterboxd-streaming-providers/)
 
 ### Which countries are supported?
