@@ -50,7 +50,7 @@ function appendOptionsToCountryList() {
 			continue;
 
 		let opt = document.createElement('option');
-		opt.insertAdjacentHTML('beforeend', countries[country].name);
+		opt.textContent = countries[country].name;
 		opt.value = country;
 		opt.label = countries[country].name;
 		if (countries[country].code === countryCode) {
@@ -79,7 +79,7 @@ function appendOptionsToProviderList(defaultProviderName) {
 		let country = countryList.options[countryList.selectedIndex].value;
 		if (providers[provider].countries.includes(country)) {
 			let opt = document.createElement('option');
-			opt.insertAdjacentHTML('beforeend', providers[provider].name);
+			opt.textContent = providers[provider].name;
 			opt.value = provider;
 			opt.label = providers[provider].name;
 			if (typeof defaultProviderName === 'undefined') {
