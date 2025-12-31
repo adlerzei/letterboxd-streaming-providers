@@ -9,13 +9,13 @@
 This is an extension for common web browsers coded using the WebExtensions API.
 
 ## Main Features
-This extension adds a filter for streaming providers (e.g., Netflix, Amazon Prime Video) to [Letterboxd](https://letterboxd.com/), to make it possible for you to see, which movies are included in your streaming flat rate.
+This extension adds a filter for streaming services (e.g., Netflix, Amazon Prime Video) to [Letterboxd](https://letterboxd.com/), to make it possible for you to see, which movies are included in your streaming flat rate.
 
 ### How?
 The extension uses the TMDb API to access the streaming information that is provided by JustWatch.
 
 ### Which browser to use?
-The extension can be added into Chrome, Firefox and Opera.
+The extension can be added to all Chromium-based browsers (Chrome, Edge, Opera, Brave, etc.) and Firefox.
 
 #### Chrome Web Store
 [Letterboxd Streaming Providers at the Chrome Web Store](https://chrome.google.com/webstore/detail/letterboxd-streaming-prov/egmanfnfgmljjmdncfoeghfmflhlmhpj)
