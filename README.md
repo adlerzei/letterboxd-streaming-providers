@@ -6,7 +6,7 @@
 [![Project license](https://img.shields.io/github/license/adlerzei/letterboxd-streaming-providers)](https://github.com/adlerzei/letterboxd-streaming-providers/blob/main/LICENSE)
 
 ## What?
-This is a extension for common web browsers coded using the WebExtensions API.
+This is an extension for common web browsers coded using the WebExtensions API.
 
 ## Main Features
 This extension adds a filter for streaming providers (e.g., Netflix, Amazon Prime Video) to [Letterboxd](https://letterboxd.com/), to make it possible for you to see, which movies are included in your streaming flat rate.
