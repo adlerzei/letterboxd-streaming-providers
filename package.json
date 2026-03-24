@@ -5,7 +5,7 @@
   "main": "worker.js",
   "dependencies": {
     "@types/chrome": "0.0.127",
-    "npm": "^11.7.0"
+    "npm": "^11.10.1"
   },
   "scripts": {
     "build": "./tools/build.sh"
