@@ -52,11 +52,11 @@ let cacheLoaded = false;
  */
 const onStartUp = async () => {
 	// load TMDb token and set fetch options
-	const apiConfig = await loadJson("settings/api.json");
-	if (apiConfig?.tmdb) {
-		setFetchOptions(apiConfig.tmdb);
+	const apiConfig = await safeFetchJson("settings/api.json", {}, "API config");
+	if (apiConfig?.json?.tmdb) {
+		setFetchOptions(apiConfig.json.tmdb);
 		// persist for later service worker cycles
-		browser.storage.session.set({ tmdb_token: apiConfig.tmdb });
+		browser.storage.session.set({ tmdb_token: apiConfig.json.tmdb });
 	}
 
 	// load stored settings from localStorage
@@ -72,25 +72,20 @@ const onStartUp = async () => {
 async function requestRegions() {
 	const url = "https://api.themoviedb.org/3/watch/providers/regions";
 
-	try {
-		const response = await fetch(url, fetchOptions);
-		if (response.status !== 200) {
-			return;
-		}
-
-		const rsp = await response.json();
-		for (const entry of rsp.results) {
-			countries[entry.iso_3166_1] = {
-				code: entry.iso_3166_1,
-				name: entry.english_name
-			};
-		}
-
-		// persist for later service worker cycles
-		browser.storage.session.set({ countries });
-	} catch (error) {
-		console.error("Failed to fetch regions:", error);
+	const response = await safeFetchJson(url, fetchOptions, "TMDB regions request");
+	if (response?.json == null) {
+		return;
 	}
+
+	for (const entry of response.json.results) {
+		countries[entry.iso_3166_1] = {
+			code: entry.iso_3166_1,
+			name: entry.english_name
+		};
+	}
+
+	// persist for later service worker cycles
+	browser.storage.session.set({ countries });
 }
 
 /**
@@ -99,27 +94,22 @@ async function requestRegions() {
 async function requestProviderList() {
 	const url = "https://api.themoviedb.org/3/watch/providers/movie?language=en-US";
 
-	try {
-		const response = await fetch(url, fetchOptions);
-		if (response.status !== 200) {
-			return;
-		}
-
-		const rsp = await response.json();
-		for (const entry of rsp.results) {
-			providers[entry.provider_id] = {
-				provider_id: entry.provider_id,
-				name: entry.provider_name.trim(),
-				display_priority: entry.display_priority,
-				countries: Object.keys(entry.display_priorities)
-			};
-		}
-
-		// persist for later service worker cycles
-		browser.storage.session.set({ providers });
-	} catch (error) {
-		console.error("Failed to fetch provider list:", error);
+	const response = await safeFetchJson(url, fetchOptions, "TMDB providers request");
+	if (response?.json == null) {
+		return;
 	}
+
+	for (const entry of response.json.results) {
+		providers[entry.provider_id] = {
+			provider_id: entry.provider_id,
+			name: entry.provider_name.trim(),
+			display_priority: entry.display_priority,
+			countries: Object.keys(entry.display_priorities)
+		};
+	}
+
+	// persist for later service worker cycles
+	browser.storage.session.set({ providers });
 }
 
 /**
@@ -157,23 +147,23 @@ async function parseSettings(items) {
  * @param {boolean} needStatus - Whether to load default filter status.
  */
 async function loadDefaultSettings(needCountryCode, needProvider, needStatus) {
-	const json = await loadJson("settings/default.json");
-	if (!json) {
+	const result = await safeFetchJson("settings/default.json", {}, "default settings");
+	if (!result?.json) {
 		return;
 	}
 
 	const toStore = {};
 
-	if (needCountryCode && 'country_code' in json) {
-		countryCode = json.country_code;
+	if (needCountryCode && 'country_code' in result.json) {
+		countryCode = result.json.country_code;
 		toStore.country_code = countryCode;
 	}
-	if (needProvider && 'provider_id' in json) {
-		providerId = json.provider_id;
+	if (needProvider && 'provider_id' in result.json) {
+		providerId = result.json.provider_id;
 		toStore.provider_id = providerId;
 	}
-	if (needStatus && 'filter_status' in json) {
-		filterStatus = json.filter_status;
+	if (needStatus && 'filter_status' in result.json) {
+		filterStatus = result.json.filter_status;
 		toStore.filter_status = filterStatus;
 	}
 
@@ -295,6 +285,10 @@ async function reloadMovieFilter() {
  * @param {object} sender - The sender from the runtime.onMessage event.
  */
 function handleMessage(request, sender) {
+	if (typeof sender?.frameId === 'number' && sender.frameId !== 0) {
+		return;
+	}
+
 	const tabId = sender?.tab?.id;
 	if (!tabId) {
 		console.error("Error: missing tab ID");
@@ -334,10 +328,14 @@ async function checkMovieAvailability(tabId, movies) {
 
 	prepareLetterboxdForFading(tabId);
 
-	const checkPromises = Object.entries(movies).map(([title, data]) =>
-		checkMovie(tabId, title, data.year, data.id)
-	);
-	await Promise.all(checkPromises);
+	const CONCURRENCY_LIMIT = 5;
+	const entries = Object.entries(movies);
+	for (let i = 0; i < entries.length; i += CONCURRENCY_LIMIT) {
+		const batch = entries.slice(i, i + CONCURRENCY_LIMIT);
+		await Promise.all(batch.map(([title, data]) =>
+			checkMovie(tabId, title, data.year, data.id)
+		));
+	}
 
 	fadeUnstreamableMovies(tabId, movies);
 }
@@ -355,15 +353,12 @@ async function checkMovie(tabId, title, year, letterboxdId) {
 
 	// Search for the movie
 	const searchUrl = `https://api.themoviedb.org/3/search/multi?query=${titleSanitized}`;
-	const searchResponse = await fetch(searchUrl, fetchOptions);
-
-	if (searchResponse.status !== 200) {
-		handleRateLimitError(searchResponse.status, tabId, title, year, letterboxdId);
+	const searchResult = await safeFetchJson(searchUrl, fetchOptions, `TMDB search for '${title}' (${year})`);
+	if (searchResult?.json == null) {
+		handleRateLimitError(searchResult?.status, tabId, title, year, letterboxdId);
 		return;
 	}
-
-	const searchData = await searchResponse.json();
-	const tmdbInfo = getIdWithReleaseYear(searchData.results, title, year);
+	const tmdbInfo = getIdWithReleaseYear(searchResult.json.results, title, year);
 
 	if (!tmdbInfo.matchFound) {
 		return;
@@ -371,15 +366,12 @@ async function checkMovie(tabId, title, year, letterboxdId) {
 
 	// Check provider availability
 	const providerUrl = `https://api.themoviedb.org/3/${tmdbInfo.mediaType}/${tmdbInfo.tmdbId}/watch/providers`;
-	const providerResponse = await fetch(providerUrl, fetchOptions);
-
-	if (providerResponse.status !== 200) {
-		handleRateLimitError(providerResponse.status, tabId, title, year, letterboxdId);
+	const providerResult = await safeFetchJson(providerUrl, fetchOptions, `TMDB providers for '${title}' (${year})`);
+	if (providerResult?.json == null) {
+		handleRateLimitError(providerResult?.status, tabId, title, year, letterboxdId);
 		return;
 	}
-
-	const providerData = await providerResponse.json();
-	addMovieIfFlatrate(providerData.results, tabId, letterboxdId);
+	addMovieIfFlatrate(providerResult.json.results, tabId, letterboxdId);
 }
 
 /**
@@ -609,7 +601,7 @@ async function initializeTabState(tabId) {
  */
 async function getFilmsFromLetterboxd(tabId) {
 	await browser.scripting.executeScript({
-		target: { tabId, allFrames: true },
+		target: { tabId, allFrames: false },
 		files: ["./scripts/getFilmsFromLetterboxd.js"]
 	});
 }
@@ -726,24 +718,6 @@ function unfadeMovies(className, fallbackClassName, fadeClass) {
 /////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Loads a JSON file.
- *
- * @param {string} path - The path to the JSON file.
- * @returns {Promise<object|null>} - The parsed JSON object, or null if loading failed.
- */
-async function loadJson(path) {
-	try {
-		const response = await fetch(path);
-		if (response.status === 200) {
-			return await response.json();
-		}
-	} catch (error) {
-		console.error(`Failed to load JSON from ${path}:`, error);
-	}
-	return null;
-}
-
-/**
  * Sets fetch options with the given API token.
  *
  * @param {string} token - The TMDB API token.
@@ -756,4 +730,35 @@ function setFetchOptions(token) {
 			"Accept": "application/json"
 		}
 	};
+}
+
+/**
+ * Safely fetches a URL and parses JSON, with error handling.
+ * @param {string} url - The URL to fetch.
+ * @param {object} options - Fetch options.
+ * @param {string} context - Context string for error messages.
+ * @returns {Promise<{json: any, status: number}|null>} - Object with json and status, or null on error.
+ */
+async function safeFetchJson(url, options, context) {
+	let response;
+
+	try {
+		response = await fetch(url, options);
+	} catch (error) {
+		console.error(`Failed to fetch ${context}:`, error);
+		return null;
+	}
+
+	if (!response || response.status !== 200) {
+		// Still return status for further error handling
+		return { json: null, status: response?.status };
+	}
+
+	try {
+		const json = await response.json();
+		return { json, status: response.status };
+	} catch (error) {
+		console.error(`Failed to parse JSON for ${context}:`, error);
+		return null;
+	}
 }
