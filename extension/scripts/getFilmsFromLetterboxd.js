@@ -13,7 +13,7 @@ var movies = {};
 for (let index = 0; index < items.length; index++) {
   const li = items[index];
 
-  const outerDiv = li.querySelector('.react-component[data-film-id]');
+  const outerDiv = li.querySelector('.react-component');
   if (!outerDiv) {
     continue;
   }
