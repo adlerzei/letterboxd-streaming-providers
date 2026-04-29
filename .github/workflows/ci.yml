@@ -50,11 +50,11 @@ jobs:
       - name: Upload Firefox artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.artifact_names.outputs.firefox_name }}
+          name: github-artifact_${{ steps.artifact_names.outputs.firefox_name }}
           path: builds/*_Firefox_Dev_*.xpi
 
       - name: Upload Chrome artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.artifact_names.outputs.chrome_name }}
+          name: github-artifact_${{ steps.artifact_names.outputs.chrome_name }}
           path: builds/*_Chrome_Opera_Dev_*.zip

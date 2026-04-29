@@ -71,6 +71,8 @@ In Chrome:
     - load the `/extension` folder 
 - or
     - drag & drop the Chrome build file from `/builds` into the tab.
+
+For GitHub Actions artifacts, note that the downloaded artifact is a GitHub wrapper archive. Extract it first to get the actual `.zip` or `.xpi` build file inside.
     
 In Firefox:
 - go to `about:debugging`
