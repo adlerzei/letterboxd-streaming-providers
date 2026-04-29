@@ -715,7 +715,7 @@ function unfadeMovies(className, fallbackClassName, fadeClass) {
  * Decodes an XOR+base64 obfuscated token using a hex nonce as key.
  *
  * @param {string} obfuscated - The base64-encoded XOR'd token.
- * @param {string} nonceHex - The hex string used as XOR key during build.
+ * @param {string} nonceHex - The per-build nonce used during obfuscation.
  * @returns {Promise<string>} - The decoded token.
  */
 async function decodeToken(obfuscated, nonceHex) {
@@ -739,7 +739,7 @@ async function loadTmdbToken() {
 	}
 
 	const raw = apiConfig.json;
-	const token = (raw.debug || !raw.key) ? raw.tmdb : await decodeToken(raw.tmdb, raw.key);
+	const token = (raw.debug || !raw.nonce) ? raw.tmdb : await decodeToken(raw.tmdb, raw.nonce);
 	setFetchOptions(token);
 }
 

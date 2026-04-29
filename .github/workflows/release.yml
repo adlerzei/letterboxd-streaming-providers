@@ -33,7 +33,7 @@ jobs:
           pepper = 'LSP::tmdb::v1'
           key_bytes = hashlib.sha256((pepper + nonce).encode()).digest()
           obfuscated = base64.b64encode(bytes([c ^ key_bytes[i % len(key_bytes)] for i, c in enumerate(token.encode())])).decode()
-          print(json.dumps({'tmdb': obfuscated, 'key': nonce}))
+          print(json.dumps({'tmdb': obfuscated, 'nonce': nonce}))
           " > extension/settings/api.json
         env:
           TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
