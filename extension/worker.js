@@ -52,14 +52,7 @@ let cacheLoaded = false;
  */
 const onStartUp = async () => {
 	// load TMDb token and set fetch options
-	const apiConfig = await safeFetchJson("settings/api.json", {}, "API config");
-	if (apiConfig?.json?.tmdb) {
-		const raw = apiConfig.json;
-		const token = (raw.debug || !raw.key) ? raw.tmdb : await decodeToken(raw.tmdb, raw.key);
-		setFetchOptions(token);
-		// persist for later service worker cycles
-		browser.storage.session.set({ tmdb_token: token });
-	}
+	await loadTmdbToken();
 
 	// load stored settings from localStorage
 	const localItems = await browser.storage.local.get();
@@ -199,8 +192,7 @@ async function parseCache(items) {
 	crawledMovies = items.crawled_movies ?? {};
 	unsolvedRequests = items.unsolved_requests ?? {};
 
-	const tmdbToken = items.tmdb_token ?? '';
-	setFetchOptions(tmdbToken);
+	await loadTmdbToken();
 
 	cacheLoaded = true;
 }
@@ -733,6 +725,22 @@ async function decodeToken(obfuscated, nonceHex) {
 	const keyBytes = new Uint8Array(hashBuffer);
 	const bytes = Uint8Array.from(atob(obfuscated), c => c.charCodeAt(0));
 	return Array.from(bytes).map((b, i) => String.fromCharCode(b ^ keyBytes[i % keyBytes.length])).join('');
+}
+
+/**
+ * Loads the TMDB token from the bundled config and updates fetch options.
+ *
+ * @returns {Promise<void>} - Resolves once fetch options are configured.
+ */
+async function loadTmdbToken() {
+	const apiConfig = await safeFetchJson("settings/api.json", {}, "API config");
+	if (!apiConfig?.json?.tmdb) {
+		return;
+	}
+
+	const raw = apiConfig.json;
+	const token = (raw.debug || !raw.key) ? raw.tmdb : await decodeToken(raw.tmdb, raw.key);
+	setFetchOptions(token);
 }
 
 /**
