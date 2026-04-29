@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Write API config
+        run: |
+          python3 -c "
+          import base64, os, json, secrets, hashlib
+          token = os.environ['TMDB_TOKEN']
+          nonce = secrets.token_hex(16)
+          pepper = 'LSP::tmdb::v1'
+          key_bytes = hashlib.sha256((pepper + nonce).encode()).digest()
+          obfuscated = base64.b64encode(bytes([c ^ key_bytes[i % len(key_bytes)] for i, c in enumerate(token.encode())])).decode()
+          print(json.dumps({'tmdb': obfuscated, 'nonce': nonce}))
+          " > extension/settings/api.json
+        env:
+          TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
+
+      - name: Build extension
+        run: bash tools/build.sh
+
+      - name: Resolve artifact names
+        id: artifact_names
+        run: |
+          FIREFOX_FILE=$(basename builds/*_Firefox_Dev_*.xpi)
+          CHROME_FILE=$(basename builds/*_Chrome_Opera_Dev_*.zip)
+          echo "firefox_name=${FIREFOX_FILE%.xpi}" >> "$GITHUB_OUTPUT"
+          echo "chrome_name=${CHROME_FILE%.zip}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Firefox artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-artifact_${{ steps.artifact_names.outputs.firefox_name }}
+          path: builds/*_Firefox_Dev_*.xpi
+
+      - name: Upload Chrome artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-artifact_${{ steps.artifact_names.outputs.chrome_name }}
+          path: builds/*_Chrome_Opera_Dev_*.zip
