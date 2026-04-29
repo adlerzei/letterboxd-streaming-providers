@@ -1,3 +1,4 @@
 {
-  "tmdb": ""
+  "tmdb": "YOUR_TMDB_TOKEN_HERE",
+  "debug": true
 }

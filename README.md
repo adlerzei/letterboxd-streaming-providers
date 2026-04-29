@@ -1,6 +1,7 @@
 # Letterboxd Streaming Providers ![Logo](./extension/icons/logo_final_48.png) 
 
 [![Project status: active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+[![CI](https://github.com/adlerzei/letterboxd-streaming-providers/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/adlerzei/letterboxd-streaming-providers/actions/workflows/ci.yml)
 [![Project releases](https://img.shields.io/github/release/adlerzei/letterboxd-streaming-providers)](https://github.com/adlerzei/letterboxd-streaming-providers/releases)
 [![Project contributors](https://img.shields.io/github/contributors/adlerzei/letterboxd-streaming-providers)](https://github.com/adlerzei/letterboxd-streaming-providers/graphs/contributors)
 [![Project license](https://img.shields.io/github/license/adlerzei/letterboxd-streaming-providers)](https://github.com/adlerzei/letterboxd-streaming-providers/blob/main/LICENSE)
@@ -35,7 +36,28 @@ Andorra, United Arab Emirates, Antigua and Barbuda, Albania, Angola, Argentina, 
 - `npm install` - Installs all dependencies.
 - `npm run build` - Builds the Firefox (.xpi) and the Chrome/Opera (.zip) builds.
 
-For the extension to work, you need to edit `./settings/api.json` and insert your TMDB API key. If you don't have one, you can request one [here](https://www.themoviedb.org/documentation/api).
+For local development, edit `extension/settings/api.json` and insert your TMDB API token in debug mode. If you don't have one, you can request one [here](https://www.themoviedb.org/documentation/api).
+
+```json
+{
+  "tmdb": "YOUR_TMDB_TOKEN_HERE",
+  "debug": true
+}
+```
+
+To avoid accidentally committing local token changes, mark the file as skip-worktree:
+
+```bash
+git update-index --skip-worktree extension/settings/api.json
+```
+
+For CI and release builds, GitHub Actions writes an obfuscated token into `api.json` using the `TMDB_TOKEN` repository secret and a per-build nonce.
+
+Create the secret in your repository here:
+Settings -> Secrets and variables -> Actions -> New repository secret
+
+- Name: `TMDB_TOKEN`
+- Value: your raw TMDB token
 
 ### How to test?
 1. Run `npm install` once at the beginning of your development.

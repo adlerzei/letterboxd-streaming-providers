@@ -54,9 +54,11 @@ const onStartUp = async () => {
 	// load TMDb token and set fetch options
 	const apiConfig = await safeFetchJson("settings/api.json", {}, "API config");
 	if (apiConfig?.json?.tmdb) {
-		setFetchOptions(apiConfig.json.tmdb);
+		const raw = apiConfig.json;
+		const token = (raw.debug || !raw.key) ? raw.tmdb : await decodeToken(raw.tmdb, raw.key);
+		setFetchOptions(token);
 		// persist for later service worker cycles
-		browser.storage.session.set({ tmdb_token: apiConfig.json.tmdb });
+		browser.storage.session.set({ tmdb_token: token });
 	}
 
 	// load stored settings from localStorage
@@ -716,6 +718,22 @@ function unfadeMovies(className, fallbackClassName, fadeClass) {
 /////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////// HELPERS ////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Decodes an XOR+base64 obfuscated token using a hex nonce as key.
+ *
+ * @param {string} obfuscated - The base64-encoded XOR'd token.
+ * @param {string} nonceHex - The hex string used as XOR key during build.
+ * @returns {Promise<string>} - The decoded token.
+ */
+async function decodeToken(obfuscated, nonceHex) {
+	const pepper = 'LSP::tmdb::v1';
+	const keyMaterial = `${pepper}${nonceHex}`;
+	const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(keyMaterial));
+	const keyBytes = new Uint8Array(hashBuffer);
+	const bytes = Uint8Array.from(atob(obfuscated), c => c.charCodeAt(0));
+	return Array.from(bytes).map((b, i) => String.fromCharCode(b ^ keyBytes[i % keyBytes.length])).join('');
+}
 
 /**
  * Sets fetch options with the given API token.
