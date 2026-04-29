@@ -39,14 +39,22 @@ jobs:
       - name: Build extension
         run: bash tools/build.sh
 
+      - name: Resolve artifact names
+        id: artifact_names
+        run: |
+          FIREFOX_FILE=$(basename builds/*_Firefox_Dev_*.xpi)
+          CHROME_FILE=$(basename builds/*_Chrome_Opera_Dev_*.zip)
+          echo "firefox_name=${FIREFOX_FILE%.xpi}" >> "$GITHUB_OUTPUT"
+          echo "chrome_name=${CHROME_FILE%.zip}" >> "$GITHUB_OUTPUT"
+
       - name: Upload Firefox artifact
         uses: actions/upload-artifact@v4
         with:
-          name: firefox-xpi
-          path: builds/*.xpi
+          name: ${{ steps.artifact_names.outputs.firefox_name }}
+          path: builds/*_Firefox_Dev_*.xpi
 
       - name: Upload Chrome artifact
         uses: actions/upload-artifact@v4
         with:
-          name: chrome-zip
-          path: builds/*.zip
+          name: ${{ steps.artifact_names.outputs.chrome_name }}
+          path: builds/*_Chrome_Opera_Dev_*.zip
