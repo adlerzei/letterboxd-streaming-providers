@@ -448,66 +448,227 @@ test('getIdWithReleaseYear', async (t) => {
 });
 
 /////////////////////////////////////////////////////////////////////////////////////
-///////////////////////// addMovieIfFlatrate //////////////////////////////////////////
+///////////////////////// extractProviderIdsByCountry /////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////
 
-test('addMovieIfFlatrate', async (t) => {
-	// addMovieIfFlatrate reads module-level countryCode/providerId, which parseSettings
-	// sets synchronously (no fetch is triggered when all three settings keys are given).
+test('extractProviderIdsByCountry', async (t) => {
+	await t.test('keeps flatrate provider ids', () => {
+		const results = { DE: { flatrate: [{ provider_id: 8 }] } };
+		assert.deepStrictEqual(worker.extractProviderIdsByCountry(results), { DE: [8] });
+	});
+
+	await t.test('keeps a provider that is only offered for free', () => {
+		const results = { DE: { flatrate: [], free: [{ provider_id: 8 }] } };
+		assert.deepStrictEqual(worker.extractProviderIdsByCountry(results), { DE: [8] });
+	});
+
+	await t.test('merges flatrate and free ids for the same country', () => {
+		const results = { DE: { flatrate: [{ provider_id: 8 }], free: [{ provider_id: 10 }] } };
+		assert.deepStrictEqual(worker.extractProviderIdsByCountry(results), { DE: [8, 10] });
+	});
+
+	await t.test('deduplicates a provider offered in both flatrate and free', () => {
+		const results = { DE: { flatrate: [{ provider_id: 8 }], free: [{ provider_id: 8 }] } };
+		assert.deepStrictEqual(worker.extractProviderIdsByCountry(results), { DE: [8] });
+	});
+
+	await t.test('omits countries with neither a flatrate nor a free offer', () => {
+		const results = { DE: { flatrate: [], free: [] }, US: { flatrate: [{ provider_id: 8 }] } };
+		assert.deepStrictEqual(worker.extractProviderIdsByCountry(results), { US: [8] });
+	});
+
+	await t.test('ignores offers without a provider_id', () => {
+		const results = { DE: { flatrate: [{}, { provider_id: 8 }, { provider_id: null }] } };
+		assert.deepStrictEqual(worker.extractProviderIdsByCountry(results), { DE: [8] });
+	});
+
+	await t.test('handles a country entry with no flatrate/free arrays at all', () => {
+		assert.deepStrictEqual(worker.extractProviderIdsByCountry({ DE: {} }), {});
+	});
+
+	await t.test('returns an empty map for an empty payload', () => {
+		assert.deepStrictEqual(worker.extractProviderIdsByCountry({}), {});
+	});
+});
+
+/////////////////////////////////////////////////////////////////////////////////////
+///////////////////////// addMovieIfProviderAvailable //////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
+
+test('addMovieIfProviderAvailable', async (t) => {
+	// addMovieIfProviderAvailable reads module-level countryCode/providerId, which
+	// parseSettings sets synchronously (no fetch is triggered when all three settings
+	// keys are given).
 	t.beforeEach(async () => {
 		await worker.parseSettings({ country_code: 'DE', provider_id: 8, filter_status: true });
 	});
 
-	await t.test('adds letterboxd ids when the provider is present in flatrate', () => {
+	await t.test('adds letterboxd ids when the provider is present in the country', () => {
 		worker.availableMovies[1] = [];
-		const results = { DE: { flatrate: [{ provider_id: 8 }], free: [] } };
-		worker.addMovieIfFlatrate(results, 1, [100, 101]);
+		worker.addMovieIfProviderAvailable({ DE: [8, 9] }, 1, [100, 101]);
 		assert.deepStrictEqual(worker.availableMovies[1], [100, 101]);
 	});
 
-	await t.test('adds letterboxd ids when the provider is only present in free (flatrate empty)', () => {
-		worker.availableMovies[2] = [];
-		const results = { DE: { flatrate: [], free: [{ provider_id: 8 }] } };
-		worker.addMovieIfFlatrate(results, 2, [200]);
-		assert.deepStrictEqual(worker.availableMovies[2], [200]);
-	});
-
-	await t.test('does nothing when the provider is absent from both flatrate and free', () => {
+	await t.test('does nothing when the provider is absent from the country', () => {
 		worker.availableMovies[3] = [];
-		const results = { DE: { flatrate: [{ provider_id: 9 }], free: [{ provider_id: 10 }] } };
-		worker.addMovieIfFlatrate(results, 3, [300]);
+		worker.addMovieIfProviderAvailable({ DE: [9, 10] }, 3, [300]);
 		assert.deepStrictEqual(worker.availableMovies[3], []);
 	});
 
-	await t.test('does nothing when the configured country is absent from the results', () => {
+	await t.test('does nothing when the configured country is absent from the map', () => {
 		worker.availableMovies[4] = [];
 		// configured country is DE (see beforeEach), but only US data is present
-		const results = { US: { flatrate: [{ provider_id: 8 }] } };
-		worker.addMovieIfFlatrate(results, 4, [400]);
+		worker.addMovieIfProviderAvailable({ US: [8] }, 4, [400]);
 		assert.deepStrictEqual(worker.availableMovies[4], []);
 	});
 
-	await t.test('handles a country entry with no flatrate/free arrays at all', () => {
+	await t.test('does nothing when the country maps to an empty id list', () => {
 		worker.availableMovies[5] = [];
-		const results = { DE: {} };
-		assert.doesNotThrow(() => worker.addMovieIfFlatrate(results, 5, [500]));
+		assert.doesNotThrow(() => worker.addMovieIfProviderAvailable({ DE: [] }, 5, [500]));
 		assert.deepStrictEqual(worker.availableMovies[5], []);
 	});
 
 	await t.test('appends across multiple calls rather than overwriting prior entries', () => {
 		worker.availableMovies[6] = [1];
-		const results = { DE: { flatrate: [{ provider_id: 8 }] } };
-		worker.addMovieIfFlatrate(results, 6, [2, 3]);
+		worker.addMovieIfProviderAvailable({ DE: [8] }, 6, [2, 3]);
 		assert.deepStrictEqual(worker.availableMovies[6], [1, 2, 3]);
 	});
 
 	await t.test('currently throws when availableMovies has no entry for the tab yet', () => {
-		// Documents (rather than endorses) today's behavior: addMovieIfFlatrate assumes
-		// initializeTabState already seeded availableMovies[tabId] and does no defensive
-		// check, so a match for an unseeded tab throws instead of being ignored.
+		// Documents (rather than endorses) today's behavior: addMovieIfProviderAvailable
+		// assumes initializeTabState already seeded availableMovies[tabId] and does no
+		// defensive check, so a match for an unseeded tab throws instead of being ignored.
 		assert.strictEqual(worker.availableMovies[9999], undefined);
-		const results = { DE: { flatrate: [{ provider_id: 8 }] } };
-		assert.throws(() => worker.addMovieIfFlatrate(results, 9999, [900]), TypeError);
+		assert.throws(() => worker.addMovieIfProviderAvailable({ DE: [8] }, 9999, [900]), TypeError);
+	});
+});
+
+/////////////////////////////////////////////////////////////////////////////////////
+///////////////////////// TMDb lookup cache ///////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
+
+test('buildTmdbCacheKey', async (t) => {
+	await t.test('lowercases and trims the title', () => {
+		assert.strictEqual(worker.buildTmdbCacheKey('  Inception  ', 2010), 'inception::2010');
+	});
+
+	await t.test('maps a missing year to a dedicated key part', () => {
+		assert.strictEqual(worker.buildTmdbCacheKey('Spirit', -1), 'spirit::unknown-year');
+	});
+
+	await t.test('normalizes titles that differ only in case or surrounding whitespace to one key', () => {
+		assert.strictEqual(
+			worker.buildTmdbCacheKey('The Matrix', 1999),
+			worker.buildTmdbCacheKey('  the matrix ', 1999)
+		);
+	});
+
+	await t.test('keeps titles with different years apart', () => {
+		assert.notStrictEqual(worker.buildTmdbCacheKey('Dune', 1984), worker.buildTmdbCacheKey('Dune', 2021));
+	});
+});
+
+test('TMDb lookup cache hit/miss', async (t) => {
+	t.beforeEach(() => {
+		// Seed an empty live cache, without going through storage (this is the same object
+		// the worker mutates, since the export is a getter).
+		for (const key of Object.keys(worker.tmdbCache)) {
+			delete worker.tmdbCache[key];
+		}
+	});
+
+	await t.test('misses on a key that was never stored', () => {
+		assert.strictEqual(worker.getFreshTmdbCacheEntry(worker.buildTmdbCacheKey('Nope', 2001)), null);
+	});
+
+	await t.test('hits a freshly stored entry, provider map included', () => {
+		const key = worker.buildTmdbCacheKey('Inception', 2010);
+		worker.setTmdbCacheEntry(key, { tmdbId: 27205, mediaType: 'movie', matchFound: true, providerIds: { DE: [8] } });
+
+		const entry = worker.getFreshTmdbCacheEntry(key);
+		assert.strictEqual(entry.tmdbId, 27205);
+		assert.deepStrictEqual(entry.providerIds, { DE: [8] });
+	});
+
+	await t.test('remembers a negative result, so a known-missing title is not re-fetched', () => {
+		const key = worker.buildTmdbCacheKey('Nope', 2001);
+		worker.setTmdbCacheEntry(key, { tmdbId: -1, mediaType: '', matchFound: false, providerIds: {} });
+
+		assert.strictEqual(worker.getFreshTmdbCacheEntry(key).matchFound, false);
+	});
+
+	await t.test('expires a match once its TTL has passed', () => {
+		const key = worker.buildTmdbCacheKey('Inception', 2010);
+		worker.setTmdbCacheEntry(key, { tmdbId: 27205, mediaType: 'movie', matchFound: true, providerIds: { DE: [8] } });
+		worker.tmdbCache[key].cachedAt = Date.now() - worker.TMDB_CACHE_TTL_MATCH_FOUND_MS - 1;
+
+		assert.strictEqual(worker.getFreshTmdbCacheEntry(key), null);
+	});
+
+	await t.test('expires a miss sooner than a match', () => {
+		// Both entries get the same age, chosen so that only the shorter TTL for misses
+		// has elapsed: the miss must be stale while the match is still usable.
+		const age = Date.now() - worker.TMDB_CACHE_TTL_NO_MATCH_MS - 1;
+		const missKey = worker.buildTmdbCacheKey('Nope', 2001);
+		const matchKey = worker.buildTmdbCacheKey('Inception', 2010);
+
+		worker.setTmdbCacheEntry(missKey, { tmdbId: -1, mediaType: '', matchFound: false, providerIds: {} });
+		worker.setTmdbCacheEntry(matchKey, { tmdbId: 27205, mediaType: 'movie', matchFound: true, providerIds: { DE: [8] } });
+		worker.tmdbCache[missKey].cachedAt = age;
+		worker.tmdbCache[matchKey].cachedAt = age;
+
+		assert.strictEqual(worker.getFreshTmdbCacheEntry(missKey), null);
+		assert.notStrictEqual(worker.getFreshTmdbCacheEntry(matchKey), null);
+	});
+
+	await t.test('treats an entry with a corrupted cachedAt as stale rather than fresh forever', () => {
+		const key = worker.buildTmdbCacheKey('Inception', 2010);
+		worker.setTmdbCacheEntry(key, { tmdbId: 27205, mediaType: 'movie', matchFound: true, providerIds: { DE: [8] } });
+		worker.tmdbCache[key].cachedAt = Number.NaN;
+
+		assert.strictEqual(worker.getFreshTmdbCacheEntry(key), null);
+	});
+
+	await t.test('treats a match with no usable provider map as stale', () => {
+		const key = worker.buildTmdbCacheKey('Inception', 2010);
+		worker.tmdbCache[key] = { tmdbId: 27205, mediaType: 'movie', matchFound: true, providerIds: null, cachedAt: Date.now() };
+
+		assert.strictEqual(worker.getFreshTmdbCacheEntry(key), null);
+	});
+});
+
+test('flushTmdbCache', async (t) => {
+	t.beforeEach(() => {
+		for (const key of Object.keys(worker.tmdbCache)) {
+			delete worker.tmdbCache[key];
+		}
+		storageLocalSetCalls.length = 0;
+	});
+
+	await t.test('persists the cache under its storage key', async () => {
+		const key = worker.buildTmdbCacheKey('Inception', 2010);
+		worker.setTmdbCacheEntry(key, { tmdbId: 27205, mediaType: 'movie', matchFound: true, providerIds: { DE: [8] } });
+
+		worker.flushTmdbCache();
+
+		assert.strictEqual(storageLocalSetCalls.length, 1);
+		const written = storageLocalSetCalls[0][worker.TMDB_CACHE_STORAGE_KEY];
+		assert.strictEqual(written[key].tmdbId, 27205);
+	});
+
+	await t.test('writes nothing when the cache is unchanged since the last flush', () => {
+		worker.flushTmdbCache();
+
+		assert.deepStrictEqual(storageLocalSetCalls, []);
+	});
+
+	await t.test('writes again after a further cache mutation', () => {
+		worker.setTmdbCacheEntry(worker.buildTmdbCacheKey('Dune', 2021), { tmdbId: 1, mediaType: 'movie', matchFound: true, providerIds: {} });
+		worker.flushTmdbCache();
+		worker.setTmdbCacheEntry(worker.buildTmdbCacheKey('Dune', 1984), { tmdbId: 2, mediaType: 'movie', matchFound: true, providerIds: {} });
+		worker.flushTmdbCache();
+
+		assert.strictEqual(storageLocalSetCalls.length, 2);
 	});
 });
 
@@ -535,9 +696,9 @@ test('parseSettings', async (t) => {
 		assert.strictEqual(worker.countryCode, 'US');
 		assert.strictEqual(worker.providerId, 9);
 
-		// Confirm the values actually took effect, via the observable behavior of addMovieIfFlatrate.
+		// Confirm the values actually took effect, via the observable behavior of addMovieIfProviderAvailable.
 		worker.availableMovies[900] = [];
-		worker.addMovieIfFlatrate({ US: { flatrate: [{ provider_id: 9 }] } }, 900, [1]);
+		worker.addMovieIfProviderAvailable({ US: [9] }, 900, [1]);
 		assert.deepStrictEqual(worker.availableMovies[900], [1]);
 	});
 
