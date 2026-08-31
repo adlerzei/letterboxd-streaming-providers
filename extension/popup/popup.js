@@ -63,10 +63,10 @@ function appendOptionsToCountryList() {
 
 /**
  * Appends all providers from the selected country as option to the providerList select tag.
- *
- * param {string} [defaultProviderName] - The (optional) name of the provider which is selected by default.
+ * A provider is pre-selected if its provider_id is part of the currently selected provider IDs,
+ * so selections carry over across a country change as long as the provider is offered there too.
  */
-function appendOptionsToProviderList(defaultProviderName) {
+function appendOptionsToProviderList() {
 	providerList.options.length = 0;
 	let fragment = document.createDocumentFragment();
 	let keys = Object.keys(providers).sort(function (a, b) {
@@ -82,14 +82,8 @@ function appendOptionsToProviderList(defaultProviderName) {
 			opt.textContent = providers[provider].name;
 			opt.value = provider;
 			opt.label = providers[provider].name;
-			if (typeof defaultProviderName === 'undefined') {
-				if (selectedProviderIds.includes(providers[provider].provider_id)) {
-					opt.selected = "selected";
-				}
-			} else {
-				if (providers[provider].name === defaultProviderName) {
-					opt.selected = "selected";
-				}
+			if (selectedProviderIds.includes(providers[provider].provider_id)) {
+				opt.selected = "selected";
 			}
 			fragment.appendChild(opt);
 		}
@@ -109,10 +103,16 @@ function changeFilterSwitch() {
 }
 
 /**
- * Called when the selected item in providerList is changed. Changes the provider_id in the background page.
+ * Called when the selection in providerList is changed. Stores the newly selected provider IDs.
+ * Does nothing if the list has no options yet (e.g. the provider cache hasn't loaded),
+ * so we never overwrite a stored selection with an empty one.
  */
 function changeSelectedProviderIds() {
-	selectedProviderIds = [];
+	if (providerList.options.length === 0) {
+		return;
+	}
+
+	let newSelectedProviderIds = [];
 	if (typeof providers !== 'undefined') {
 		var opt;
 		var id;
@@ -120,10 +120,11 @@ function changeSelectedProviderIds() {
 			opt = providerList.options[i];
 			id = opt.value;
 			if (opt.selected && providers.hasOwnProperty(id) && providers[id].hasOwnProperty('provider_id')) {
-				selectedProviderIds.push(providers[id].provider_id);
+				newSelectedProviderIds.push(providers[id].provider_id);
 			}
 		}
 	}
+	selectedProviderIds = newSelectedProviderIds;
 	browser.storage.local.set({selected_provider_ids: selectedProviderIds});
 }
 
@@ -146,9 +147,22 @@ function changeCountryCode() {
 	}
 }
 
+/**
+ * Parses settings from storage items.
+ * Falls back to the legacy single `provider_id` setting if `selected_provider_ids` hasn't been
+ * migrated yet; the worker performs the actual migration write.
+ *
+ * @param {object} items - Storage items containing settings.
+ */
 function parseSettings(items) {
 	countryCode = items.hasOwnProperty('country_code') ? items.country_code : 'US';
-	selectedProviderIds = items.hasOwnProperty('selected_provider_ids') ? items.selected_provider_ids : [8];
+	if (items.hasOwnProperty('selected_provider_ids')) {
+		selectedProviderIds = items.selected_provider_ids;
+	} else if (items.hasOwnProperty('provider_id')) {
+		selectedProviderIds = [items.provider_id];
+	} else {
+		selectedProviderIds = [8];
+	}
 	filterStatus = items.hasOwnProperty('filter_status') ? items.filter_status : false;
 }
 

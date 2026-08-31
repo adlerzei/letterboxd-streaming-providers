@@ -109,19 +109,26 @@ async function requestProviderList() {
 
 /**
  * Parses settings from storage items.
+ * Migrates the legacy single `provider_id` setting to `selected_provider_ids` if needed.
  *
  * @param {object} items - Storage items containing settings.
  */
 async function parseSettings(items) {
 	const hasCountryCode = 'country_code' in items;
-	const hasProvider = 'selected_provider_ids' in items;
+	const hasSelectedProviders = 'selected_provider_ids' in items;
+	const hasLegacyProvider = !hasSelectedProviders && 'provider_id' in items;
+	const hasProvider = hasSelectedProviders || hasLegacyProvider;
 	const hasStatus = 'filter_status' in items;
 
 	if (hasCountryCode) {
 		countryCode = items.country_code;
 	}
-	if (hasProvider) {
+	if (hasSelectedProviders) {
 		selectedProviderIds = items.selected_provider_ids;
+	} else if (hasLegacyProvider) {
+		selectedProviderIds = [items.provider_id];
+		browser.storage.local.set({selected_provider_ids: selectedProviderIds});
+		browser.storage.local.remove('provider_id');
 	}
 	if (hasStatus) {
 		filterStatus = items.filter_status;
@@ -138,10 +145,10 @@ async function parseSettings(items) {
  * Loads default settings from JSON file.
  *
  * @param {boolean} needCountryCode - Whether to load default country code.
- * @param {boolean} needProvider - Whether to load default provider.
+ * @param {boolean} needSelectedProviders - Whether to load default selected providers.
  * @param {boolean} needStatus - Whether to load default filter status.
  */
-async function loadDefaultSettings(needCountryCode, needProvider, needStatus) {
+async function loadDefaultSettings(needCountryCode, needSelectedProviders, needStatus) {
 	const result = await safeFetchJson("settings/default.json", {}, "default settings");
 	if (!result?.json) {
 		return;
@@ -153,8 +160,8 @@ async function loadDefaultSettings(needCountryCode, needProvider, needStatus) {
 		countryCode = result.json.country_code;
 		toStore.country_code = countryCode;
 	}
-	if (needProvider && 'provider_id' in result.json) {
-		selectedProviderIds = [result.json.provider_id];
+	if (needSelectedProviders && 'selected_provider_ids' in result.json) {
+		selectedProviderIds = result.json.selected_provider_ids;
 		toStore.selected_provider_ids = selectedProviderIds;
 	}
 	if (needStatus && 'filter_status' in result.json) {
@@ -819,7 +826,7 @@ if (typeof module !== 'undefined' && module.exports) {
 		isProcessableLetterboxdTab,
 		get availableMovies() { return availableMovies; },
 		get countryCode() { return countryCode; },
-		get providerId() { return providerId; },
+		get selectedProviderIds() { return selectedProviderIds; },
 		get filterStatus() { return filterStatus; },
 	};
 }
