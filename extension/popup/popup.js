@@ -46,7 +46,7 @@ function appendOptionsToCountryList() {
 		return ('' + countries[a].name).localeCompare(countries[b].name);
 	});
 	for (const country of keys) {
-		if (!countries[country].hasOwnProperty('name') || !countries[country].hasOwnProperty('code'))
+		if (!Object.prototype.hasOwnProperty.call(countries[country], 'name') || !Object.prototype.hasOwnProperty.call(countries[country], 'code'))
 			continue;
 
 		let opt = document.createElement('option');
@@ -73,7 +73,7 @@ function appendOptionsToProviderList(defaultProviderName) {
 		return ('' + providers[a].name).localeCompare(providers[b].name);
 	});
 	for (const provider of keys) {
-		if (!providers[provider].hasOwnProperty('name') || !providers[provider].hasOwnProperty('provider_id'))
+		if (!Object.prototype.hasOwnProperty.call(providers[provider], 'name') || !Object.prototype.hasOwnProperty.call(providers[provider], 'provider_id'))
 			continue;
 
 		let country = countryList.options[countryList.selectedIndex].value;
@@ -113,7 +113,7 @@ function changeFilterSwitch() {
  */
 function changeProviderId() {
 	let id = providerList.options[providerList.selectedIndex].value;
-	if (typeof providers !== 'undefined' && providers.hasOwnProperty(id) && providers[id].hasOwnProperty('provider_id')) {
+	if (typeof providers !== 'undefined' && Object.prototype.hasOwnProperty.call(providers, id) && Object.prototype.hasOwnProperty.call(providers[id], 'provider_id')) {
 		providerId = providers[id].provider_id;
 		browser.storage.local.set({provider_id: providerId});
 	}
@@ -125,8 +125,8 @@ function changeProviderId() {
  */
 function changeCountryCode() {
 	let code = countryList.options[countryList.selectedIndex].value;
-	if (typeof countries !== 'undefined' && countries.hasOwnProperty(code) 
-		&& countries[code].hasOwnProperty('code')) {
+	if (typeof countries !== 'undefined' && Object.prototype.hasOwnProperty.call(countries, code)
+		&& Object.prototype.hasOwnProperty.call(countries[code], 'code')) {
 		countryCode = countries[code].code;
 
 		browser.storage.local.set({
@@ -140,14 +140,14 @@ function changeCountryCode() {
 }
 
 function parseSettings(items) {
-	countryCode = items.hasOwnProperty('country_code') ? items.country_code : 'US';
-	providerId = items.hasOwnProperty('provider_id') ? items.provider_id : 8;
-	filterStatus = items.hasOwnProperty('filter_status') ? items.filter_status : false;
+	countryCode = Object.prototype.hasOwnProperty.call(items, 'country_code') ? items.country_code : 'US';
+	providerId = Object.prototype.hasOwnProperty.call(items, 'provider_id') ? items.provider_id : 8;
+	filterStatus = Object.prototype.hasOwnProperty.call(items, 'filter_status') ? items.filter_status : false;
 }
 
 function parseCache(items) {
-	providers = items.hasOwnProperty('providers') ? items.providers : {};
-	countries = items.hasOwnProperty('countries') ? items.countries : {};
+	providers = Object.prototype.hasOwnProperty.call(items, 'providers') ? items.providers : {};
+	countries = Object.prototype.hasOwnProperty.call(items, 'countries') ? items.countries : {};
 }
 
 /**
