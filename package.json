@@ -5,7 +5,8 @@
   "main": "worker.js",
   "scripts": {
     "build": "./tools/build.sh",
-    "test": "node --test"
+    "test": "node --test",
+    "lint": "eslint . --max-warnings=0"
   },
   "repository": {
     "type": "git",
@@ -18,6 +19,9 @@
   },
   "homepage": "https://github.com/adlerzei/letterboxd-streaming-providers#readme",
   "devDependencies": {
-    "@types/chrome": "0.0.127"
+    "@types/chrome": "0.0.127",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.9.1",
+    "globals": "^17.11.0"
   }
 }
