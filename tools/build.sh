@@ -2,6 +2,7 @@
 echo "Building Extension"
 EXTENSIONNAME="Letterboxd-Streaming-Providers"
 DES=builds
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 TAG=$(date +"%y%m%d"_%H%M)
 
@@ -12,7 +13,7 @@ mkdir -p $DES
 cd extension/
 
 # Firefox build: replace service_worker with scripts array
-sed -i 's/"service_worker": "worker.js"/"scripts": ["worker.js"]/' manifest.json
+bash "$SCRIPT_DIR/to-firefox-manifest.sh" manifest.json
 zip -r ${FIREFOXFILENAME}.xpi *
 mv ${FIREFOXFILENAME}.xpi ../$DES/
 
