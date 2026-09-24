@@ -412,7 +412,11 @@ function getIdWithReleaseYear(results, titleEnglish, releaseYear) {
 			continue;
 		}
 
-		const itemReleaseYear = new Date(itemReleaseDate).getFullYear();
+		// TMDb release dates are plain `YYYY-MM-DD` strings. `new Date(...)` would parse
+		// them as UTC midnight but `getFullYear()` reads them back in the host machine's
+		// local timezone, so e.g. "2021-01-01" yields 2020 anywhere west of UTC. Slicing
+		// the year straight out of the string keeps matching timezone-independent.
+		const itemReleaseYear = Number(itemReleaseDate.slice(0, 4));
 
 		if (itemTitle.toLowerCase() !== titleLower) {
 			continue;
@@ -529,7 +533,7 @@ async function handleUnsolvedRequests() {
  * @returns {boolean} - True if URL is a Letterboxd URL.
  */
 function isLetterboxdUrl(url) {
-	return url && LETTERBOXD_PATTERNS.some(pattern => url.includes(pattern));
+	return Boolean(url) && LETTERBOXD_PATTERNS.some(pattern => url.includes(pattern));
 }
 
 /**
@@ -539,7 +543,7 @@ function isLetterboxdUrl(url) {
  * @returns {boolean} - True if URL is a supported page.
  */
 function isSupportedLetterboxdPage(url) {
-	return url && SUPPORTED_PAGES.some(page => url.includes(page));
+	return Boolean(url) && SUPPORTED_PAGES.some(page => url.includes(page));
 }
 
 /**
@@ -787,4 +791,35 @@ async function safeFetchJson(url, options, context) {
 		console.error(`Failed to parse JSON for ${context}:`, error);
 		return null;
 	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////// NODE TEST EXPORTS //////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
+
+// Exposes the pure/testable functions (plus the mutable settings and the
+// `availableMovies` cache, so tests can seed/inspect them) to Node's built-in
+// test runner via CommonJS `require()`. `module` is not a global in a real
+// browser extension context (Chrome or Firefox), so this block never executes
+// there and has no effect on production behavior.
+//
+// The state below is exposed through getters rather than plain properties
+// because these module-level bindings get *reassigned* (e.g. `parseCache` does
+// `availableMovies = items.available_movies ?? {}`). A plain shorthand property
+// would only capture the value as it was at require time and silently detach
+// from the live binding afterwards.
+if (typeof module !== 'undefined' && module.exports) {
+	module.exports = {
+		getIdWithReleaseYear,
+		extractMediaInfo,
+		addMovieIfFlatrate,
+		parseSettings,
+		isLetterboxdUrl,
+		isSupportedLetterboxdPage,
+		isProcessableLetterboxdTab,
+		get availableMovies() { return availableMovies; },
+		get countryCode() { return countryCode; },
+		get providerId() { return providerId; },
+		get filterStatus() { return filterStatus; },
+	};
 }

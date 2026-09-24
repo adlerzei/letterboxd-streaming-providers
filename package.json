@@ -4,7 +4,8 @@
   "description": "Browser extension that adds a filter for some streaming services to letterboxd.com",
   "main": "worker.js",
   "scripts": {
-    "build": "./tools/build.sh"
+    "build": "./tools/build.sh",
+    "test": "node --test"
   },
   "repository": {
     "type": "git",
