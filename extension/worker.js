@@ -16,6 +16,19 @@ const CSS_CLASSES = {
 };
 const MAX_CRAWL_RETRIES = 3;
 
+// persistent TMDb lookup cache, survives browser restarts
+const TMDB_CACHE_STORAGE_KEY = 'tmdb_provider_cache';
+
+// keep matches short-lived since there's no way to force-refresh a stale answer
+const TMDB_CACHE_TTL_MATCH_FOUND_MS = 6 * 60 * 60 * 1000;
+// misses expire sooner since a title can get indexed on TMDb shortly after being added
+const TMDB_CACHE_TTL_NO_MATCH_MS = 60 * 60 * 1000;
+
+// bounds storage.local usage without requesting the unlimitedStorage permission
+const TMDB_CACHE_MAX_ENTRIES = 800;
+// prune target when the cap is hit, so pruning doesn't re-run on almost every write
+const TMDB_CACHE_PRUNE_TARGET = 700;
+
 /////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////// STATE MANAGEMENT //////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////
@@ -36,8 +49,14 @@ let crawledMovies = {};
 let unsolvedRequests = {};
 let crawlRetryCount = {};
 
+// title+year -> resolved id/media type + per-country flatrate/free provider IDs
+let tmdbCache = {};
+// true between a cache mutation and the next flushTmdbCache write
+let tmdbCacheDirty = false;
+
 let settingsLoaded = false;
 let cacheLoaded = false;
+let tmdbCacheLoaded = false;
 
 /////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////// STARTUP AND SETTINGS //////////////////////////////////////
@@ -57,6 +76,7 @@ const onStartUp = async () => {
 	// load stored settings from localStorage
 	const localItems = await browser.storage.local.get();
 	await parseSettings(localItems);
+	parseTmdbCache(localItems);
 
 	await Promise.all([requestRegions(), requestProviderList()]);
 };
@@ -203,15 +223,32 @@ async function parseCache(items) {
  * @param {function} callback - The function to execute after settings and cache are loaded.
  */
 async function loadSettingsAndExecute(callback) {
-	if (!settingsLoaded || !cacheLoaded) {
+	if (!settingsLoaded || !cacheLoaded || !tmdbCacheLoaded) {
 		const [localItems, sessionItems] = await Promise.all([
 			browser.storage.local.get(),
 			browser.storage.session.get()
 		]);
 		await parseSettings(localItems);
+		parseTmdbCache(localItems);
 		await parseCache(sessionItems);
 	}
 	callback();
+}
+
+/**
+ * Loads the persistent TMDb lookup cache from local storage, once per service worker lifetime.
+ *
+ * @param {object} items - Local storage items.
+ */
+function parseTmdbCache(items) {
+	// only the worker writes this cache, so re-reading later would overwrite
+	// in-memory entries added since the last flush with a stale snapshot
+	if (tmdbCacheLoaded) {
+		return;
+	}
+
+	tmdbCache = items[TMDB_CACHE_STORAGE_KEY] ?? {};
+	tmdbCacheLoaded = true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -234,7 +271,13 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo, tabInfo) => {
 	loadSettingsAndExecute(() => processLetterboxdTab(tabId));
 });
 
-browser.storage.local.onChanged.addListener(_ => {
+browser.storage.local.onChanged.addListener(changes => {
+	// ignore our own TMDb cache writes so caching a lookup doesn't retrigger a full reload
+	const changedKeys = Object.keys(changes ?? {});
+	if (changedKeys.length > 0 && changedKeys.every(key => key === TMDB_CACHE_STORAGE_KEY)) {
+		return;
+	}
+
 	settingsLoaded = false;
 	loadSettingsAndExecute(() => reloadMovieFilter());
 });
@@ -327,15 +370,37 @@ async function checkMovieAvailability(tabId, movies) {
 	for (let i = 0; i < entries.length; i += CONCURRENCY_LIMIT) {
 		const batch = entries.slice(i, i + CONCURRENCY_LIMIT);
 		await Promise.all(batch.map(([title, data]) =>
-			checkMovie(tabId, title, data.year, data.id)
+			checkMovieSafely(tabId, title, data.year, data.id)
 		));
+
+		// flush per batch, not per movie, to avoid rewriting the cache blob for every title
+		flushTmdbCache();
 	}
 
 	fadeUnstreamableMovies(tabId, movies);
 }
 
 /**
+ * Runs checkMovie and swallows any error, so one bad title doesn't abort the whole
+ * Promise.all batch and skip fadeUnstreamableMovies for the rest.
+ *
+ * @param {number} tabId - The tabId of the tab, in which Letterboxd should be filtered.
+ * @param {string} title - The movie title.
+ * @param {number} year - The release year.
+ * @param {Array} letterboxdId - The Letterboxd-intern array id.
+ * @returns {Promise<void>} - Always resolves.
+ */
+async function checkMovieSafely(tabId, title, year, letterboxdId) {
+	try {
+		await checkMovie(tabId, title, year, letterboxdId);
+	} catch (error) {
+		console.error(`Failed to check availability for '${title}' (${year}):`, error);
+	}
+}
+
+/**
  * Checks if a movie is available and adds it to availableMovies[tabId].
+ * Checks the persistent TMDb cache first, falling through to a TMDb fetch on a miss.
  *
  * @param {number} tabId - The tabId of the tab, in which Letterboxd should be filtered.
  * @param {string} title - The movie title.
@@ -343,6 +408,16 @@ async function checkMovieAvailability(tabId, movies) {
  * @param {Array} letterboxdId - The Letterboxd-intern array id.
  */
 async function checkMovie(tabId, title, year, letterboxdId) {
+	const cacheKey = buildTmdbCacheKey(title, year);
+	const cachedEntry = getFreshTmdbCacheEntry(cacheKey);
+	if (cachedEntry) {
+		if (cachedEntry.matchFound) {
+			addMovieIfProviderAvailable(cachedEntry.providerIds, tabId, letterboxdId);
+		}
+		// matchFound: false just means leave the movie out, same as an uncached miss
+		return;
+	}
+
 	const titleSanitized = encodeURIComponent(title);
 
 	// Search for the movie
@@ -355,6 +430,7 @@ async function checkMovie(tabId, title, year, letterboxdId) {
 	const tmdbInfo = getIdWithReleaseYear(searchResult.json.results, title, year);
 
 	if (!tmdbInfo.matchFound) {
+		setTmdbCacheEntry(cacheKey, { tmdbId: -1, mediaType: '', matchFound: false, providerIds: {} });
 		return;
 	}
 
@@ -365,7 +441,55 @@ async function checkMovie(tabId, title, year, letterboxdId) {
 		handleRateLimitError(providerResult?.status, tabId, title, year, letterboxdId);
 		return;
 	}
-	addMovieIfFlatrate(providerResult.json.results, tabId, letterboxdId);
+
+	const rawResults = providerResult.json.results;
+	if (!rawResults || typeof rawResults !== 'object') {
+		// don't cache a malformed payload, so it self-heals on the next lookup instead of sticking for a TTL
+		console.error(`Unexpected TMDB watch/providers payload for '${title}' (${year})`);
+		return;
+	}
+
+	// cache all per-country provider IDs, not a pre-filtered answer, so a country/provider switch is still free
+	const providerIds = extractProviderIdsByCountry(rawResults);
+	setTmdbCacheEntry(cacheKey, {
+		tmdbId: tmdbInfo.tmdbId,
+		mediaType: tmdbInfo.mediaType,
+		matchFound: true,
+		providerIds
+	});
+	addMovieIfProviderAvailable(providerIds, tabId, letterboxdId);
+}
+
+/**
+ * Reduces a raw TMDb "Watch Providers" payload to `{[countryCode]: [providerId, ...]}`:
+ * per country, the provider IDs offering the title on flatrate or for free. Countries with
+ * neither are omitted.
+ *
+ * @param {object} results - The `results` object from the TMDB "Watch Providers" request.
+ * @returns {object} - `{[countryCode]: [providerId, ...]}`.
+ */
+function extractProviderIdsByCountry(results) {
+	const providerIdsByCountry = {};
+
+	for (const [country, countryData] of Object.entries(results)) {
+		const offers = [
+			...(Array.isArray(countryData?.flatrate) ? countryData.flatrate : []),
+			...(Array.isArray(countryData?.free) ? countryData.free : [])
+		];
+
+		const ids = [];
+		for (const offer of offers) {
+			if (offer?.provider_id && !ids.includes(offer.provider_id)) {
+				ids.push(offer.provider_id);
+			}
+		}
+
+		if (ids.length > 0) {
+			providerIdsByCountry[country] = ids;
+		}
+	}
+
+	return providerIdsByCountry;
 }
 
 /**
@@ -384,6 +508,90 @@ function handleRateLimitError(status, tabId, title, year, id) {
 
 	unsolvedRequests[tabId][title] = { year, id };
 	browser.storage.session.set({ unsolved_requests: unsolvedRequests });
+}
+
+/**
+ * Builds a stable TMDb cache key from a title and release year.
+ *
+ * @param {string} title - The movie title as scraped from Letterboxd.
+ * @param {number} year - The release year, or -1 if unknown.
+ * @returns {string} - The cache key.
+ */
+function buildTmdbCacheKey(title, year) {
+	const normalizedTitle = title.trim().toLowerCase();
+	const yearPart = year === -1 ? 'unknown-year' : String(year);
+	return `${normalizedTitle}::${yearPart}`;
+}
+
+/**
+ * Returns the cached TMDb lookup entry for the given key if present and not expired, else null.
+ *
+ * @param {string} cacheKey - The cache key from buildTmdbCacheKey.
+ * @returns {{tmdbId: number, mediaType: string, matchFound: boolean, providerIds: object, cachedAt: number}|null} - The cached entry, or null.
+ */
+function getFreshTmdbCacheEntry(cacheKey) {
+	const entry = tmdbCache[cacheKey];
+	if (!entry) {
+		return null;
+	}
+
+	// NaN cachedAt (corrupted entry) must not be treated as fresh forever
+	const ttl = entry.matchFound ? TMDB_CACHE_TTL_MATCH_FOUND_MS : TMDB_CACHE_TTL_NO_MATCH_MS;
+	if (!Number.isFinite(entry.cachedAt) || Date.now() - entry.cachedAt > ttl) {
+		return null;
+	}
+
+	// a positive entry without its provider map is corrupted or an old format; treat as stale
+	if (entry.matchFound && (!entry.providerIds || typeof entry.providerIds !== 'object')) {
+		return null;
+	}
+
+	return entry;
+}
+
+/**
+ * Stores a TMDb lookup result in the in-memory cache and prunes it if needed.
+ * Not written to storage.local here; see flushTmdbCache.
+ *
+ * @param {string} cacheKey - The cache key from buildTmdbCacheKey.
+ * @param {{tmdbId: number, mediaType: string, matchFound: boolean, providerIds: object}} entry - The result to cache.
+ */
+function setTmdbCacheEntry(cacheKey, entry) {
+	tmdbCache[cacheKey] = { ...entry, cachedAt: Date.now() };
+	pruneTmdbCacheIfNeeded();
+	tmdbCacheDirty = true;
+}
+
+/**
+ * Persists the in-memory TMDb cache to storage.local if it changed since the last flush.
+ * Called from synchronous checkpoints rather than a timer, since an MV3 worker can be
+ * killed before a deferred flush fires.
+ */
+function flushTmdbCache() {
+	if (!tmdbCacheDirty) {
+		return;
+	}
+
+	tmdbCacheDirty = false;
+	browser.storage.local.set({ [TMDB_CACHE_STORAGE_KEY]: tmdbCache })
+		.catch(error => console.error("Failed to persist TMDb lookup cache:", error));
+}
+
+/**
+ * Prunes the oldest cache entries once the cache exceeds TMDB_CACHE_MAX_ENTRIES.
+ */
+function pruneTmdbCacheIfNeeded() {
+	const keys = Object.keys(tmdbCache);
+	if (keys.length <= TMDB_CACHE_MAX_ENTRIES) {
+		return;
+	}
+
+	keys.sort((a, b) => (tmdbCache[a]?.cachedAt ?? 0) - (tmdbCache[b]?.cachedAt ?? 0));
+
+	const removeCount = keys.length - TMDB_CACHE_PRUNE_TARGET;
+	for (let i = 0; i < removeCount; i++) {
+		delete tmdbCache[keys[i]];
+	}
 }
 
 /**
@@ -454,31 +662,20 @@ function extractMediaInfo(item, mediaType) {
 }
 
 /**
- * Adds the given letterboxd ID to the availableMovies
- * if the selected provider includes the movie in its flatrate.
+ * Adds the given letterboxd ID to availableMovies if the selected provider offers
+ * the movie in the selected country on flatrate or for free.
  *
- * @param {object} results - The results from the TMDB "Watch Providers" request.
+ * @param {object} providerIdsByCountry - `{[countryCode]: [providerId, ...]}` from extractProviderIdsByCountry.
  * @param {number} tabId - The tabId to operate in.
  * @param {Array} letterboxdId - The intern ID from the array in letterboxd.com.
  */
-function addMovieIfFlatrate(results, tabId, letterboxdId) {
-	const countryData = results[countryCode];
-	if (!countryData) {
+function addMovieIfProviderAvailable(providerIdsByCountry, tabId, letterboxdId) {
+	const countryProviderIds = providerIdsByCountry?.[countryCode];
+	if (!Array.isArray(countryProviderIds) || !countryProviderIds.includes(providerId)) {
 		return;
 	}
 
-	const offersToCheck = [
-		...(countryData.flatrate ?? []),
-		...(countryData.free ?? [])
-	];
-
-	const hasProvider = offersToCheck.some(offer =>
-		offer.provider_id && offer.provider_id === providerId
-	);
-
-	if (hasProvider) {
-		availableMovies[tabId].push(...letterboxdId);
-	}
+	availableMovies[tabId].push(...letterboxdId);
 }
 
 /**
@@ -513,9 +710,12 @@ async function handleUnsolvedRequests() {
 
 		// Retry all failed movies and wait for completion
 		const retryPromises = Object.entries(moviesToRetry).map(([title, data]) =>
-			checkMovie(Number(tabId), title, data.year, data.id)
+			checkMovieSafely(Number(tabId), title, data.year, data.id)
 		);
 		await Promise.all(retryPromises);
+
+		// Persist whatever the retries resolved, in one write (see flushTmdbCache)
+		flushTmdbCache();
 
 		// Re-apply fading with updated availableMovies
 		fadeUnstreamableMovies(Number(tabId), crawledMovies[tabId]);
