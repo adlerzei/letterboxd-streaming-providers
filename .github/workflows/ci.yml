@@ -57,6 +57,10 @@ jobs:
 
       - name: Write API config
         run: |
+          if [ -z "$TMDB_TOKEN" ]; then
+            echo "::error::TMDB_TOKEN secret is empty or unset -- the built extension would ship with a non-functional API token" >&2
+            exit 1
+          fi
           python3 -c "
           import base64, os, json, secrets, hashlib
           token = os.environ['TMDB_TOKEN']
