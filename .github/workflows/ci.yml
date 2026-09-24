@@ -28,6 +28,33 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Lint extension with web-ext
+        run: |
+          # web-ext lint (Mozilla's official WebExtension linter,
+          # https://github.com/mozilla/web-ext) validates manifest.json
+          # structure/permissions, CSP, icons, etc. for MV3 manifests.
+          #
+          # extension/manifest.json is committed in its Chrome shape
+          # ("background.service_worker") and tools/build.sh swaps that to
+          # Firefox's "background.scripts" array at package time. Linting the
+          # committed manifest as-is would therefore always trip
+          # BACKGROUND_SERVICE_WORKER_NOFALLBACK -- a false positive caused by
+          # this repo's build-time toggle, not a real defect. So we lint a
+          # disposable copy with the same one-line swap tools/build.sh performs
+          # for the Firefox build, which exercises the same
+          # permissions/CSP/icons checks that apply to both browser targets.
+          #
+          # As of this writing extension/ lints completely clean under this
+          # scheme (0 errors, 0 warnings, 0 notices), so warnings are treated as
+          # errors too.
+          #
+          # The swap itself lives in tools/to-firefox-manifest.sh (the same
+          # script tools/build.sh uses for the real Firefox package), so this
+          # step and the build can't silently drift out of sync with each other.
+          cp -r extension "$RUNNER_TEMP/web-ext-lint-target"
+          bash tools/to-firefox-manifest.sh "$RUNNER_TEMP/web-ext-lint-target/manifest.json"
+          npx --yes web-ext@10.6.0 lint --source-dir="$RUNNER_TEMP/web-ext-lint-target" --warnings-as-errors
+
       - name: Write API config
         run: |
           python3 -c "
