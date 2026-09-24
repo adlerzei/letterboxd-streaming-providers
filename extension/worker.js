@@ -22,7 +22,7 @@ const MAX_CRAWL_RETRIES = 3;
 
 // settings
 let countryCode = ''; // e.g. German: "DE", USA: "US"
-let providerId = 0; // e.g. Netflix: 8, Amazon Prime Video: 9
+let selectedProviderIds = []; // e.g. Netflix: 8, Amazon Prime Video: 9
 let filterStatus = false;
 
 // fetch options
@@ -109,19 +109,26 @@ async function requestProviderList() {
 
 /**
  * Parses settings from storage items.
+ * Migrates the legacy single `provider_id` setting to `selected_provider_ids` if needed.
  *
  * @param {object} items - Storage items containing settings.
  */
 async function parseSettings(items) {
 	const hasCountryCode = 'country_code' in items;
-	const hasProvider = 'provider_id' in items;
+	const hasSelectedProviders = 'selected_provider_ids' in items;
+	const hasLegacyProvider = !hasSelectedProviders && 'provider_id' in items;
+	const hasProvider = hasSelectedProviders || hasLegacyProvider;
 	const hasStatus = 'filter_status' in items;
 
 	if (hasCountryCode) {
 		countryCode = items.country_code;
 	}
-	if (hasProvider) {
-		providerId = items.provider_id;
+	if (hasSelectedProviders) {
+		selectedProviderIds = items.selected_provider_ids;
+	} else if (hasLegacyProvider) {
+		selectedProviderIds = [items.provider_id];
+		browser.storage.local.set({selected_provider_ids: selectedProviderIds});
+		browser.storage.local.remove('provider_id');
 	}
 	if (hasStatus) {
 		filterStatus = items.filter_status;
@@ -138,10 +145,10 @@ async function parseSettings(items) {
  * Loads default settings from JSON file.
  *
  * @param {boolean} needCountryCode - Whether to load default country code.
- * @param {boolean} needProvider - Whether to load default provider.
+ * @param {boolean} needSelectedProviders - Whether to load default selected providers.
  * @param {boolean} needStatus - Whether to load default filter status.
  */
-async function loadDefaultSettings(needCountryCode, needProvider, needStatus) {
+async function loadDefaultSettings(needCountryCode, needSelectedProviders, needStatus) {
 	const result = await safeFetchJson("settings/default.json", {}, "default settings");
 	if (!result?.json) {
 		return;
@@ -153,9 +160,9 @@ async function loadDefaultSettings(needCountryCode, needProvider, needStatus) {
 		countryCode = result.json.country_code;
 		toStore.country_code = countryCode;
 	}
-	if (needProvider && 'provider_id' in result.json) {
-		providerId = result.json.provider_id;
-		toStore.provider_id = providerId;
+	if (needSelectedProviders && 'selected_provider_ids' in result.json) {
+		selectedProviderIds = result.json.selected_provider_ids;
+		toStore.selected_provider_ids = selectedProviderIds;
 	}
 	if (needStatus && 'filter_status' in result.json) {
 		filterStatus = result.json.filter_status;
@@ -251,7 +258,7 @@ browser.alarms.onAlarm.addListener(alarm => {
 /////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Called to force the filters to reload with the new provider ID.
+ * Called to force the filters to reload with the new selected provider IDs.
  */
 async function reloadMovieFilter() {
 	const tabs = await browser.tabs.query({}) ?? [];
@@ -455,7 +462,7 @@ function extractMediaInfo(item, mediaType) {
 
 /**
  * Adds the given letterboxd ID to the availableMovies
- * if the selected provider includes the movie in its flatrate.
+ * if any of the selected providers includes the movie in its flatrate.
  *
  * @param {object} results - The results from the TMDB "Watch Providers" request.
  * @param {number} tabId - The tabId to operate in.
@@ -473,7 +480,7 @@ function addMovieIfFlatrate(results, tabId, letterboxdId) {
 	];
 
 	const hasProvider = offersToCheck.some(offer =>
-		offer.provider_id && offer.provider_id === providerId
+		offer.provider_id && selectedProviderIds.includes(offer.provider_id)
 	);
 
 	if (hasProvider) {
@@ -626,7 +633,7 @@ async function prepareLetterboxdForFading(tabId) {
 }
 
 /**
- * Fades out movies that are not available on the selected streaming provider.
+ * Fades out movies that are not available on any of the selected streaming providers.
  *
  * @param {number} tabId - The tabId to operate in.
  * @param {object} movies - The crawled movies.
