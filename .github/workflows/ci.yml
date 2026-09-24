@@ -58,8 +58,15 @@ jobs:
       - name: Write API config
         run: |
           if [ -z "$TMDB_TOKEN" ]; then
-            echo "::error::TMDB_TOKEN secret is empty or unset -- the built extension would ship with a non-functional API token" >&2
-            exit 1
+            # Secrets are not passed to pull_request runs from forks (or Dependabot),
+            # so only warn there; the build still validates, the artifact just has no
+            # working token. Pushes to main must have the secret.
+            if [ "$EVENT_NAME" = "pull_request" ]; then
+              echo "::warning::TMDB_TOKEN secret is not available for this pull request -- the build artifacts will not have a working API token"
+            else
+              echo "::error::TMDB_TOKEN secret is empty or unset -- the built extension would ship with a non-functional API token" >&2
+              exit 1
+            fi
           fi
           python3 -c "
           import base64, os, json, secrets, hashlib
@@ -72,6 +79,7 @@ jobs:
           " > extension/settings/api.json
         env:
           TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
 
       - name: Build extension
         run: bash tools/build.sh
