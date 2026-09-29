@@ -16,6 +16,7 @@ const path = require('node:path');
 // implementations so tests can assert what the worker persisted.
 
 const storageLocalSetCalls = [];
+const storageLocalRemoveCalls = [];
 
 globalThis.chrome = {
 	runtime: {
@@ -33,6 +34,7 @@ globalThis.chrome = {
 		local: {
 			get: async () => ({}),
 			set: async (items) => { storageLocalSetCalls.push(items); },
+			remove: async (keys) => { storageLocalRemoveCalls.push(keys); },
 			onChanged: { addListener() {} },
 		},
 		session: {
@@ -452,10 +454,11 @@ test('getIdWithReleaseYear', async (t) => {
 /////////////////////////////////////////////////////////////////////////////////////
 
 test('addMovieIfFlatrate', async (t) => {
-	// addMovieIfFlatrate reads module-level countryCode/providerId, which parseSettings
-	// sets synchronously (no fetch is triggered when all three settings keys are given).
+	// addMovieIfFlatrate reads module-level countryCode/selectedProviderIds, which
+	// parseSettings sets synchronously (no fetch is triggered when all three settings
+	// keys are given).
 	t.beforeEach(async () => {
-		await worker.parseSettings({ country_code: 'DE', provider_id: 8, filter_status: true });
+		await worker.parseSettings({ country_code: 'DE', selected_provider_ids: [8], filter_status: true });
 	});
 
 	await t.test('adds letterboxd ids when the provider is present in flatrate', () => {
@@ -509,6 +512,30 @@ test('addMovieIfFlatrate', async (t) => {
 		const results = { DE: { flatrate: [{ provider_id: 8 }] } };
 		assert.throws(() => worker.addMovieIfFlatrate(results, 9999, [900]), TypeError);
 	});
+
+	await t.test('adds the movie when any one of several selected providers offers it', async () => {
+		await worker.parseSettings({ country_code: 'DE', selected_provider_ids: [8, 9], filter_status: true });
+		worker.availableMovies[7] = [];
+		const results = { DE: { flatrate: [{ provider_id: 9 }] } };
+		worker.addMovieIfFlatrate(results, 7, [700]);
+		assert.deepStrictEqual(worker.availableMovies[7], [700]);
+	});
+
+	await t.test('does nothing when none of the selected providers offers it', async () => {
+		await worker.parseSettings({ country_code: 'DE', selected_provider_ids: [8, 9], filter_status: true });
+		worker.availableMovies[8] = [];
+		const results = { DE: { flatrate: [{ provider_id: 10 }] } };
+		worker.addMovieIfFlatrate(results, 8, [800]);
+		assert.deepStrictEqual(worker.availableMovies[8], []);
+	});
+
+	await t.test('does nothing when no provider is selected at all', async () => {
+		await worker.parseSettings({ country_code: 'DE', selected_provider_ids: [], filter_status: true });
+		worker.availableMovies[9] = [];
+		const results = { DE: { flatrate: [{ provider_id: 8 }] } };
+		worker.addMovieIfFlatrate(results, 9, [900]);
+		assert.deepStrictEqual(worker.availableMovies[9], []);
+	});
 });
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -525,7 +552,7 @@ test('parseSettings', async (t) => {
 		};
 
 		try {
-			await worker.parseSettings({ country_code: 'US', provider_id: 9, filter_status: false });
+			await worker.parseSettings({ country_code: 'US', selected_provider_ids: [9], filter_status: false });
 		} finally {
 			global.fetch = originalFetch;
 		}
@@ -533,7 +560,7 @@ test('parseSettings', async (t) => {
 		assert.strictEqual(fetchCalled, false, 'fetch should not be called when all settings are already present');
 
 		assert.strictEqual(worker.countryCode, 'US');
-		assert.strictEqual(worker.providerId, 9);
+		assert.deepStrictEqual(worker.selectedProviderIds, [9]);
 
 		// Confirm the values actually took effect, via the observable behavior of addMovieIfFlatrate.
 		worker.availableMovies[900] = [];
@@ -545,19 +572,19 @@ test('parseSettings', async (t) => {
 		// Asserted in both directions on purpose: with only a single false-to-false or
 		// true-to-true assertion, dropping the `filterStatus = items.filter_status`
 		// assignment entirely would still leave the observed value "correct".
-		await worker.parseSettings({ country_code: 'US', provider_id: 9, filter_status: true });
+		await worker.parseSettings({ country_code: 'US', selected_provider_ids: [9], filter_status: true });
 		assert.strictEqual(worker.filterStatus, true);
 
-		await worker.parseSettings({ country_code: 'US', provider_id: 9, filter_status: false });
+		await worker.parseSettings({ country_code: 'US', selected_provider_ids: [9], filter_status: false });
 		assert.strictEqual(worker.filterStatus, false);
 	});
 
 	await t.test('loads, applies and persists default settings when stored settings are incomplete', async () => {
 		// Seed a state that differs from every default value, so each assertion below can
 		// only pass if the default really was read, applied and persisted.
-		await worker.parseSettings({ country_code: 'DE', provider_id: 9, filter_status: true });
+		await worker.parseSettings({ country_code: 'DE', selected_provider_ids: [9], filter_status: true });
 
-		const defaults = { country_code: 'US', provider_id: 8, filter_status: false };
+		const defaults = { country_code: 'US', selected_provider_ids: [8], filter_status: false };
 		const originalFetch = global.fetch;
 		let requestedUrl = null;
 		storageLocalSetCalls.length = 0;
@@ -576,7 +603,7 @@ test('parseSettings', async (t) => {
 
 		// Defaults were applied in memory ...
 		assert.strictEqual(worker.countryCode, 'US');
-		assert.strictEqual(worker.providerId, 8);
+		assert.deepStrictEqual(worker.selectedProviderIds, [8]);
 		assert.strictEqual(worker.filterStatus, false);
 
 		// ... and persisted back to extension storage.
@@ -584,26 +611,26 @@ test('parseSettings', async (t) => {
 	});
 
 	await t.test('only loads the defaults that are actually missing', async () => {
-		await worker.parseSettings({ country_code: 'DE', provider_id: 9, filter_status: true });
+		await worker.parseSettings({ country_code: 'DE', selected_provider_ids: [9], filter_status: true });
 
 		const originalFetch = global.fetch;
 		storageLocalSetCalls.length = 0;
 		global.fetch = async () => ({
 			status: 200,
-			json: async () => ({ country_code: 'US', provider_id: 8, filter_status: false }),
+			json: async () => ({ country_code: 'US', selected_provider_ids: [8], filter_status: false }),
 		});
 
 		try {
-			// Only provider_id is missing, so the stored country code and filter status must survive.
+			// Only selected_provider_ids is missing, so the stored country code and filter status must survive.
 			await worker.parseSettings({ country_code: 'DE', filter_status: true });
 		} finally {
 			global.fetch = originalFetch;
 		}
 
 		assert.strictEqual(worker.countryCode, 'DE');
-		assert.strictEqual(worker.providerId, 8);
+		assert.deepStrictEqual(worker.selectedProviderIds, [8]);
 		assert.strictEqual(worker.filterStatus, true);
-		assert.deepStrictEqual(storageLocalSetCalls, [{ provider_id: 8 }]);
+		assert.deepStrictEqual(storageLocalSetCalls, [{ selected_provider_ids: [8] }]);
 	});
 
 	await t.test('persists nothing when default.json carries no usable keys', async () => {
@@ -630,7 +657,7 @@ test('parseSettings', async (t) => {
 		};
 
 		try {
-			// country_code is present but provider_id/filter_status are missing, so the
+			// country_code is present but selected_provider_ids/filter_status are missing, so the
 			// (failing) default-settings fetch path is exercised.
 			await assert.doesNotReject(worker.parseSettings({ country_code: 'DE' }));
 		} finally {
@@ -639,5 +666,33 @@ test('parseSettings', async (t) => {
 		}
 
 		assert.deepStrictEqual(storageLocalSetCalls, []);
+	});
+});
+
+/////////////////////////////////////////////////////////////////////////////////////
+/////////////////// parseSettings: provider_id migration /////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
+
+test('parseSettings legacy provider_id migration', async (t) => {
+	t.beforeEach(() => {
+		storageLocalSetCalls.length = 0;
+		storageLocalRemoveCalls.length = 0;
+	});
+
+	await t.test('turns a legacy single provider_id into a one-element selection', async () => {
+		await worker.parseSettings({ country_code: 'DE', provider_id: 8, filter_status: true });
+
+		assert.deepStrictEqual(worker.selectedProviderIds, [8]);
+		// Persisted under the new key, and the legacy key dropped, so this only runs once.
+		assert.deepStrictEqual(storageLocalSetCalls, [{ selected_provider_ids: [8] }]);
+		assert.deepStrictEqual(storageLocalRemoveCalls, ['provider_id']);
+	});
+
+	await t.test('prefers a stored selected_provider_ids over a stale legacy provider_id', async () => {
+		await worker.parseSettings({ country_code: 'DE', provider_id: 8, selected_provider_ids: [9, 10], filter_status: true });
+
+		assert.deepStrictEqual(worker.selectedProviderIds, [9, 10]);
+		assert.deepStrictEqual(storageLocalSetCalls, []);
+		assert.deepStrictEqual(storageLocalRemoveCalls, []);
 	});
 });
