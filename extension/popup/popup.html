@@ -27,10 +27,13 @@
     <select id="CountryList"></select>
   </div>
 
-  <div class="select-box">
-    <label class="content-text" for="ProviderList">Streaming service</label>
-    <div class="instruction-text">Hold Ctrl/Cmd to select multiple</div>
-    <select id="ProviderList" multiple size="8"></select>
+  <div class="select-box" id="ProviderBox">
+    <div class="label-row">
+      <span class="content-text" id="ProviderLabel">Streaming service</span>
+      <span class="selection-meta"><span id="SelectionCount">0 selected</span> · <button type="button" class="link-button" id="ClearSelection">Clear</button></span>
+    </div>
+    <input type="search" class="provider-search" id="ProviderSearch" placeholder="Search services…" aria-label="Search streaming services" autocomplete="off">
+    <div class="provider-list" id="ProviderList" role="listbox" aria-multiselectable="true" aria-labelledby="ProviderLabel"></div>
   </div>
 </section>
 

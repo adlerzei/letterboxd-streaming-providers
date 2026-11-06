@@ -10,7 +10,11 @@ var countryCode = '';
 var filterStatus = false;
 
 var countryList = document.getElementById('CountryList');
+var providerBox = document.getElementById('ProviderBox');
 var providerList = document.getElementById('ProviderList');
+var providerSearch = document.getElementById('ProviderSearch');
+var selectionCount = document.getElementById('SelectionCount');
+var clearSelectionButton = document.getElementById('ClearSelection');
 var filterSwitch = document.getElementById("filterSwitch");
 
 // load stored settings from localStorage; only these keys, to skip deserializing the TMDb cache blob
@@ -26,13 +30,15 @@ browser.storage.local.get(['country_code', 'selected_provider_ids', 'provider_id
 		appendOptionsToProviderList();
 		
 		filterSwitch.checked = filterStatus;
-		
-		// Set initial disabled state for selects
-		countryList.disabled = !filterStatus;
-		providerList.disabled = !filterStatus;
-		
+
+		// Set initial disabled state for the country select and the provider picker
+		setControlsDisabled(!filterStatus);
+
 		filterSwitch.addEventListener("change", changeFilterSwitch);
-		providerList.addEventListener("change", changeSelectedProviderIds);
+		providerList.addEventListener("click", onProviderListClick);
+		providerList.addEventListener("keydown", onProviderListKeydown);
+		providerSearch.addEventListener("input", applyProviderSearch);
+		clearSelectionButton.addEventListener("click", clearSelectedProviderIds);
 		countryList.addEventListener("change", changeCountryCode);
 	});
 });
@@ -62,33 +68,132 @@ function appendOptionsToCountryList() {
 }
 
 /**
- * Appends all providers from the selected country as option to the providerList select tag.
- * A provider is pre-selected if its provider_id is part of the currently selected provider IDs,
- * so selections carry over across a country change as long as the provider is offered there too.
+ * Fills the providerList with one row per provider offered in the selected country.
+ * A row is marked selected if its provider_id is part of the currently selected provider IDs.
+ * Selections of providers not offered in this country are kept in storage, so they come back
+ * when switching back to a country that offers them.
  */
 function appendOptionsToProviderList() {
-	providerList.options.length = 0;
+	providerList.replaceChildren();
 	let fragment = document.createDocumentFragment();
 	let keys = Object.keys(providers).sort(function (a, b) {
 		return ('' + providers[a].name).localeCompare(providers[b].name);
 	});
+	let country = countryList.selectedIndex >= 0 ? countryList.options[countryList.selectedIndex].value : '';
 	for (const provider of keys) {
 		if (!Object.prototype.hasOwnProperty.call(providers[provider], 'name') || !Object.prototype.hasOwnProperty.call(providers[provider], 'provider_id'))
 			continue;
 
-		let country = countryList.options[countryList.selectedIndex].value;
 		if (providers[provider].countries.includes(country)) {
-			let opt = document.createElement('option');
-			opt.textContent = providers[provider].name;
-			opt.value = provider;
-			opt.label = providers[provider].name;
-			if (selectedProviderIds.includes(providers[provider].provider_id)) {
-				opt.selected = "selected";
-			}
-			fragment.appendChild(opt);
+			let row = document.createElement('div');
+			row.className = 'provider-row';
+			row.setAttribute('role', 'option');
+			row.textContent = providers[provider].name;
+			row.dataset.providerId = providers[provider].provider_id;
+			row.setAttribute('aria-selected', String(selectedProviderIds.includes(providers[provider].provider_id)));
+			row.tabIndex = filterStatus ? 0 : -1;
+			fragment.appendChild(row);
 		}
 	}
+
+	let empty = document.createElement('div');
+	empty.className = 'provider-empty';
+	empty.textContent = 'No matches';
+	empty.hidden = true;
+	fragment.appendChild(empty);
+
 	providerList.appendChild(fragment);
+	applyProviderSearch();
+}
+
+/**
+ * Selects or deselects a provider and stores the new selection.
+ *
+ * @param {HTMLElement} row - The providerList row that was toggled.
+ */
+function toggleProvider(row) {
+	let id = Number(row.dataset.providerId);
+	if (selectedProviderIds.includes(id)) {
+		selectedProviderIds = selectedProviderIds.filter(selectedId => selectedId !== id);
+	} else {
+		selectedProviderIds = [...selectedProviderIds, id];
+	}
+
+	row.setAttribute('aria-selected', String(selectedProviderIds.includes(id)));
+	browser.storage.local.set({selected_provider_ids: selectedProviderIds});
+	updateSelectionCount();
+}
+
+function onProviderListClick(event) {
+	let row = event.target.closest('.provider-row');
+	if (row && filterStatus) {
+		toggleProvider(row);
+	}
+}
+
+function onProviderListKeydown(event) {
+	let row = event.target.closest('.provider-row');
+	if (row && filterStatus && (event.key === ' ' || event.key === 'Enter')) {
+		event.preventDefault();
+		toggleProvider(row);
+	}
+}
+
+/**
+ * Hides the providerList rows that don't match the search text.
+ * Only changes what is shown; the selection stays as it is.
+ */
+function applyProviderSearch() {
+	let query = providerSearch.value.trim().toLowerCase();
+	let anyVisible = false;
+	for (const row of providerList.querySelectorAll('.provider-row')) {
+		row.hidden = !row.textContent.toLowerCase().includes(query);
+		anyVisible = anyVisible || !row.hidden;
+	}
+
+	let empty = providerList.querySelector('.provider-empty');
+	if (empty) {
+		empty.hidden = anyVisible;
+	}
+	updateSelectionCount();
+}
+
+/**
+ * Shows how many of the providers offered in the selected country are selected,
+ * including rows hidden by the search.
+ */
+function updateSelectionCount() {
+	let count = providerList.querySelectorAll('.provider-row[aria-selected="true"]').length;
+	selectionCount.textContent = count + ' selected';
+	clearSelectionButton.disabled = !filterStatus || selectedProviderIds.length === 0;
+}
+
+/**
+ * Deselects all providers and stores the empty selection.
+ */
+function clearSelectedProviderIds() {
+	selectedProviderIds = [];
+	browser.storage.local.set({selected_provider_ids: selectedProviderIds});
+	for (const row of providerList.querySelectorAll('.provider-row')) {
+		row.setAttribute('aria-selected', 'false');
+	}
+	updateSelectionCount();
+}
+
+/**
+ * Enables or disables the country select and the provider picker.
+ *
+ * @param {boolean} disabled - Whether the controls should be disabled.
+ */
+function setControlsDisabled(disabled) {
+	countryList.disabled = disabled;
+	providerSearch.disabled = disabled;
+	providerBox.classList.toggle('disabled', disabled);
+	providerList.setAttribute('aria-disabled', String(disabled));
+	for (const row of providerList.querySelectorAll('.provider-row')) {
+		row.tabIndex = disabled ? -1 : 0;
+	}
+	updateSelectionCount();
 }
 
 /**
@@ -98,39 +203,12 @@ function changeFilterSwitch() {
 	// enable or disable filtering
 	filterStatus = filterSwitch.checked;
 	browser.storage.local.set({filter_status: filterSwitch.checked});
-	providerList.disabled = (!filterSwitch.checked);
-	countryList.disabled = (!filterSwitch.checked);
-}
-
-/**
- * Called when the selection in providerList is changed. Stores the newly selected provider IDs.
- * Does nothing if the list has no options yet (e.g. the provider cache hasn't loaded),
- * so we never overwrite a stored selection with an empty one.
- */
-function changeSelectedProviderIds() {
-	if (providerList.options.length === 0) {
-		return;
-	}
-
-	let newSelectedProviderIds = [];
-	if (typeof providers !== 'undefined') {
-		var opt;
-		var id;
-		for (var i = 0; i < providerList.options.length; i++) {
-			opt = providerList.options[i];
-			id = opt.value;
-			if (opt.selected && Object.prototype.hasOwnProperty.call(providers, id) && Object.prototype.hasOwnProperty.call(providers[id], 'provider_id')) {
-				newSelectedProviderIds.push(providers[id].provider_id);
-			}
-		}
-	}
-	selectedProviderIds = newSelectedProviderIds;
-	browser.storage.local.set({selected_provider_ids: selectedProviderIds});
+	setControlsDisabled(!filterSwitch.checked);
 }
 
 /**
  * Called when the selected item in countryList is changed.
- * Changes the country code in the background page and forces the options in providerList to reload.
+ * Changes the country code in the background page and forces the rows in providerList to reload.
  */
 function changeCountryCode() {
 	let code = countryList.options[countryList.selectedIndex].value;
@@ -143,7 +221,6 @@ function changeCountryCode() {
 		});
 
 		appendOptionsToProviderList();
-		changeSelectedProviderIds();
 	}
 }
 
