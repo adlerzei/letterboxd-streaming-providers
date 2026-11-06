@@ -1,5 +1,5 @@
 {
   "country_code": "US",
-  "provider_id": 8,
+  "selected_provider_ids": [8],
   "filter_status": false
 }
