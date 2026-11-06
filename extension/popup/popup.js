@@ -119,7 +119,7 @@ function changeSelectedProviderIds() {
 		for (var i = 0; i < providerList.options.length; i++) {
 			opt = providerList.options[i];
 			id = opt.value;
-			if (opt.selected && providers.hasOwnProperty(id) && providers[id].hasOwnProperty('provider_id')) {
+			if (opt.selected && Object.prototype.hasOwnProperty.call(providers, id) && Object.prototype.hasOwnProperty.call(providers[id], 'provider_id')) {
 				newSelectedProviderIds.push(providers[id].provider_id);
 			}
 		}
@@ -134,8 +134,8 @@ function changeSelectedProviderIds() {
  */
 function changeCountryCode() {
 	let code = countryList.options[countryList.selectedIndex].value;
-	if (typeof countries !== 'undefined' && countries.hasOwnProperty(code)
-		&& countries[code].hasOwnProperty('code')) {
+	if (typeof countries !== 'undefined' && Object.prototype.hasOwnProperty.call(countries, code)
+		&& Object.prototype.hasOwnProperty.call(countries[code], 'code')) {
 		countryCode = countries[code].code;
 
 		browser.storage.local.set({
@@ -155,15 +155,15 @@ function changeCountryCode() {
  * @param {object} items - Storage items containing settings.
  */
 function parseSettings(items) {
-	countryCode = items.hasOwnProperty('country_code') ? items.country_code : 'US';
-	if (items.hasOwnProperty('selected_provider_ids')) {
+	countryCode = Object.prototype.hasOwnProperty.call(items, 'country_code') ? items.country_code : 'US';
+	if (Object.prototype.hasOwnProperty.call(items, 'selected_provider_ids')) {
 		selectedProviderIds = items.selected_provider_ids;
-	} else if (items.hasOwnProperty('provider_id')) {
+	} else if (Object.prototype.hasOwnProperty.call(items, 'provider_id')) {
 		selectedProviderIds = [items.provider_id];
 	} else {
 		selectedProviderIds = [8];
 	}
-	filterStatus = items.hasOwnProperty('filter_status') ? items.filter_status : false;
+	filterStatus = Object.prototype.hasOwnProperty.call(items, 'filter_status') ? items.filter_status : false;
 }
 
 function parseCache(items) {
