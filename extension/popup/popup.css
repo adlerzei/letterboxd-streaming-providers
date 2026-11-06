@@ -46,7 +46,7 @@ html, body {
 }
 
 #content {
-    padding: 16px 16px 2px;
+    padding: 16px;
     background-color: #1a1a1a;
 }
 
@@ -56,7 +56,6 @@ select {
     height: 36px;
     padding: 0 10px;
     margin-top: 3px;
-    margin-bottom: 14px;
     color: #e8e8e8;
     background-color: #2a2a2a;
     font-size: 13px;
