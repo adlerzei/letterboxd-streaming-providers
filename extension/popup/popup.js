@@ -46,7 +46,7 @@ function appendOptionsToCountryList() {
 		return ('' + countries[a].name).localeCompare(countries[b].name);
 	});
 	for (const country of keys) {
-		if (!countries[country].hasOwnProperty('name') || !countries[country].hasOwnProperty('code'))
+		if (!Object.prototype.hasOwnProperty.call(countries[country], 'name') || !Object.prototype.hasOwnProperty.call(countries[country], 'code'))
 			continue;
 
 		let opt = document.createElement('option');
@@ -73,7 +73,7 @@ function appendOptionsToProviderList() {
 		return ('' + providers[a].name).localeCompare(providers[b].name);
 	});
 	for (const provider of keys) {
-		if (!providers[provider].hasOwnProperty('name') || !providers[provider].hasOwnProperty('provider_id'))
+		if (!Object.prototype.hasOwnProperty.call(providers[provider], 'name') || !Object.prototype.hasOwnProperty.call(providers[provider], 'provider_id'))
 			continue;
 
 		let country = countryList.options[countryList.selectedIndex].value;
@@ -167,8 +167,8 @@ function parseSettings(items) {
 }
 
 function parseCache(items) {
-	providers = items.hasOwnProperty('providers') ? items.providers : {};
-	countries = items.hasOwnProperty('countries') ? items.countries : {};
+	providers = Object.prototype.hasOwnProperty.call(items, 'providers') ? items.providers : {};
+	countries = Object.prototype.hasOwnProperty.call(items, 'countries') ? items.countries : {};
 }
 
 /**
