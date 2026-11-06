@@ -25,10 +25,10 @@ export default [
 		},
 	},
 	{
-		// The test suite runs under Node's built-in test runner, not in a
-		// browser: it uses require/process/global/console and mocks `chrome`
-		// itself.
-		files: ["test/**/*.js"],
+		// The test suite (Node's built-in test runner) and the dev scripts in
+		// tools/ run under Node, not in a browser: they use
+		// require/process/__dirname/console (the tests also mock `chrome`).
+		files: ["test/**/*.js", "tools/**/*.js"],
 		languageOptions: {
 			sourceType: "script",
 			globals: {

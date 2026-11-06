@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Tile: Letterboxd slate, lit from the top -->
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2C3440"/>
+      <stop offset="1" stop-color="#14181C"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.03"/>
+    </linearGradient>
+    <!-- Soft spotlight behind the dots -->
+    <radialGradient id="spot" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Letterboxd dots with a glossy, lit-from-top-left finish -->
+    <radialGradient id="orange" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#FFB25C"/>
+      <stop offset="0.55" stop-color="#FF8000"/>
+      <stop offset="1" stop-color="#D96200"/>
+    </radialGradient>
+    <radialGradient id="green" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#6CF5A0"/>
+      <stop offset="0.55" stop-color="#00E054"/>
+      <stop offset="1" stop-color="#00AE41"/>
+    </radialGradient>
+    <radialGradient id="blue" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#9ADCFA"/>
+      <stop offset="0.55" stop-color="#40BCF4"/>
+      <stop offset="1" stop-color="#1E92CC"/>
+    </radialGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"/>
+    </filter>
+    <filter id="playShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#00431A" flood-opacity="0.6"/>
+    </filter>
+
+    <clipPath id="clipOrange"><circle cx="122" cy="262" r="96"/></clipPath>
+    <clipPath id="clipBlue"><circle cx="390" cy="262" r="96"/></clipPath>
+    <clipPath id="tileClip"><rect x="8" y="8" width="496" height="496" rx="116"/></clipPath>
+  </defs>
+
+  <!-- Background tile -->
+  <rect x="8" y="8" width="496" height="496" rx="116" fill="url(#tile)"/>
+  <g clip-path="url(#tileClip)">
+    <ellipse cx="256" cy="262" rx="250" ry="170" fill="url(#spot)"/>
+    <!-- Film-strip perforations -->
+    <g fill="#FFFFFF" fill-opacity="0.09">
+      <rect x="62"  y="36" width="40" height="26" rx="7"/>
+      <rect x="134" y="36" width="40" height="26" rx="7"/>
+      <rect x="206" y="36" width="40" height="26" rx="7"/>
+      <rect x="278" y="36" width="40" height="26" rx="7"/>
+      <rect x="350" y="36" width="40" height="26" rx="7"/>
+      <rect x="422" y="36" width="40" height="26" rx="7"/>
+      <rect x="62"  y="450" width="40" height="26" rx="7"/>
+      <rect x="134" y="450" width="40" height="26" rx="7"/>
+      <rect x="206" y="450" width="40" height="26" rx="7"/>
+      <rect x="278" y="450" width="40" height="26" rx="7"/>
+      <rect x="350" y="450" width="40" height="26" rx="7"/>
+      <rect x="422" y="450" width="40" height="26" rx="7"/>
+    </g>
+  </g>
+  <rect x="9.5" y="9.5" width="493" height="493" rx="114.5" fill="none" stroke="url(#rim)" stroke-width="3"/>
+
+  <!-- The three Letterboxd dots -->
+  <g filter="url(#shadow)">
+    <circle cx="122" cy="262" r="96" fill="url(#orange)"/>
+    <circle cx="390" cy="262" r="96" fill="url(#blue)"/>
+    <circle cx="256" cy="262" r="96" fill="url(#green)"/>
+    <!-- Overlap lenses, tinted like the Letterboxd logo -->
+    <circle cx="256" cy="262" r="96" fill="#A8D81E" fill-opacity="0.92" clip-path="url(#clipOrange)"/>
+    <circle cx="256" cy="262" r="96" fill="#1CCFA6" fill-opacity="0.92" clip-path="url(#clipBlue)"/>
+  </g>
+
+  <!-- Gloss highlights -->
+  <ellipse cx="114" cy="212" rx="54" ry="32" fill="url(#gloss)" opacity="0.6"/>
+  <ellipse cx="382" cy="212" rx="54" ry="32" fill="url(#gloss)" opacity="0.6"/>
+  <ellipse cx="256" cy="212" rx="54" ry="32" fill="url(#gloss)" opacity="0.6"/>
+
+  <!-- Play button: streaming -->
+  <path d="M232 214 L232 310 Q232 322 242 316 L312 272 Q322 262 312 252 L242 208 Q232 202 232 214 Z"
+        fill="#FFFFFF" filter="url(#playShadow)"/>
+</svg>
