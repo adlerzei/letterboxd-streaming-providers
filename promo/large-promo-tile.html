@@ -1,0 +1,74 @@
+<!doctype html>
+<!-- Chrome Web Store "marquee promo tile" (1400x560). Rendered by tools/render-promo.js. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; }
+  .tile {
+    position: relative; width: 1400px; height: 560px; overflow: hidden; box-sizing: border-box;
+    background: radial-gradient(70% 110% at 22% 50%, #2C3440 0%, #1C2228 55%, #14181C 100%);
+    font-family: "Inter", "Helvetica Neue", Arial, sans-serif; color: #FFFFFF;
+    display: flex; align-items: center; padding: 0 96px 0 84px; gap: 56px;
+  }
+  /* Film-strip perforations along top and bottom */
+  .strip { position: absolute; left: 0; right: 0; height: 22px;
+    background: repeating-linear-gradient(90deg, transparent 0 18px, rgba(255,255,255,.07) 18px 52px, transparent 52px 66px); }
+  .strip.top { top: 24px; } .strip.bottom { bottom: 24px; }
+
+  .logo { width: 250px; height: 250px; flex-shrink: 0; filter: drop-shadow(0 18px 30px rgba(0,0,0,.55)); }
+
+  .text { display: flex; flex-direction: column; gap: 20px; width: 470px; flex-shrink: 0; }
+  .name { font-weight: 800; font-size: 54px; line-height: 1.05; letter-spacing: -1px; }
+  .name span { display: block; }
+  .name .sp { width: max-content; background: linear-gradient(90deg, #FF8000, #00E054 55%, #40BCF4);
+              -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tag { font-weight: 500; font-size: 23px; line-height: 1.4; color: #9AB; }
+  .dots { display: flex; gap: 10px; }
+  .dots i { width: 14px; height: 14px; border-radius: 50%; }
+
+  /* Illustration of the filter: abstract posters, the ones on your services stay lit */
+  .wall { position: relative; display: grid; grid-template-columns: repeat(4, 96px); gap: 14px; margin-left: auto;
+          transform: perspective(1400px) rotateY(-14deg) rotateX(4deg); transform-origin: center; }
+  .poster { position: relative; height: 142px; border-radius: 8px; overflow: hidden;
+            box-shadow: 0 10px 22px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.08); }
+  .poster::after { content: ""; position: absolute; inset: 0;
+                   background: linear-gradient(160deg, rgba(255,255,255,.18), transparent 45%); }
+  .poster.off { opacity: .22; filter: grayscale(1); }
+  .poster.on { box-shadow: 0 12px 26px rgba(0,0,0,.5), 0 0 0 3px #00E054; }
+  .badge { position: absolute; right: 7px; bottom: 7px; width: 26px; height: 26px; border-radius: 50%;
+           background: #00E054; display: grid; place-items: center; z-index: 1;
+           box-shadow: 0 3px 8px rgba(0,0,0,.4); }
+  .badge svg { width: 13px; height: 13px; margin-left: 2px; }
+  .p1 { background: linear-gradient(180deg, #5B2A86, #1B1035); }
+  .p2 { background: linear-gradient(180deg, #E07A2E, #5A1E0B); }
+  .p3 { background: linear-gradient(180deg, #2A6F97, #0B2233); }
+  .p4 { background: linear-gradient(180deg, #B23A48, #2D0B12); }
+  .p5 { background: linear-gradient(180deg, #3D8361, #0E2A1D); }
+  .p6 { background: linear-gradient(180deg, #D4A72C, #4A3305); }
+  .p7 { background: linear-gradient(180deg, #4A4E69, #15161F); }
+  .p8 { background: linear-gradient(180deg, #1F7A8C, #052229); }
+</style>
+</head>
+<body>
+<div class="tile">
+  <div class="strip top"></div><div class="strip bottom"></div>
+  <img class="logo" src="../extension/icons/logo.svg" alt="">
+  <div class="text">
+    <div class="name"><span>Letterboxd</span><span class="sp">Streaming</span><span class="sp">Providers</span></div>
+    <div class="tag">See which films on Letterboxd are included in your streaming subscriptions.</div>
+    <div class="dots"><i style="background:#FF8000"></i><i style="background:#00E054"></i><i style="background:#40BCF4"></i></div>
+  </div>
+  <div class="wall">
+    <div class="poster p1 on"><span class="badge"><svg viewBox="0 0 10 10"><path d="M2 1 L9 5 L2 9 Z" fill="#fff"/></svg></span></div>
+    <div class="poster p2 off"></div>
+    <div class="poster p3 on"><span class="badge"><svg viewBox="0 0 10 10"><path d="M2 1 L9 5 L2 9 Z" fill="#fff"/></svg></span></div>
+    <div class="poster p4 off"></div>
+    <div class="poster p5 off"></div>
+    <div class="poster p6 on"><span class="badge"><svg viewBox="0 0 10 10"><path d="M2 1 L9 5 L2 9 Z" fill="#fff"/></svg></span></div>
+    <div class="poster p7 off"></div>
+    <div class="poster p8 on"><span class="badge"><svg viewBox="0 0 10 10"><path d="M2 1 L9 5 L2 9 Z" fill="#fff"/></svg></span></div>
+  </div>
+</div>
+</body>
+</html>
