@@ -1,0 +1,42 @@
+<!doctype html>
+<!-- Chrome Web Store "small promo tile" (440x280). Rendered by tools/render-promo.js. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; }
+  .tile {
+    position: relative; width: 440px; height: 280px; overflow: hidden;
+    background: radial-gradient(120% 90% at 30% 45%, #2C3440 0%, #1C2228 55%, #14181C 100%);
+    font-family: "Inter", "Helvetica Neue", Arial, sans-serif; color: #FFFFFF;
+    display: flex; align-items: center; gap: 22px; padding: 0 28px; box-sizing: border-box;
+  }
+  /* Film-strip perforations along top and bottom */
+  .strip { position: absolute; left: 0; right: 0; height: 12px;
+    background: repeating-linear-gradient(90deg, transparent 0 10px, rgba(255,255,255,.07) 10px 28px, transparent 28px 36px);
+    -webkit-mask: linear-gradient(#000, #000); border-radius: 3px; }
+  .strip.top { top: 12px; } .strip.bottom { bottom: 12px; }
+  .logo { width: 136px; height: 136px; flex-shrink: 0; filter: drop-shadow(0 10px 18px rgba(0,0,0,.5)); }
+  .text { display: flex; flex-direction: column; gap: 10px; }
+  .name { font-weight: 800; font-size: 27px; line-height: 1.08; letter-spacing: -0.4px; }
+  .name span { display: block; }
+  .name .lb { color: #FFFFFF; }
+  .name .sp { width: max-content; background: linear-gradient(90deg, #FF8000, #00E054 55%, #40BCF4);
+              -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tag { font-weight: 500; font-size: 14px; line-height: 1.35; color: #9AB; }
+  .dots { display: flex; gap: 6px; }
+  .dots i { width: 9px; height: 9px; border-radius: 50%; }
+</style>
+</head>
+<body>
+<div class="tile">
+  <div class="strip top"></div><div class="strip bottom"></div>
+  <img class="logo" src="../extension/icons/logo.svg" alt="">
+  <div class="text">
+    <div class="name"><span class="lb">Letterboxd</span><span class="sp">Streaming</span><span class="sp">Providers</span></div>
+    <div class="tag">See which films are on<br>your streaming services.</div>
+    <div class="dots"><i style="background:#FF8000"></i><i style="background:#00E054"></i><i style="background:#40BCF4"></i></div>
+  </div>
+</div>
+</body>
+</html>
