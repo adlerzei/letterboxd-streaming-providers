@@ -13,8 +13,8 @@ var countryList = document.getElementById('CountryList');
 var providerList = document.getElementById('ProviderList');
 var filterSwitch = document.getElementById("filterSwitch");
 
-// load stored settings from localStorage
-browser.storage.local.get((items) => {
+// load stored settings from localStorage; only these keys, to skip deserializing the TMDb cache blob
+browser.storage.local.get(['country_code', 'provider_id', 'filter_status', 'providers', 'countries'], (items) => {
 	parseSettings(items);
 
 	// load cached variables from sessionStorage
