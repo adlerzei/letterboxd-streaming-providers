@@ -107,6 +107,11 @@ select option {
     text-decoration: underline;
 }
 
+.link-button:disabled {
+    color: #666;
+    cursor: default;
+}
+
 .provider-search {
     box-sizing: border-box;
     width: 100%;
@@ -190,7 +195,7 @@ select option {
     pointer-events: none;
 }
 
-#footer {
+.footer {
     padding: 6px 16px;
     border-top: 1px solid #2a2a2a;
     background-color: #1f1f1f;

@@ -1,67 +1,89 @@
 "use strict";
 
 //for compatibility reasons
-var browser = chrome;
+const browser = chrome;
 
-var countries = {};
-var providers = {};
-var selectedProviderIds = [];
-var countryCode = '';
-var filterStatus = false;
+let countries = {};
+let providers = {};
+let selectedProviderIds = [];
+let countryCode = '';
+let filterStatus = false;
 
-var countryList = document.getElementById('CountryList');
-var providerBox = document.getElementById('ProviderBox');
-var providerList = document.getElementById('ProviderList');
-var providerSearch = document.getElementById('ProviderSearch');
-var selectionCount = document.getElementById('SelectionCount');
-var clearSelectionButton = document.getElementById('ClearSelection');
-var filterSwitch = document.getElementById("filterSwitch");
+const filterSwitch = document.getElementById('filterSwitch');
+const countryList = document.getElementById('CountryList');
+const providerBox = document.getElementById('ProviderBox');
+const providerList = document.getElementById('ProviderList');
+const providerSearch = document.getElementById('ProviderSearch');
+const selectionCount = document.getElementById('SelectionCount');
+const clearSelectionButton = document.getElementById('ClearSelection');
 
 // load stored settings from localStorage; only these keys, to skip deserializing the TMDb cache blob
-browser.storage.local.get(['country_code', 'selected_provider_ids', 'provider_id', 'filter_status', 'providers', 'countries'], (items) => {
+browser.storage.local.get(['country_code', 'selected_provider_ids', 'provider_id', 'filter_status'], (items) => {
 	parseSettings(items);
 
 	// load cached variables from sessionStorage
-	browser.storage.session.get((items) => {
-		parseCache(items);
-		
-		appendOptionsToCountryList();
-		
-		appendOptionsToProviderList();
-		
-		filterSwitch.checked = filterStatus;
+	browser.storage.session.get(['providers', 'countries'], (items) => {
+		providers = items.providers ?? {};
+		countries = items.countries ?? {};
 
-		// Set initial disabled state for the country select and the provider picker
+		appendOptionsToCountryList();
+		appendOptionsToProviderList();
+
+		filterSwitch.checked = filterStatus;
 		setControlsDisabled(!filterStatus);
 
-		filterSwitch.addEventListener("change", changeFilterSwitch);
-		providerList.addEventListener("click", onProviderListClick);
-		providerList.addEventListener("keydown", onProviderListKeydown);
-		providerSearch.addEventListener("input", applyProviderSearch);
-		clearSelectionButton.addEventListener("click", clearSelectedProviderIds);
-		countryList.addEventListener("change", changeCountryCode);
+		filterSwitch.addEventListener('change', changeFilterSwitch);
+		countryList.addEventListener('change', changeCountryCode);
+		providerList.addEventListener('click', onProviderListClick);
+		providerList.addEventListener('keydown', onProviderListKeydown);
+		providerSearch.addEventListener('input', applyProviderSearch);
+		clearSelectionButton.addEventListener('click', clearSelectedProviderIds);
 	});
 });
 
 /**
- * Appends all countries as option to the countryList select tag.
+ * Parses settings from storage items.
+ * Falls back to the legacy single `provider_id` setting if `selected_provider_ids` hasn't been
+ * migrated yet; the worker performs the actual migration write.
+ *
+ * @param {object} items - Storage items containing settings.
+ */
+function parseSettings(items) {
+	countryCode = items.country_code ?? 'US';
+	if (Object.hasOwn(items, 'selected_provider_ids')) {
+		selectedProviderIds = items.selected_provider_ids;
+	} else if (Object.hasOwn(items, 'provider_id')) {
+		selectedProviderIds = [items.provider_id];
+	} else {
+		selectedProviderIds = [8];
+	}
+	filterStatus = items.filter_status ?? false;
+}
+
+/**
+ * Returns the keys of the given object, sorted by the `name` of their values.
+ *
+ * @param {object} entries - Countries or providers, keyed by code or ID.
+ * @returns {string[]} - The sorted keys.
+ */
+function keysSortedByName(entries) {
+	return Object.keys(entries).sort((a, b) => String(entries[a].name).localeCompare(entries[b].name));
+}
+
+/**
+ * Fills the countryList select with all countries and selects the stored one.
  */
 function appendOptionsToCountryList() {
-	var fragment = document.createDocumentFragment();
-	var keys = Object.keys(countries).sort(function (a, b) {
-		return ('' + countries[a].name).localeCompare(countries[b].name);
-	});
-	for (const country of keys) {
-		if (!Object.prototype.hasOwnProperty.call(countries[country], 'name') || !Object.prototype.hasOwnProperty.call(countries[country], 'code'))
+	const fragment = document.createDocumentFragment();
+	for (const key of keysSortedByName(countries)) {
+		const country = countries[key];
+		if (!country.name || !country.code)
 			continue;
 
-		let opt = document.createElement('option');
-		opt.textContent = countries[country].name;
-		opt.value = country;
-		opt.label = countries[country].name;
-		if (countries[country].code === countryCode) {
-			opt.selected = "selected";
-		}
+		const opt = document.createElement('option');
+		opt.textContent = country.name;
+		opt.value = key;
+		opt.selected = country.code === countryCode;
 		fragment.appendChild(opt);
 	}
 	countryList.appendChild(fragment);
@@ -74,36 +96,40 @@ function appendOptionsToCountryList() {
  * when switching back to a country that offers them.
  */
 function appendOptionsToProviderList() {
-	providerList.replaceChildren();
-	let fragment = document.createDocumentFragment();
-	let keys = Object.keys(providers).sort(function (a, b) {
-		return ('' + providers[a].name).localeCompare(providers[b].name);
-	});
-	let country = countryList.selectedIndex >= 0 ? countryList.options[countryList.selectedIndex].value : '';
-	for (const provider of keys) {
-		if (!Object.prototype.hasOwnProperty.call(providers[provider], 'name') || !Object.prototype.hasOwnProperty.call(providers[provider], 'provider_id'))
+	const fragment = document.createDocumentFragment();
+	const country = countryList.value;
+	for (const key of keysSortedByName(providers)) {
+		const provider = providers[key];
+		if (!provider.name || provider.provider_id == null || !provider.countries?.includes(country))
 			continue;
 
-		if (providers[provider].countries.includes(country)) {
-			let row = document.createElement('div');
-			row.className = 'provider-row';
-			row.setAttribute('role', 'option');
-			row.textContent = providers[provider].name;
-			row.dataset.providerId = providers[provider].provider_id;
-			row.setAttribute('aria-selected', String(selectedProviderIds.includes(providers[provider].provider_id)));
-			row.tabIndex = filterStatus ? 0 : -1;
-			fragment.appendChild(row);
-		}
+		const row = document.createElement('div');
+		row.className = 'provider-row';
+		row.setAttribute('role', 'option');
+		row.textContent = provider.name;
+		row.dataset.providerId = provider.provider_id;
+		row.setAttribute('aria-selected', String(selectedProviderIds.includes(provider.provider_id)));
+		row.tabIndex = filterStatus ? 0 : -1;
+		fragment.appendChild(row);
 	}
 
-	let empty = document.createElement('div');
+	const empty = document.createElement('div');
 	empty.className = 'provider-empty';
-	empty.textContent = 'No matches';
-	empty.hidden = true;
+	// No rows at all means the provider cache hasn't been filled yet (or the country has none)
+	empty.textContent = fragment.childElementCount > 0 ? 'No matches' : 'No streaming services available';
 	fragment.appendChild(empty);
 
-	providerList.appendChild(fragment);
+	providerList.replaceChildren(fragment);
 	applyProviderSearch();
+}
+
+/**
+ * Returns all rows of the providerList, including those hidden by the search.
+ *
+ * @returns {NodeListOf<HTMLElement>} - The provider rows.
+ */
+function getProviderRows() {
+	return providerList.querySelectorAll('.provider-row');
 }
 
 /**
@@ -112,27 +138,26 @@ function appendOptionsToProviderList() {
  * @param {HTMLElement} row - The providerList row that was toggled.
  */
 function toggleProvider(row) {
-	let id = Number(row.dataset.providerId);
-	if (selectedProviderIds.includes(id)) {
-		selectedProviderIds = selectedProviderIds.filter(selectedId => selectedId !== id);
-	} else {
-		selectedProviderIds = [...selectedProviderIds, id];
-	}
+	const id = Number(row.dataset.providerId);
+	const selected = !selectedProviderIds.includes(id);
+	selectedProviderIds = selected
+		? [...selectedProviderIds, id]
+		: selectedProviderIds.filter(selectedId => selectedId !== id);
 
-	row.setAttribute('aria-selected', String(selectedProviderIds.includes(id)));
+	row.setAttribute('aria-selected', String(selected));
 	browser.storage.local.set({selected_provider_ids: selectedProviderIds});
 	updateSelectionCount();
 }
 
 function onProviderListClick(event) {
-	let row = event.target.closest('.provider-row');
+	const row = event.target.closest('.provider-row');
 	if (row && filterStatus) {
 		toggleProvider(row);
 	}
 }
 
 function onProviderListKeydown(event) {
-	let row = event.target.closest('.provider-row');
+	const row = event.target.closest('.provider-row');
 	if (row && filterStatus && (event.key === ' ' || event.key === 'Enter')) {
 		event.preventDefault();
 		toggleProvider(row);
@@ -144,17 +169,13 @@ function onProviderListKeydown(event) {
  * Only changes what is shown; the selection stays as it is.
  */
 function applyProviderSearch() {
-	let query = providerSearch.value.trim().toLowerCase();
+	const query = providerSearch.value.trim().toLowerCase();
 	let anyVisible = false;
-	for (const row of providerList.querySelectorAll('.provider-row')) {
+	for (const row of getProviderRows()) {
 		row.hidden = !row.textContent.toLowerCase().includes(query);
-		anyVisible = anyVisible || !row.hidden;
+		anyVisible ||= !row.hidden;
 	}
-
-	let empty = providerList.querySelector('.provider-empty');
-	if (empty) {
-		empty.hidden = anyVisible;
-	}
+	providerList.querySelector('.provider-empty').hidden = anyVisible;
 	updateSelectionCount();
 }
 
@@ -163,18 +184,21 @@ function applyProviderSearch() {
  * including rows hidden by the search.
  */
 function updateSelectionCount() {
-	let count = providerList.querySelectorAll('.provider-row[aria-selected="true"]').length;
+	const count = providerList.querySelectorAll('.provider-row[aria-selected="true"]').length;
 	selectionCount.textContent = count + ' selected';
-	clearSelectionButton.disabled = !filterStatus || selectedProviderIds.length === 0;
+	clearSelectionButton.disabled = !filterStatus || count === 0;
 }
 
 /**
- * Deselects all providers and stores the empty selection.
+ * Deselects all providers offered in the selected country (including rows hidden by the search)
+ * and stores the new selection. Selections for other countries are kept, like on a country change.
  */
 function clearSelectedProviderIds() {
-	selectedProviderIds = [];
+	const rows = getProviderRows();
+	const shownIds = new Set(Array.from(rows, row => Number(row.dataset.providerId)));
+	selectedProviderIds = selectedProviderIds.filter(id => !shownIds.has(id));
 	browser.storage.local.set({selected_provider_ids: selectedProviderIds});
-	for (const row of providerList.querySelectorAll('.provider-row')) {
+	for (const row of rows) {
 		row.setAttribute('aria-selected', 'false');
 	}
 	updateSelectionCount();
@@ -190,100 +214,32 @@ function setControlsDisabled(disabled) {
 	providerSearch.disabled = disabled;
 	providerBox.classList.toggle('disabled', disabled);
 	providerList.setAttribute('aria-disabled', String(disabled));
-	for (const row of providerList.querySelectorAll('.provider-row')) {
+	for (const row of getProviderRows()) {
 		row.tabIndex = disabled ? -1 : 0;
 	}
 	updateSelectionCount();
 }
 
 /**
- * Changes the filter status in the background page.
+ * Called when the filter switch is toggled. Stores the new filter status.
  */
 function changeFilterSwitch() {
-	// enable or disable filtering
 	filterStatus = filterSwitch.checked;
-	browser.storage.local.set({filter_status: filterSwitch.checked});
-	setControlsDisabled(!filterSwitch.checked);
+	browser.storage.local.set({filter_status: filterStatus});
+	setControlsDisabled(!filterStatus);
 }
 
 /**
  * Called when the selected item in countryList is changed.
- * Changes the country code in the background page and forces the rows in providerList to reload.
+ * Stores the new country code and reloads the rows in providerList.
  */
 function changeCountryCode() {
-	let code = countryList.options[countryList.selectedIndex].value;
-	if (typeof countries !== 'undefined' && Object.prototype.hasOwnProperty.call(countries, code)
-		&& Object.prototype.hasOwnProperty.call(countries[code], 'code')) {
-		countryCode = countries[code].code;
-
-		browser.storage.local.set({
-			country_code: countryCode
-		});
-
-		appendOptionsToProviderList();
+	const code = countries[countryList.value]?.code;
+	if (!code) {
+		return;
 	}
-}
 
-/**
- * Parses settings from storage items.
- * Falls back to the legacy single `provider_id` setting if `selected_provider_ids` hasn't been
- * migrated yet; the worker performs the actual migration write.
- *
- * @param {object} items - Storage items containing settings.
- */
-function parseSettings(items) {
-	countryCode = Object.prototype.hasOwnProperty.call(items, 'country_code') ? items.country_code : 'US';
-	if (Object.prototype.hasOwnProperty.call(items, 'selected_provider_ids')) {
-		selectedProviderIds = items.selected_provider_ids;
-	} else if (Object.prototype.hasOwnProperty.call(items, 'provider_id')) {
-		selectedProviderIds = [items.provider_id];
-	} else {
-		selectedProviderIds = [8];
-	}
-	filterStatus = Object.prototype.hasOwnProperty.call(items, 'filter_status') ? items.filter_status : false;
-}
-
-function parseCache(items) {
-	providers = Object.prototype.hasOwnProperty.call(items, 'providers') ? items.providers : {};
-	countries = Object.prototype.hasOwnProperty.call(items, 'countries') ? items.countries : {};
-}
-
-/**
- * Returns the current browser name.
- *
- * @returns {string} - The browser's name.
- */
-function getBrowser() {
-	// Opera 8.0+
-	let isOpera = (!!window.opr && !!opr.addons) || !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
-
-	// Firefox 1.0+
-	let isFirefox = typeof InstallTrigger !== 'undefined';
-
-	// Chrome 1 - 71
-	let isChrome = !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime);
-
-	return isOpera ? 'Opera' :
-		isFirefox ? 'Firefox' :
-			isChrome ? 'Chrome' :
-				"Don't know";
-}
-
-if (getBrowser() !== 'Firefox') {
-	// for opening the hyperlink in the popup in a new tab
-	document.addEventListener('DOMContentLoaded', function () {
-		var links = document.getElementsByTagName("a");
-		for (var i = 0; i < links.length; i++) {
-			(function () {
-				var ln = links[i];
-				var location = ln.href;
-				ln.onclick = function () {
-					browser.tabs.create({
-						active: true,
-						url: location
-					});
-				};
-			})();
-		}
-	});
+	countryCode = code;
+	browser.storage.local.set({country_code: countryCode});
+	appendOptionsToProviderList();
 }
