@@ -1,151 +1,45 @@
 "use strict";
 
 //for compatibility reasons
-var browser = chrome;
+const browser = chrome;
 
-var countries = {};
-var providers = {};
-var selectedProviderIds = [];
-var countryCode = '';
-var filterStatus = false;
+let countries = {};
+let providers = {};
+let selectedProviderIds = [];
+let countryCode = '';
+let filterStatus = false;
 
-var countryList = document.getElementById('CountryList');
-var providerList = document.getElementById('ProviderList');
-var filterSwitch = document.getElementById("filterSwitch");
+const filterSwitch = document.getElementById('filterSwitch');
+const countryList = document.getElementById('CountryList');
+const providerBox = document.getElementById('ProviderBox');
+const providerList = document.getElementById('ProviderList');
+const providerSearch = document.getElementById('ProviderSearch');
+const selectionCount = document.getElementById('SelectionCount');
+const clearSelectionButton = document.getElementById('ClearSelection');
 
 // load stored settings from localStorage; only these keys, to skip deserializing the TMDb cache blob
-browser.storage.local.get(['country_code', 'selected_provider_ids', 'provider_id', 'filter_status', 'providers', 'countries'], (items) => {
+browser.storage.local.get(['country_code', 'selected_provider_ids', 'provider_id', 'filter_status'], (items) => {
 	parseSettings(items);
 
 	// load cached variables from sessionStorage
-	browser.storage.session.get((items) => {
-		parseCache(items);
-		
+	browser.storage.session.get(['providers', 'countries'], (items) => {
+		providers = items.providers ?? {};
+		countries = items.countries ?? {};
+
 		appendOptionsToCountryList();
-		
 		appendOptionsToProviderList();
-		
+
 		filterSwitch.checked = filterStatus;
-		
-		// Set initial disabled state for selects
-		countryList.disabled = !filterStatus;
-		providerList.disabled = !filterStatus;
-		
-		filterSwitch.addEventListener("change", changeFilterSwitch);
-		providerList.addEventListener("change", changeSelectedProviderIds);
-		countryList.addEventListener("change", changeCountryCode);
+		setControlsDisabled(!filterStatus);
+
+		filterSwitch.addEventListener('change', changeFilterSwitch);
+		countryList.addEventListener('change', changeCountryCode);
+		providerList.addEventListener('click', onProviderListClick);
+		providerList.addEventListener('keydown', onProviderListKeydown);
+		providerSearch.addEventListener('input', applyProviderSearch);
+		clearSelectionButton.addEventListener('click', clearSelectedProviderIds);
 	});
 });
-
-/**
- * Appends all countries as option to the countryList select tag.
- */
-function appendOptionsToCountryList() {
-	var fragment = document.createDocumentFragment();
-	var keys = Object.keys(countries).sort(function (a, b) {
-		return ('' + countries[a].name).localeCompare(countries[b].name);
-	});
-	for (const country of keys) {
-		if (!Object.prototype.hasOwnProperty.call(countries[country], 'name') || !Object.prototype.hasOwnProperty.call(countries[country], 'code'))
-			continue;
-
-		let opt = document.createElement('option');
-		opt.textContent = countries[country].name;
-		opt.value = country;
-		opt.label = countries[country].name;
-		if (countries[country].code === countryCode) {
-			opt.selected = "selected";
-		}
-		fragment.appendChild(opt);
-	}
-	countryList.appendChild(fragment);
-}
-
-/**
- * Appends all providers from the selected country as option to the providerList select tag.
- * A provider is pre-selected if its provider_id is part of the currently selected provider IDs,
- * so selections carry over across a country change as long as the provider is offered there too.
- */
-function appendOptionsToProviderList() {
-	providerList.options.length = 0;
-	let fragment = document.createDocumentFragment();
-	let keys = Object.keys(providers).sort(function (a, b) {
-		return ('' + providers[a].name).localeCompare(providers[b].name);
-	});
-	for (const provider of keys) {
-		if (!Object.prototype.hasOwnProperty.call(providers[provider], 'name') || !Object.prototype.hasOwnProperty.call(providers[provider], 'provider_id'))
-			continue;
-
-		let country = countryList.options[countryList.selectedIndex].value;
-		if (providers[provider].countries.includes(country)) {
-			let opt = document.createElement('option');
-			opt.textContent = providers[provider].name;
-			opt.value = provider;
-			opt.label = providers[provider].name;
-			if (selectedProviderIds.includes(providers[provider].provider_id)) {
-				opt.selected = "selected";
-			}
-			fragment.appendChild(opt);
-		}
-	}
-	providerList.appendChild(fragment);
-}
-
-/**
- * Changes the filter status in the background page.
- */
-function changeFilterSwitch() {
-	// enable or disable filtering
-	filterStatus = filterSwitch.checked;
-	browser.storage.local.set({filter_status: filterSwitch.checked});
-	providerList.disabled = (!filterSwitch.checked);
-	countryList.disabled = (!filterSwitch.checked);
-}
-
-/**
- * Called when the selection in providerList is changed. Stores the newly selected provider IDs.
- * Does nothing if the list has no options yet (e.g. the provider cache hasn't loaded),
- * so we never overwrite a stored selection with an empty one.
- */
-function changeSelectedProviderIds() {
-	if (providerList.options.length === 0) {
-		return;
-	}
-
-	let newSelectedProviderIds = [];
-	if (typeof providers !== 'undefined') {
-		var opt;
-		var id;
-		for (var i = 0; i < providerList.options.length; i++) {
-			opt = providerList.options[i];
-			id = opt.value;
-			if (opt.selected && Object.prototype.hasOwnProperty.call(providers, id) && Object.prototype.hasOwnProperty.call(providers[id], 'provider_id')) {
-				newSelectedProviderIds.push(providers[id].provider_id);
-			}
-		}
-	}
-	selectedProviderIds = newSelectedProviderIds;
-	browser.storage.local.set({selected_provider_ids: selectedProviderIds});
-}
-
-/**
- * Called when the selected item in countryList is changed.
- * Changes the country code in the background page and forces the options in providerList to reload.
- */
-function changeCountryCode() {
-	let code = countryList.options[countryList.selectedIndex].value;
-	if (typeof countries !== 'undefined' && Object.prototype.hasOwnProperty.call(countries, code)
-		&& Object.prototype.hasOwnProperty.call(countries[code], 'code')) {
-		countryCode = countries[code].code;
-
-		browser.storage.local.set({
-			country_code: countryCode
-		});
-
-		appendOptionsToProviderList();
-		changeSelectedProviderIds();
-	}
-}
 
 /**
  * Parses settings from storage items.
@@ -155,58 +49,197 @@ function changeCountryCode() {
  * @param {object} items - Storage items containing settings.
  */
 function parseSettings(items) {
-	countryCode = Object.prototype.hasOwnProperty.call(items, 'country_code') ? items.country_code : 'US';
-	if (Object.prototype.hasOwnProperty.call(items, 'selected_provider_ids')) {
+	countryCode = items.country_code ?? 'US';
+	if (Object.hasOwn(items, 'selected_provider_ids')) {
 		selectedProviderIds = items.selected_provider_ids;
-	} else if (Object.prototype.hasOwnProperty.call(items, 'provider_id')) {
+	} else if (Object.hasOwn(items, 'provider_id')) {
 		selectedProviderIds = [items.provider_id];
 	} else {
 		selectedProviderIds = [8];
 	}
-	filterStatus = Object.prototype.hasOwnProperty.call(items, 'filter_status') ? items.filter_status : false;
-}
-
-function parseCache(items) {
-	providers = Object.prototype.hasOwnProperty.call(items, 'providers') ? items.providers : {};
-	countries = Object.prototype.hasOwnProperty.call(items, 'countries') ? items.countries : {};
+	filterStatus = items.filter_status ?? false;
 }
 
 /**
- * Returns the current browser name.
+ * Returns the keys of the given object, sorted by the `name` of their values.
  *
- * @returns {string} - The browser's name.
+ * @param {object} entries - Countries or providers, keyed by code or ID.
+ * @returns {string[]} - The sorted keys.
  */
-function getBrowser() {
-	// Opera 8.0+
-	let isOpera = (!!window.opr && !!opr.addons) || !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
-
-	// Firefox 1.0+
-	let isFirefox = typeof InstallTrigger !== 'undefined';
-
-	// Chrome 1 - 71
-	let isChrome = !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime);
-
-	return isOpera ? 'Opera' :
-		isFirefox ? 'Firefox' :
-			isChrome ? 'Chrome' :
-				"Don't know";
+function keysSortedByName(entries) {
+	return Object.keys(entries).sort((a, b) => String(entries[a].name).localeCompare(entries[b].name));
 }
 
-if (getBrowser() !== 'Firefox') {
-	// for opening the hyperlink in the popup in a new tab
-	document.addEventListener('DOMContentLoaded', function () {
-		var links = document.getElementsByTagName("a");
-		for (var i = 0; i < links.length; i++) {
-			(function () {
-				var ln = links[i];
-				var location = ln.href;
-				ln.onclick = function () {
-					browser.tabs.create({
-						active: true,
-						url: location
-					});
-				};
-			})();
-		}
-	});
+/**
+ * Fills the countryList select with all countries and selects the stored one.
+ */
+function appendOptionsToCountryList() {
+	const fragment = document.createDocumentFragment();
+	for (const key of keysSortedByName(countries)) {
+		const country = countries[key];
+		if (!country.name || !country.code)
+			continue;
+
+		const opt = document.createElement('option');
+		opt.textContent = country.name;
+		opt.value = key;
+		opt.selected = country.code === countryCode;
+		fragment.appendChild(opt);
+	}
+	countryList.appendChild(fragment);
+}
+
+/**
+ * Fills the providerList with one row per provider offered in the selected country.
+ * A row is marked selected if its provider_id is part of the currently selected provider IDs.
+ * Selections of providers not offered in this country are kept in storage, so they come back
+ * when switching back to a country that offers them.
+ */
+function appendOptionsToProviderList() {
+	const fragment = document.createDocumentFragment();
+	const country = countryList.value;
+	for (const key of keysSortedByName(providers)) {
+		const provider = providers[key];
+		if (!provider.name || provider.provider_id == null || !provider.countries?.includes(country))
+			continue;
+
+		const row = document.createElement('div');
+		row.className = 'provider-row';
+		row.setAttribute('role', 'option');
+		row.textContent = provider.name;
+		row.dataset.providerId = provider.provider_id;
+		row.setAttribute('aria-selected', String(selectedProviderIds.includes(provider.provider_id)));
+		row.tabIndex = filterStatus ? 0 : -1;
+		fragment.appendChild(row);
+	}
+
+	const empty = document.createElement('div');
+	empty.className = 'provider-empty';
+	// No rows at all means the provider cache hasn't been filled yet (or the country has none)
+	empty.textContent = fragment.childElementCount > 0 ? 'No matches' : 'No streaming services available';
+	fragment.appendChild(empty);
+
+	providerList.replaceChildren(fragment);
+	applyProviderSearch();
+}
+
+/**
+ * Returns all rows of the providerList, including those hidden by the search.
+ *
+ * @returns {NodeListOf<HTMLElement>} - The provider rows.
+ */
+function getProviderRows() {
+	return providerList.querySelectorAll('.provider-row');
+}
+
+/**
+ * Selects or deselects a provider and stores the new selection.
+ *
+ * @param {HTMLElement} row - The providerList row that was toggled.
+ */
+function toggleProvider(row) {
+	const id = Number(row.dataset.providerId);
+	const selected = !selectedProviderIds.includes(id);
+	selectedProviderIds = selected
+		? [...selectedProviderIds, id]
+		: selectedProviderIds.filter(selectedId => selectedId !== id);
+
+	row.setAttribute('aria-selected', String(selected));
+	browser.storage.local.set({selected_provider_ids: selectedProviderIds});
+	updateSelectionCount();
+}
+
+function onProviderListClick(event) {
+	const row = event.target.closest('.provider-row');
+	if (row && filterStatus) {
+		toggleProvider(row);
+	}
+}
+
+function onProviderListKeydown(event) {
+	const row = event.target.closest('.provider-row');
+	if (row && filterStatus && (event.key === ' ' || event.key === 'Enter')) {
+		event.preventDefault();
+		toggleProvider(row);
+	}
+}
+
+/**
+ * Hides the providerList rows that don't match the search text.
+ * Only changes what is shown; the selection stays as it is.
+ */
+function applyProviderSearch() {
+	const query = providerSearch.value.trim().toLowerCase();
+	let anyVisible = false;
+	for (const row of getProviderRows()) {
+		row.hidden = !row.textContent.toLowerCase().includes(query);
+		anyVisible ||= !row.hidden;
+	}
+	providerList.querySelector('.provider-empty').hidden = anyVisible;
+	updateSelectionCount();
+}
+
+/**
+ * Shows how many of the providers offered in the selected country are selected,
+ * including rows hidden by the search.
+ */
+function updateSelectionCount() {
+	const count = providerList.querySelectorAll('.provider-row[aria-selected="true"]').length;
+	selectionCount.textContent = count + ' selected';
+	clearSelectionButton.disabled = !filterStatus || count === 0;
+}
+
+/**
+ * Deselects all providers offered in the selected country (including rows hidden by the search)
+ * and stores the new selection. Selections for other countries are kept, like on a country change.
+ */
+function clearSelectedProviderIds() {
+	const rows = getProviderRows();
+	const shownIds = new Set(Array.from(rows, row => Number(row.dataset.providerId)));
+	selectedProviderIds = selectedProviderIds.filter(id => !shownIds.has(id));
+	browser.storage.local.set({selected_provider_ids: selectedProviderIds});
+	for (const row of rows) {
+		row.setAttribute('aria-selected', 'false');
+	}
+	updateSelectionCount();
+}
+
+/**
+ * Enables or disables the country select and the provider picker.
+ *
+ * @param {boolean} disabled - Whether the controls should be disabled.
+ */
+function setControlsDisabled(disabled) {
+	countryList.disabled = disabled;
+	providerSearch.disabled = disabled;
+	providerBox.classList.toggle('disabled', disabled);
+	providerList.setAttribute('aria-disabled', String(disabled));
+	for (const row of getProviderRows()) {
+		row.tabIndex = disabled ? -1 : 0;
+	}
+	updateSelectionCount();
+}
+
+/**
+ * Called when the filter switch is toggled. Stores the new filter status.
+ */
+function changeFilterSwitch() {
+	filterStatus = filterSwitch.checked;
+	browser.storage.local.set({filter_status: filterStatus});
+	setControlsDisabled(!filterStatus);
+}
+
+/**
+ * Called when the selected item in countryList is changed.
+ * Stores the new country code and reloads the rows in providerList.
+ */
+function changeCountryCode() {
+	const code = countries[countryList.value]?.code;
+	if (!code) {
+		return;
+	}
+
+	countryCode = code;
+	browser.storage.local.set({country_code: countryCode});
+	appendOptionsToProviderList();
 }

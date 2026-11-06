@@ -27,22 +27,25 @@
     <select id="CountryList"></select>
   </div>
 
-  <div class="select-box">
-    <label class="content-text" for="ProviderList">Streaming service</label>
-    <div class="instruction-text">Hold Ctrl/Cmd to select multiple</div>
-    <select id="ProviderList" multiple size="8"></select>
+  <div class="select-box" id="ProviderBox">
+    <div class="label-row">
+      <span class="content-text" id="ProviderLabel">Streaming service</span>
+      <span class="selection-meta"><span id="SelectionCount">0 selected</span> · <button type="button" class="link-button" id="ClearSelection">Clear</button></span>
+    </div>
+    <input type="search" class="provider-search" id="ProviderSearch" placeholder="Search services…" aria-label="Search streaming services" autocomplete="off">
+    <div class="provider-list" id="ProviderList" role="listbox" aria-multiselectable="true" aria-labelledby="ProviderLabel"></div>
   </div>
 </section>
 
-<section id="footer">
+<section class="footer">
   <div class="footer-text">Streaming information provided by</div>
   <div class="justwatch-logo">
-    <a href="https://justwatch.com" title="JustWatch"><img src="../justwatch/logo.png" alt="JustWatch"></a>
+    <a href="https://justwatch.com" title="JustWatch" target="_blank" rel="noopener"><img src="../justwatch/logo.png" alt="JustWatch"></a>
   </div>
 </section>
 
-<section id="footer">
-  <div class="footer-text">Further information? Contributing? Go <a href="https://github.com/adlerzei/letterboxd-streaming-providers#readme" title="Letterboxd Streaming Providers on GitHub">here</a>!</div>
+<section class="footer">
+  <div class="footer-text">Further information? Contributing? Go <a href="https://github.com/adlerzei/letterboxd-streaming-providers#readme" title="Letterboxd Streaming Providers on GitHub" target="_blank" rel="noopener">here</a>!</div>
 </section>
 
 <script src="popup.js"></script>
